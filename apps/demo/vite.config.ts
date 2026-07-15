@@ -105,7 +105,7 @@ export default defineConfig({
   resolve: {
     alias: {
       "@wordinweb/core": fileURLToPath(new URL("../../wordinweb/packages/core/src/index.ts", import.meta.url)),
-      "@wordinweb/react": fileURLToPath(new URL("../../wordinweb/packages/react/src/index.tsx", import.meta.url)),
+      "wordinweb": fileURLToPath(new URL("../../wordinweb/packages/react/src/index.tsx", import.meta.url)),
     },
   },
 });

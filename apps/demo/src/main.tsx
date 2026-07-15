@@ -16,7 +16,7 @@ import "@fontsource/noto-sans-lao-looped/700.css";
 // to the substitutes above when the files are absent. See fonts-local.css.
 import "./fonts-local.css";
 import { createRoot } from "react-dom/client";
-import { DocxView, DocxToolbar, DocxViewApi, printPages } from "@wordinweb/react";
+import { DocxView, DocxToolbar, DocxViewApi, printPages } from "wordinweb";
 
 // Tracked-change insertion ink (see packages/core/src/parse/document.ts) — the
 // color your suggestions render in, echoed by the mode control + author chip.
@@ -464,6 +464,15 @@ function App() {
           style={{ marginLeft: "auto", fontSize: 13, color: "#1a73e8", textDecoration: "none" }}
         >
           GitHub ↗
+        </a>
+        <a
+          href="https://github.com/theRealestAEP/wordinweb/blob/main/BLOG.md"
+          target="_blank"
+          rel="noreferrer"
+          title="Read the WordInWeb development blog"
+          style={{ fontSize: 13, color: "#1a73e8", textDecoration: "none" }}
+        >
+          Blog ↗
         </a>
         <a
           href="/report"

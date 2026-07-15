@@ -42,6 +42,10 @@ test.describe("rendering", () => {
     const repository = page.getByRole("link", { name: /^GitHub/ });
     await expect(repository).toHaveAttribute("href", "https://github.com/theRealestAEP/wordinweb");
     await expect(repository).toHaveAttribute("target", "_blank");
+    await expect(page.getByRole("link", { name: /^Blog/ })).toHaveAttribute(
+      "href",
+      "https://github.com/theRealestAEP/wordinweb/blob/main/BLOG.md",
+    );
     const pageText = (await page.locator(".dxw-page").first().innerText()).replace(/\s+/g, " ");
     expect(pageText).toContain("Page 1 of 4");
   });
@@ -944,6 +948,5 @@ test.describe("caret in empty paragraphs", () => {
     expect(where).toBe(0); // typed on page 1, below the table (not lost)
   });
 });
-
 
 
