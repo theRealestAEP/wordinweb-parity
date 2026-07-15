@@ -1,0 +1,15 @@
+node_modules/
+dist/
+*.tsbuildinfo
+.DS_Store
+parity/*
+!parity/*-word.pdf
+!parity/*-word-lines.json
+/docs
+.claude/
+test-results/
+.codex-local/
+.codex-work/
+internal/
+__pycache__/
+*.py[cod]

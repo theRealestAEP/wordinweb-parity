@@ -1,0 +1,69 @@
+/* Dev-only @font-face registration of the REAL Microsoft Office fonts, served
+ * from /fonts-local/ (git-ignored; regenerate via scripts/extract-dfonts.py).
+ *
+ * Registering them under their real family names flips the whole engine from
+ * metric-compatible substitutes (STIX Two Math, Carlito, Caladea, Hiragino…)
+ * to Word's actual faces: the CSS font stacks already read "Calibri, Carlito,
+ * sans-serif" / "Cambria Math, STIX Two Math, sans-serif" etc., so the real
+ * face wins when present and the substitute remains the fallback when the
+ * files are absent (nothing here is committed). */
+
+/* --- Cambria + Cambria Math (OMML math) --- */
+@font-face { font-family: "Cambria Math"; src: url("/fonts-local/CambriaMath.ttf"); font-display: swap; }
+@font-face { font-family: "Cambria"; font-weight: 400; font-style: normal; src: url("/fonts-local/Cambria.ttf"); font-display: swap; }
+@font-face { font-family: "Cambria"; font-weight: 700; font-style: normal; src: url("/fonts-local/Cambria-Bold.ttf"); font-display: swap; }
+@font-face { font-family: "Cambria"; font-weight: 400; font-style: italic; src: url("/fonts-local/Cambria-Italic.ttf"); font-display: swap; }
+@font-face { font-family: "Cambria"; font-weight: 700; font-style: italic; src: url("/fonts-local/Cambria-BoldItalic.ttf"); font-display: swap; }
+
+/* --- Times New Roman --- */
+@font-face { font-family: "Times New Roman"; font-weight: 400; font-style: normal; src: url("/fonts-local/TimesNewRoman.ttf"); font-display: swap; }
+@font-face { font-family: "Times New Roman"; font-weight: 700; font-style: normal; src: url("/fonts-local/TimesNewRoman-Bold.ttf"); font-display: swap; }
+@font-face { font-family: "Times New Roman"; font-weight: 400; font-style: italic; src: url("/fonts-local/TimesNewRoman-Italic.ttf"); font-display: swap; }
+@font-face { font-family: "Times New Roman"; font-weight: 700; font-style: italic; src: url("/fonts-local/TimesNewRoman-BoldItalic.ttf"); font-display: swap; }
+
+/* --- Calibri (real; had been Carlito) --- */
+@font-face { font-family: "Calibri"; font-weight: 400; font-style: normal; src: url("/fonts-local/Calibri.ttf"); font-display: swap; }
+@font-face { font-family: "Calibri"; font-weight: 700; font-style: normal; src: url("/fonts-local/Calibri-Bold.ttf"); font-display: swap; }
+@font-face { font-family: "Calibri"; font-weight: 400; font-style: italic; src: url("/fonts-local/Calibri-Italic.ttf"); font-display: swap; }
+@font-face { font-family: "Calibri"; font-weight: 700; font-style: italic; src: url("/fonts-local/Calibri-BoldItalic.ttf"); font-display: swap; }
+@font-face { font-family: "Calibri Light"; font-weight: 400; font-style: normal; src: url("/fonts-local/CalibriLight.ttf"); font-display: swap; }
+@font-face { font-family: "Calibri Light"; font-weight: 400; font-style: italic; src: url("/fonts-local/CalibriLight-Italic.ttf"); font-display: swap; }
+
+/* --- Arial --- */
+@font-face { font-family: "Arial"; font-weight: 400; font-style: normal; src: url("/fonts-local/Arial.ttf"); font-display: swap; }
+@font-face { font-family: "Arial"; font-weight: 700; font-style: normal; src: url("/fonts-local/Arial-Bold.ttf"); font-display: swap; }
+@font-face { font-family: "Arial"; font-weight: 400; font-style: italic; src: url("/fonts-local/Arial-Italic.ttf"); font-display: swap; }
+@font-face { font-family: "Arial"; font-weight: 700; font-style: italic; src: url("/fonts-local/Arial-BoldItalic.ttf"); font-display: swap; }
+
+/* --- CJK: Japanese --- */
+@font-face { font-family: "MS Mincho"; src: url("/fonts-local/MSMincho.ttf"); font-display: swap; }
+@font-face { font-family: "MS Gothic"; src: url("/fonts-local/MSGothic.ttf"); font-display: swap; }
+@font-face { font-family: "Meiryo"; font-weight: 400; src: url("/fonts-local/Meiryo.ttf"); font-display: swap; }
+@font-face { font-family: "Meiryo"; font-weight: 700; src: url("/fonts-local/Meiryo-Bold.ttf"); font-display: swap; }
+@font-face { font-family: "Yu Gothic"; font-weight: 400; src: url("/fonts-local/YuGothic.ttf"); font-display: swap; }
+@font-face { font-family: "Yu Gothic"; font-weight: 700; src: url("/fonts-local/YuGothic-Bold.ttf"); font-display: swap; }
+@font-face { font-family: "Yu Mincho"; font-weight: 400; src: url("/fonts-local/YuMincho.ttf"); font-display: swap; }
+@font-face { font-family: "Yu Mincho"; font-weight: 700; src: url("/fonts-local/YuMincho-Bold.ttf"); font-display: swap; }
+
+/* --- CJK: Chinese --- */
+@font-face { font-family: "SimSun"; src: url("/fonts-local/SimSun.ttf"); font-display: swap; }
+@font-face { font-family: "SimHei"; src: url("/fonts-local/SimHei.ttf"); font-display: swap; }
+@font-face { font-family: "Microsoft JhengHei"; font-weight: 400; src: url("/fonts-local/MSJhengHei.ttf"); font-display: swap; }
+@font-face { font-family: "Microsoft JhengHei"; font-weight: 700; src: url("/fonts-local/MSJhengHei-Bold.ttf"); font-display: swap; }
+@font-face { font-family: "Microsoft YaHei"; src: url("/fonts-local/MicrosoftYaHei.ttf"); font-display: swap; }
+
+/* --- CJK: Korean --- */
+@font-face { font-family: "Malgun Gothic"; font-weight: 400; src: url("/fonts-local/MalgunGothic.ttf"); font-display: swap; }
+@font-face { font-family: "Malgun Gothic"; font-weight: 700; src: url("/fonts-local/MalgunGothic-Bold.ttf"); font-display: swap; }
+@font-face { font-family: "Tahoma"; font-weight: 400; font-style: normal; src: url("/fonts-local/Tahoma.ttf"); font-display: swap; }
+@font-face { font-family: "Tahoma"; font-weight: 700; font-style: normal; src: url("/fonts-local/Tahoma-Bold.ttf"); font-display: swap; }
+
+/* --- Franklin Gothic Medium (wild-doerfp H.x sub-headings) --- */
+@font-face { font-family: "Franklin Gothic Medium"; font-weight: 400; font-style: normal; src: url("/fonts-local/FranklinGothicMedium.ttf"); font-display: swap; }
+@font-face { font-family: "Franklin Gothic Medium"; font-weight: 400; font-style: italic; src: url("/fonts-local/FranklinGothicMedium-Italic.ttf"); font-display: swap; }
+
+/* --- Indic: Mangal (Devanagari) + Latha (Tamil), probe3-indic's Nirmala UI runs --- */
+@font-face { font-family: "Mangal"; font-weight: 400; font-style: normal; src: url("/fonts-local/Mangal.ttf"); font-display: swap; }
+@font-face { font-family: "Mangal"; font-weight: 700; font-style: normal; src: url("/fonts-local/Mangal-Bold.ttf"); font-display: swap; }
+@font-face { font-family: "Latha"; font-weight: 400; font-style: normal; src: url("/fonts-local/Latha.ttf"); font-display: swap; }
+@font-face { font-family: "Latha"; font-weight: 700; font-style: normal; src: url("/fonts-local/Latha-Bold.ttf"); font-display: swap; }
