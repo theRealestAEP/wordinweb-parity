@@ -39,6 +39,9 @@ test.describe("rendering", () => {
     await load(page);
     await expect(page.locator(".dxw-page")).toHaveCount(4);
     await expect(span(page, "Fidelity")).toBeVisible();
+    const repository = page.getByRole("link", { name: /^GitHub/ });
+    await expect(repository).toHaveAttribute("href", "https://github.com/theRealestAEP/wordinweb");
+    await expect(repository).toHaveAttribute("target", "_blank");
     const pageText = (await page.locator(".dxw-page").first().innerText()).replace(/\s+/g, " ");
     expect(pageText).toContain("Page 1 of 4");
   });
@@ -941,7 +944,6 @@ test.describe("caret in empty paragraphs", () => {
     expect(where).toBe(0); // typed on page 1, below the table (not lost)
   });
 });
-
 
 
 
