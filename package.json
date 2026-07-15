@@ -13,7 +13,7 @@
     "dev": "npm run dev -w demo",
     "test:e2e": "playwright test",
     "parity": "node scripts/parity-compare.mjs",
-    "report:snapshot": "cp parity/out/report.html apps/demo/public/report.html"
+    "report:snapshot": "node scripts/snapshot-report.mjs"
   },
   "devDependencies": {
     "@playwright/test": "^1.61.1",
