@@ -20,7 +20,7 @@ The public scripts support three workflows.
 ## Local fonts
 
 - `extract-dfonts.py` extracts licensed Office fonts for local, git-ignored use.
-- `extract-font-metrics.py` regenerates the checked-in font metrics table.
+- `extract-font-metrics.py OUTPUT` generates the engine's font metrics table at an explicit output path.
 
 One-off probe generators, forensic readers, and local export experiments are
 kept outside the public repository under `internal/scripts/`.

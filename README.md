@@ -6,27 +6,20 @@ Microsoft Word reference PDFs for
 
 ## Setup
 
-Clone with the engine submodule:
+Clone and install:
 
 ```bash
-git clone --recurse-submodules https://github.com/theRealestAEP/wordinweb-parity.git
+git clone https://github.com/theRealestAEP/wordinweb-parity.git
 cd wordinweb-parity
 npm install
-```
-
-If you already cloned the repository, initialize the submodule with:
-
-```bash
-git submodule update --init
 ```
 
 ## Commands
 
 ```bash
 npm run dev              # demo and parity dashboard at http://localhost:5173
-npm run build            # engine packages and production demo
-npm test                 # engine unit tests
-npm run test:integration # fixture-backed incremental layout tests
+npm run build            # production demo
+npm test                 # Playwright editor tests
 npm run test:e2e         # Playwright editor tests
 node scripts/parity-parallel.mjs
 node scripts/parity-render-report.mjs
@@ -38,7 +31,6 @@ Append `?perf=1` to the demo URL to show the per-edit performance HUD.
 
 | Path | Contents |
 | --- | --- |
-| `wordinweb/` | Git submodule containing the engine and React package. |
 | `apps/demo/` | Vite demo, fixture corpus, and demo fonts. |
 | `e2e/` | Browser editing and performance tests. |
 | `fixtures-staging/` | Additional layout and robustness probes. |
@@ -50,15 +42,13 @@ Append `?perf=1` to the demo URL to show the per-edit performance HUD.
 The Microsoft fonts in `apps/demo/public/fonts-local` are included only to
 reproduce this experimental demo's parity results. Do not copy or use them
 outside this demo.
-## Updating the engine
+## Updating WordInWeb
 
 ```bash
-git submodule update --remote wordinweb
-git add wordinweb
-git commit -m "Update wordinweb"
+npm install wordinweb@latest -w demo
 ```
 
-The parity commit records the exact engine commit used for its results.
+The lockfile records the exact published package version used by the demo and browser tests.
 
 ## License
 

@@ -1065,7 +1065,7 @@ export function buildReport(results, history, meta) {
   return buildReportSingle(results, history, meta);
 }
 
-// One-line framing; the full methodology lives in BLOG.md.
+// One-line framing for the report header.
 function buildIntro() {
   return (
     `<p class="intro">WordInWeb's in-browser render of every fixture, compared pixel-by-pixel ` +

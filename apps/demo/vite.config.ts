@@ -48,8 +48,7 @@ function parityReport(): Plugin {
   <p>Generate it, then reload this page:</p>
   <code>node scripts/parity-parallel.mjs
 node scripts/parity-render-report.mjs</code>
-  <p>See <a href="https://github.com/theRealestAEP/wordinweb/blob/main/BLOG.md">BLOG.md</a>
-  for the methodology. &nbsp;<a href="/">← back to the viewer</a></p>
+  <p><a href="/">← back to the viewer</a></p>
 </div></body></html>`;
 
   const handler = (req: { url?: string }, res: import("node:http").ServerResponse, next: () => void): void => {
@@ -101,11 +100,5 @@ export default defineConfig({
   plugins: [react(), parityReport()],
   server: {
     fs: { allow: [searchForWorkspaceRoot(process.cwd()), ...realNodeModules] },
-  },
-  resolve: {
-    alias: {
-      "@wordinweb/core": fileURLToPath(new URL("../../wordinweb/packages/core/src/index.ts", import.meta.url)),
-      "wordinweb": fileURLToPath(new URL("../../wordinweb/packages/react/src/index.tsx", import.meta.url)),
-    },
   },
 });

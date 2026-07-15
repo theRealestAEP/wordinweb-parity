@@ -1,4 +1,0 @@
-[submodule "wordinweb"]
-	path = wordinweb
-	url = https://github.com/theRealestAEP/wordinweb.git
-	branch = main

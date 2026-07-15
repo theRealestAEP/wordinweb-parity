@@ -22,7 +22,7 @@ tagged; media is listed with hashes for a human to eyeball.
 
 Usage:
   python3 scripts/audit-fixtures.py \
-      --root /Users/alexpickett/Desktop/Projects/wordinweb \
+      --root apps/demo/public/fixtures \
       --md docs/FIXTURE-AUDIT.md --json /tmp/audit.json
 
 This script only READS. It never modifies a fixture or PDF.
