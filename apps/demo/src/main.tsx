@@ -466,6 +466,15 @@ function App() {
           GitHub ↗
         </a>
         <a
+          href="https://www.aepick.me/blog"
+          target="_blank"
+          rel="noreferrer"
+          title="Read the blog"
+          style={{ fontSize: 13, color: "#1a73e8", textDecoration: "none" }}
+        >
+          Blog ↗
+        </a>
+        <a
           href="/report"
           target="_blank"
           rel="noreferrer"
