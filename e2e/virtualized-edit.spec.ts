@@ -76,6 +76,23 @@ test("long documents keep early and post-undo edits visible and saved", async ({
   await expect(page.locator(".dxw-page", { hasText: marker })).toHaveCount(1);
   await expect(page.locator("[data-dxw-caret]")).toBeVisible();
 
+  const caret = page.locator("[data-dxw-caret]");
+  const container = page.locator(".dxw-pages").locator("..");
+  const caretIsInViewport = async () => {
+    const [cr, vr] = await Promise.all([caret.boundingBox(), container.boundingBox()]);
+    return !!cr && !!vr && cr.y >= vr.y && cr.y + cr.height <= vr.y + vr.height;
+  };
+  await page.keyboard.press("ControlOrMeta+ArrowUp");
+  const upPage = Number(await caret.evaluate((el) => el.closest(".dxw-page")?.getAttribute("data-page")));
+  expect(upPage).toBeGreaterThan(1);
+  expect(upPage).toBeLessThan(419);
+  expect(await caretIsInViewport()).toBe(true);
+  await page.keyboard.press("ControlOrMeta+ArrowDown");
+  const downPage = Number(await caret.evaluate((el) => el.closest(".dxw-page")?.getAttribute("data-page")));
+  expect(downPage).toBeGreaterThan(1);
+  expect(downPage).toBeLessThan(419);
+  expect(await caretIsInViewport()).toBe(true);
+
   const downloadPromise = page.waitForEvent("download");
   await page.getByText("Download", { exact: true }).click();
   const download = await downloadPromise;

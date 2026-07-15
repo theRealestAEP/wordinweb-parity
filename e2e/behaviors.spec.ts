@@ -610,6 +610,76 @@ test.describe("images", () => {
 });
 
 test.describe("keyboard control", () => {
+  test("Backspace on consecutive empty final lines keeps a valid caret", async ({ page }) => {
+    await load(page);
+    const last = page.locator('.dxw-page span[data-dxw-item-kind="text"]:not([data-dxw-hf])').filter({ hasText: /\S/ }).last();
+    await last.click();
+    await page.keyboard.press("End");
+    await page.keyboard.press("Enter");
+    await page.keyboard.press("Enter");
+    await page.keyboard.press("Backspace");
+    expect(await caretVisible(page)).toBe(true);
+  });
+
+  test("Delete at the end of the last body line repaints the caret", async ({ page }) => {
+    await load(page);
+    const last = page.locator('.dxw-page span[data-dxw-item-kind="text"]:not([data-dxw-hf])').filter({ hasText: /\S/ }).last();
+    const box = (await last.boundingBox())!;
+    await last.click({ position: { x: Math.max(1, box.width - 1), y: box.height / 2 } });
+    const caret = page.locator("[data-dxw-caret]");
+    await caret.evaluate((el) => ((el as HTMLElement).style.opacity = "0"));
+    await page.keyboard.press("Delete");
+    expect(await caret.evaluate((el) => (el as HTMLElement).style.opacity)).toBe("1");
+  });
+
+  test("Cmd/Ctrl+Left and Right keep the caret visible", async ({ page }) => {
+    await load(page);
+    const last = page.locator('.dxw-page span[data-dxw-item-kind="text"]:not([data-dxw-hf])').filter({ hasText: /\S/ }).last();
+    await last.click();
+    await page.keyboard.press("End");
+    await page.keyboard.press("Enter");
+    const caret = page.locator("[data-dxw-caret]");
+    await caret.evaluate((el) => ((el as HTMLElement).style.opacity = "0"));
+    await page.keyboard.press(`${MOD}+ArrowLeft`);
+    expect(await caret.evaluate((el) => (el as HTMLElement).style.opacity)).toBe("1");
+    await caret.evaluate((el) => ((el as HTMLElement).style.opacity = "0"));
+    await page.keyboard.press(`${MOD}+ArrowRight`);
+    expect(await caret.evaluate((el) => (el as HTMLElement).style.opacity)).toBe("1");
+  });
+
+  test("Cmd/Ctrl+Up and Down move between logical paragraph starts", async ({ page }) => {
+    await load(page);
+    await clickText(page, "dolore");
+    await page.keyboard.press(`${MOD}+ArrowUp`);
+    for (let i = 0; i < 5; i++) await page.keyboard.press("Shift+ArrowRight");
+    await page.keyboard.press(`${MOD}+c`);
+    expect(await page.evaluate(() => navigator.clipboard.readText())).toBe("Lorem");
+    await page.keyboard.press("ArrowLeft");
+    await page.keyboard.press(`${MOD}+ArrowDown`);
+    for (let i = 0; i < 5; i++) await page.keyboard.press("Shift+ArrowRight");
+    await page.keyboard.press(`${MOD}+c`);
+    expect(await page.evaluate(() => navigator.clipboard.readText())).toBe("Lists");
+  });
+
+  test("Cmd/Ctrl+Up and Down traverse paragraph starts inside tables", async ({ page }) => {
+    await load(page);
+    await clickText(page, "Working");
+    await page.keyboard.press(`${MOD}+ArrowUp`);
+    for (let i = 0; i < 7; i++) await page.keyboard.press("Shift+ArrowRight");
+    await page.keyboard.press(`${MOD}+c`);
+    expect(await page.evaluate(() => navigator.clipboard.readText())).toBe("Working");
+    await page.keyboard.press("ArrowLeft");
+    await page.keyboard.press(`${MOD}+ArrowUp`);
+    for (let i = 0; i < 10; i++) await page.keyboard.press("Shift+ArrowRight");
+    await page.keyboard.press(`${MOD}+c`);
+    expect(await page.evaluate(() => navigator.clipboard.readText())).toBe("Pagination");
+    await page.keyboard.press("ArrowLeft");
+    await page.keyboard.press(`${MOD}+ArrowDown`);
+    for (let i = 0; i < 7; i++) await page.keyboard.press("Shift+ArrowRight");
+    await page.keyboard.press(`${MOD}+c`);
+    expect(await page.evaluate(() => navigator.clipboard.readText())).toBe("Working");
+  });
+
   test("Cmd+A selects all; Cmd+B bolds; arrows collapse selection", async ({ page }) => {
     await load(page);
     await clickText(page, "Lorem", "start");
@@ -871,7 +941,6 @@ test.describe("caret in empty paragraphs", () => {
     expect(where).toBe(0); // typed on page 1, below the table (not lost)
   });
 });
-
 
 
 
