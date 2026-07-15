@@ -50,10 +50,7 @@ Append `?perf=1` to the demo URL to show the per-edit performance HUD.
 
 The Microsoft fonts in `apps/demo/public/fonts-local` are included only to
 reproduce this experimental demo's parity results. Do not copy or use them
-outside this demo. Applications embedding WordInWeb must source and license
-their own fonts. Without the same fonts, glyphs and line breaks may differ from
-Microsoft Word.
-
+outside this demo.
 ## Updating the engine
 
 ```bash
