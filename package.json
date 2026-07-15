@@ -2,15 +2,15 @@
   "name": "wordinweb-parity",
   "private": true,
   "version": "0.1.0",
-  "description": "Demo, browser tests, and visual-parity corpus for wordinweb",
+  "description": "Demo, browser tests, and visual-parity corpus for WordInWeb",
   "license": "PolyForm-Noncommercial-1.0.0",
   "workspaces": [
     "wordinweb/packages/*",
     "apps/*"
   ],
   "scripts": {
-    "build": "npm run build -w @docxinweb/core -w @docxinweb/react && npm run build -w demo",
-    "test": "npm run test -w @docxinweb/core",
+    "build": "npm run build -w @wordinweb/core -w @wordinweb/react && npm run build -w demo",
+    "test": "npm run test -w @wordinweb/core",
     "test:integration": "vitest run tests/incr-equiv.test.ts",
     "dev": "npm run dev -w demo",
     "test:e2e": "playwright test",

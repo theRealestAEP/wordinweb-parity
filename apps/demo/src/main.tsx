@@ -16,7 +16,7 @@ import "@fontsource/noto-sans-lao-looped/700.css";
 // to the substitutes above when the files are absent. See fonts-local.css.
 import "./fonts-local.css";
 import { createRoot } from "react-dom/client";
-import { DocxView, DocxToolbar, DocxViewApi, printPages } from "@docxinweb/react";
+import { DocxView, DocxToolbar, DocxViewApi, printPages } from "@wordinweb/react";
 
 // Tracked-change insertion ink (see packages/core/src/parse/document.ts) — the
 // color your suggestions render in, echoed by the mode control + author chip.
@@ -347,7 +347,7 @@ function App() {
           zIndex: 1,
         }}
       >
-        <strong>DocxInWeb</strong>
+        <strong>WordInWeb</strong>
         <input
           type="file"
           accept=".docx"

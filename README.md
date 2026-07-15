@@ -1,8 +1,8 @@
-# wordinweb parity
+# WordInWeb parity
 
 This repository contains the demo, browser tests, DOCX fixtures, fonts, and
 Microsoft Word reference PDFs for
-[wordinweb](https://github.com/theRealestAEP/wordinweb). The engine source is a
+[WordInWeb](https://github.com/theRealestAEP/wordinweb). The engine source is a
 Git submodule at `wordinweb/`; it is not copied into this repository.
 
 ## Setup
@@ -50,7 +50,7 @@ Append `?perf=1` to the demo URL to show the per-edit performance HUD.
 
 The Microsoft fonts in `apps/demo/public/fonts-local` are included only to
 reproduce this experimental demo's parity results. Do not copy or use them
-outside this demo. Applications embedding wordinweb must source and license
+outside this demo. Applications embedding WordInWeb must source and license
 their own fonts. Without the same fonts, glyphs and line breaks may differ from
 Microsoft Word.
 

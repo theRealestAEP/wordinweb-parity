@@ -27,7 +27,7 @@ function parityReport(): Plugin {
   const placeholder = `<!doctype html>
 <html lang="en"><head><meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1"/>
-<title>DocxInWeb parity — no results yet</title>
+<title>WordInWeb parity — no results yet</title>
 <style>
   :root { color-scheme: light dark; }
   body { margin:0; min-height:100vh; display:grid; place-items:center;
@@ -104,8 +104,8 @@ export default defineConfig({
   },
   resolve: {
     alias: {
-      "@docxinweb/core": fileURLToPath(new URL("../../wordinweb/packages/core/src/index.ts", import.meta.url)),
-      "@docxinweb/react": fileURLToPath(new URL("../../wordinweb/packages/react/src/index.tsx", import.meta.url)),
+      "@wordinweb/core": fileURLToPath(new URL("../../wordinweb/packages/core/src/index.ts", import.meta.url)),
+      "@wordinweb/react": fileURLToPath(new URL("../../wordinweb/packages/react/src/index.tsx", import.meta.url)),
     },
   },
 });

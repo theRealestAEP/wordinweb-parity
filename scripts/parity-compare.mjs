@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * Visual parity check: Word ground truth vs the DocxInWeb render.
+ * Visual parity check: Word ground truth vs the WordInWeb render.
  *
  * For each parity/<name>-word.pdf (produced by scripts/word-parity.sh) with a
  * matching apps/demo/public/fixtures/<name>.docx, renders both sides page by

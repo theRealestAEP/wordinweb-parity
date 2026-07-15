@@ -94,7 +94,7 @@ const doc = new Document({
           children: [
             new Paragraph({
               alignment: AlignmentType.RIGHT,
-              children: [new TextRun({ text: "DocxInWeb Fidelity Sample", italics: true, size: 18 })],
+              children: [new TextRun({ text: "WordInWeb Fidelity Sample", italics: true, size: 18 })],
             }),
           ],
         }),
@@ -112,7 +112,7 @@ const doc = new Document({
         }),
       },
       children: [
-        new Paragraph({ text: "DocxInWeb Rendering Test", heading: HeadingLevel.HEADING_1 }),
+        new Paragraph({ text: "WordInWeb Rendering Test", heading: HeadingLevel.HEADING_1 }),
         new Paragraph({
           children: [
             new TextRun("This document exercises the fidelity-critical features: "),
@@ -625,7 +625,7 @@ const parityDocs = {
             children: [
               new Paragraph({
                 alignment: AlignmentType.RIGHT,
-                children: [new TextRun({ text: "DocxInWeb Benchmark", italics: true, size: 18 })],
+                children: [new TextRun({ text: "WordInWeb Benchmark", italics: true, size: 18 })],
               }),
             ],
           }),

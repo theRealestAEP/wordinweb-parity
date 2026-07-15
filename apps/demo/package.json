@@ -9,7 +9,7 @@
     "fixtures": "node scripts/make-fixtures.mjs"
   },
   "dependencies": {
-    "@docxinweb/react": "0.1.0",
+    "@wordinweb/react": "0.1.0",
     "@fontsource/noto-sans-lao-looped": "^5.2.7",
     "react": "^18.3.0",
     "react-dom": "^18.3.0"

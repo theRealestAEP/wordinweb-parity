@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-audit-fixtures.py — scan DocxInWeb test fixtures for real / identifying / sensitive
+audit-fixtures.py — scan WordInWeb test fixtures for real / identifying / sensitive
 information before they are published to the public internet.
 
 Covers, per .docx (an OOXML zip):
@@ -22,7 +22,7 @@ tagged; media is listed with hashes for a human to eyeball.
 
 Usage:
   python3 scripts/audit-fixtures.py \
-      --root /Users/alexpickett/Desktop/Projects/DocxInWeb \
+      --root /Users/alexpickett/Desktop/Projects/wordinweb \
       --md docs/FIXTURE-AUDIT.md --json /tmp/audit.json
 
 This script only READS. It never modifies a fixture or PDF.

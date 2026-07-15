@@ -121,7 +121,7 @@ export const APPEARANCE_METRIC_VERSION = "semantic-rgba-v1";
 // ─── Category taxonomy ───────────────────────────────────────────────────────
 // Curated fixture → category map. Every fixture in parity/out/results.json is
 // classified by name + domain knowledge so the eval reads as capability areas
-// (what DocxInWeb can render well) instead of an undifferentiated 1000-row list.
+// (what WordInWeb can render well) instead of an undifferentiated 1000-row list.
 // One line per fixture. Any fixture NOT listed here falls into the visible
 // "uncategorized" bucket via categoryOf() — never silently dropped — so a new
 // fixture surfaces immediately and prompts a classification.
@@ -1068,7 +1068,7 @@ export function buildReport(results, history, meta) {
 // One-line framing; the full methodology lives in BLOG.md.
 function buildIntro() {
   return (
-    `<p class="intro">DocxInWeb's in-browser render of every fixture, compared pixel-by-pixel ` +
+    `<p class="intro">WordInWeb's in-browser render of every fixture, compared pixel-by-pixel ` +
     `against desktop Microsoft Word's PDF of the same file. Scores are the % of ink that ` +
     `doesn't match (antialiasing noise excluded); lower is better, 0.00 is pixel-parity.</p>`
   );
@@ -1098,7 +1098,7 @@ function buildReportSingle(results, history, meta) {
 <head>
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1"/>
-<title>DocxInWeb pixel parity</title>
+<title>WordInWeb pixel parity</title>
 <style>
 ${STYLE}
 </style>
@@ -1106,7 +1106,7 @@ ${STYLE}
 <body>
 <div class="viz-root">
   <header class="report-head">
-    <h1>DocxInWeb pixel parity</h1>
+    <h1>WordInWeb pixel parity</h1>
     <div class="subtitle">${subtitle}</div>
   </header>
   ${buildIntro()}

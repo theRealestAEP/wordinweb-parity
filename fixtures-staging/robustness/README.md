@@ -1,7 +1,7 @@
 # robustness/ — loader crash-test fixtures (NOT parity)
 
 These four .docx are deliberately damaged. They are for the e2e loader
-(does DocxInWeb degrade gracefully rather than crash?), not for pixel
+(does WordInWeb degrade gracefully rather than crash?), not for pixel
 parity — Word will refuse or repair them, so there is no ground-truth PDF.
 
 - `damaged-missing-styles.docx` — document.xml.rels points at styles.xml but the part is absent.
