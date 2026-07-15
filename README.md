@@ -2,8 +2,7 @@
 
 This repository contains the demo, browser tests, DOCX fixtures, fonts, and
 Microsoft Word reference PDFs for
-[WordInWeb](https://github.com/theRealestAEP/wordinweb). The engine source is a
-Git submodule at `wordinweb/`; it is not copied into this repository.
+[WordInWeb](https://github.com/theRealestAEP/wordinweb).
 
 ## Setup
 

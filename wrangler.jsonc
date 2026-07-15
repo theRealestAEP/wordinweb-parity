@@ -1,0 +1,7 @@
+{
+  "name": "wordinweb-parity",
+  "compatibility_date": "2026-07-15",
+  "assets": {
+    "directory": "./apps/demo/dist"
+  }
+}
