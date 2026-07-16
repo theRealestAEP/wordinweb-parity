@@ -86,12 +86,12 @@ const doc = new Document({
       })] }),
     },
     children: [
-      new Paragraph({ style: "ShowcaseTitle", children: [new TextRun("Scientific document, rendered in JavaScript")] }),
+      new Paragraph({ style: "ShowcaseTitle", children: [new TextRun("Sample scientific document")] }),
       new Paragraph({
         spacing: { after: 90 },
         children: [
-          new TextRun({ text: "Editable DOCX with native Office Math, tables, images, styles, and pagination.  ", size: 22 }),
-          new TextRun({ text: "Click anywhere and start typing.", bold: true, color: "2F5597", size: 22 }),
+          new TextRun({ text: "This file uses native Office Math, tables, images, styles, and pagination.  ", size: 22 }),
+          new TextRun({ text: "Click anywhere to edit.", bold: true, color: "2F5597", size: 22 }),
         ],
       }),
       formula([
@@ -119,7 +119,7 @@ const doc = new Document({
         spacing: { after: 90 },
         children: [new TextRun({ text: "Figure 1. Temperature-dependent diffraction and crystal structure.", italics: true, color: "5B6573", size: 17 })],
       }),
-      new Paragraph({ style: "ShowcaseHeading", children: [new TextRun("Equations inside a real Word table")] }),
+      new Paragraph({ style: "ShowcaseHeading", children: [new TextRun("Equations in table cells")] }),
       new Table({
         width: { size: 100, type: WidthType.PERCENTAGE },
         borders,
@@ -148,14 +148,6 @@ const doc = new Document({
             new TableCell({ children: [new Paragraph("Model a smooth distribution") ] }),
           ] }),
         ],
-      }),
-      new Paragraph({
-        spacing: { before: 120 },
-        children: [new TextRun({
-          text: "Everything on this page remains editable and downloads as a DOCX—no PDF conversion and no server-side rendering.",
-          color: "40566F",
-          size: 19,
-        })],
       }),
     ],
   }],

@@ -39,8 +39,8 @@ test.describe("rendering", () => {
     await page.goto("/");
     const document = page.locator(".dxw-page");
     await expect(document).toHaveCount(1);
-    await expect(document).toContainText("Scientific document, rendered in JavaScript");
-    await expect(document).toContainText("Equations inside a real Word table");
+    await expect(document).toContainText("Sample scientific document");
+    await expect(document).toContainText("Equations in table cells");
     await expect(page.locator('[data-dxw-role="table-rule"]')).not.toHaveCount(0);
     await expect(document.locator("img")).toBeVisible();
   });
