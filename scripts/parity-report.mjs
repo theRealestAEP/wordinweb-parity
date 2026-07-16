@@ -129,7 +129,7 @@ const FIXTURE_CATEGORY = {
   // General word processing — body text, notes, fields, revisions, TOC, forms
   benchmark: "general",
   chronology: "general",
-  msa: "general",
+  "services-agreement": "general",
   "parity-comments": "general",
   "parity-revisions": "general",
   "parity-text": "general",

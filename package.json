@@ -3,7 +3,7 @@
   "private": true,
   "version": "0.1.0",
   "description": "Demo, browser tests, and visual-parity corpus for WordInWeb",
-  "license": "SEE LICENSE IN LICENSE",
+  "license": "MIT",
   "workspaces": [
     "apps/*"
   ],
