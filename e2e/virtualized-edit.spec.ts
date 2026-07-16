@@ -2,6 +2,31 @@ import { test, expect } from "@playwright/test";
 import { readFileSync } from "node:fs";
 import { strFromU8, unzipSync } from "fflate";
 
+test("Cmd+A does not materialize every page of a long document", async ({ page }) => {
+  test.setTimeout(120_000);
+  await page.goto("/?doc=/fixtures/wild2-med-phase23-protocol.docx");
+
+  const pages = page.locator(".dxw-page");
+  await pages.first().waitFor({ state: "attached", timeout: 60_000 });
+  await expect(pages).toHaveCount(70, { timeout: 60_000 });
+  const firstSpan = pages.first().locator("span", { hasText: /\w{3,}/ }).first();
+  await firstSpan.click();
+  const mountedBefore = await page.evaluate(
+    () => new Set([...document.querySelectorAll(".dxw-page span")].map((span) => span.closest(".dxw-page"))).size,
+  );
+
+  const started = performance.now();
+  await page.keyboard.press("ControlOrMeta+a");
+  const elapsed = performance.now() - started;
+  const mountedAfter = await page.evaluate(
+    () => new Set([...document.querySelectorAll(".dxw-page span")].map((span) => span.closest(".dxw-page"))).size,
+  );
+
+  expect(elapsed).toBeLessThan(1_000);
+  expect(mountedAfter).toBeLessThanOrEqual(mountedBefore + 4);
+  await expect(page.locator(".dxw-sel")).not.toHaveCount(0);
+});
+
 test("long documents keep early and post-undo edits visible and saved", async ({ page }) => {
   test.setTimeout(120_000);
   await page.addInitScript(() => {

@@ -241,7 +241,7 @@ function ModeControl({ mode, author, onChange }: { mode: Mode; author: string; o
 
 function App() {
   const query = new URLSearchParams(location.search);
-  const initial = query.get("doc") ?? "/fixtures/sample.docx";
+  const initial = query.get("doc") ?? "/fixtures/showcase.docx";
   const [source, setSource] = useState<ArrayBuffer | string | null>(initial);
   const [zoom, setZoom] = useState(1);
   const [editable, setEditable] = useState(query.get("editable") !== "0");
@@ -347,7 +347,12 @@ function App() {
           zIndex: 1,
         }}
       >
-        <strong>WordInWeb</strong>
+        <div style={{ display: "flex", flexDirection: "column", lineHeight: 1.2 }}>
+          <strong>WordInWeb</strong>
+          <span style={{ color: "#5f6368", fontSize: 12 }}>
+            JS docx editor with MS Word Visual Parity
+          </span>
+        </div>
         <input
           type="file"
           accept=".docx"

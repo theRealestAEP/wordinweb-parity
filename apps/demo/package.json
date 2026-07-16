@@ -12,7 +12,7 @@
     "@fontsource/noto-sans-lao-looped": "^5.2.7",
     "react": "^18.3.0",
     "react-dom": "^18.3.0",
-    "wordinweb": "0.1.4"
+    "wordinweb": "0.1.5"
   },
   "devDependencies": {
     "@fontsource/caladea": "^5.2.8",

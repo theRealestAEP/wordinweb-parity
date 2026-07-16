@@ -35,10 +35,23 @@ async function caretVisible(page: Page): Promise<boolean> {
 }
 
 test.describe("rendering", () => {
+  test("loads the visual parity showcase by default", async ({ page }) => {
+    await page.goto("/");
+    const document = page.locator(".dxw-page");
+    await expect(document).toHaveCount(1);
+    await expect(document).toContainText("Scientific document, rendered in JavaScript");
+    await expect(document).toContainText("Equations inside a real Word table");
+    await expect(page.locator('[data-dxw-role="table-rule"]')).not.toHaveCount(0);
+    await expect(document.locator("img")).toBeVisible();
+  });
+
   test("renders 4 pages with header and computed footer", async ({ page }) => {
     await load(page);
     await expect(page.locator(".dxw-page")).toHaveCount(4);
     await expect(span(page, "Fidelity")).toBeVisible();
+    await expect(
+      page.getByText("JS docx editor with MS Word Visual Parity", { exact: true }),
+    ).toBeVisible();
     const repository = page.getByRole("link", { name: /^GitHub/ });
     await expect(repository).toHaveAttribute("href", "https://github.com/theRealestAEP/wordinweb");
     await expect(repository).toHaveAttribute("target", "_blank");
