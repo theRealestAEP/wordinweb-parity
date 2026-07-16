@@ -24,6 +24,7 @@ import {
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
+import { strFromU8, strToU8, unzipSync, zipSync } from "fflate";
 
 const here = dirname(fileURLToPath(import.meta.url));
 const chart = readFileSync(join(here, "assets/showcase-chart.png"));
@@ -161,4 +162,27 @@ const doc = new Document({
 });
 
 mkdirSync(dirname(output), { recursive: true });
-writeFileSync(output, await Packer.toBuffer(doc));
+const files = unzipSync(new Uint8Array(await Packer.toBuffer(doc)));
+const runPropertyOrder = [
+  "rStyle", "rFonts", "b", "bCs", "i", "iCs", "caps", "smallCaps", "strike", "dstrike",
+  "outline", "shadow", "emboss", "imprint", "noProof", "snapToGrid", "vanish", "webHidden",
+  "color", "spacing", "w", "kern", "position", "sz", "szCs", "highlight", "u", "effect",
+  "bdr", "shd", "fitText", "vertAlign", "rtl", "cs", "em", "lang", "eastAsianLayout",
+  "specVanish", "oMath", "rPrChange",
+];
+const runPropertyIndex = new Map(runPropertyOrder.map((name, index) => [name, index]));
+const styles = strFromU8(files["word/styles.xml"]).replace(
+  /<w:rPr>([\s\S]*?)<\/w:rPr>/g,
+  (block, contents) => {
+    const children = contents.match(/<w:[^>]+\/>/g);
+    if (!children || children.join("") !== contents) return block;
+    children.sort((a, b) => {
+      const aName = a.match(/^<w:([^\s/>]+)/)?.[1] ?? "";
+      const bName = b.match(/^<w:([^\s/>]+)/)?.[1] ?? "";
+      return (runPropertyIndex.get(aName) ?? 1_000) - (runPropertyIndex.get(bName) ?? 1_000);
+    });
+    return `<w:rPr>${children.join("")}</w:rPr>`;
+  },
+);
+files["word/styles.xml"] = strToU8(styles);
+writeFileSync(output, zipSync(files));
