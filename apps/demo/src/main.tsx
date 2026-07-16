@@ -15,6 +15,7 @@ import "@fontsource/noto-sans-lao-looped/700.css";
 // Arial, CJK families) from /fonts-local/ when present. Git-ignored; falls back
 // to the substitutes above when the files are absent. See fonts-local.css.
 import "./fonts-local.css";
+import "./app.css";
 import { createRoot } from "react-dom/client";
 import { DocxView, DocxToolbar, DocxViewApi, printPages } from "wordinweb";
 
@@ -128,6 +129,21 @@ const MODES: { id: Mode; label: string; desc: string; ink: string; bg: string; I
   { id: "suggesting", label: "Suggesting", desc: "Edits become tracked suggestions", ink: MODE_INK, bg: "#fce8e6", Icon: SuggestIcon },
   { id: "viewing", label: "Viewing", desc: "Read or print — no editing", ink: "#188038", bg: "#e6f4ea", Icon: EyeIcon },
 ];
+
+// Résumé and pleading paper are REAL documents, not generated: the résumé is
+// CareerOneStop's (US DOL) published sample re-personed to Jane Doe with
+// scrubbed metadata; the pleading paper is a copy of the anonymized wild
+// fixture (authentic 28-line layout) with its digit-ciphered literal line
+// numbers restored to 1–28 — pleading-anon.docx itself stays byte-identical
+// to the copy its Word-reference parity PDF was exported from.
+const PRESETS = [
+  { id: "resume", label: "Résumé", path: "/fixtures/wild3-resume.docx" },
+  { id: "pleading", label: "California pleading paper", path: "/fixtures/pleading-paper.docx" },
+  { id: "equations", label: "Math equations", path: "/fixtures/preset-equations.docx" },
+  { id: "tables", label: "Tables & reports", path: "/fixtures/preset-tables.docx" },
+  { id: "publication", label: "Magazine / newspaper", path: "/fixtures/preset-publication.docx" },
+  { id: "chapter", label: "Chapter book", path: "/fixtures/preset-chapter-book.docx" },
+] as const;
 
 /**
  * Google-Docs mode picker: one pencil dropdown replacing the tangle of
@@ -243,6 +259,7 @@ function App() {
   const query = new URLSearchParams(location.search);
   const initial = query.get("doc") ?? "/fixtures/showcase.docx";
   const [source, setSource] = useState<ArrayBuffer | string | null>(initial);
+  const [preset, setPreset] = useState(PRESETS.find((item) => item.path === initial)?.id ?? "");
   const [zoom, setZoom] = useState(1);
   const [editable, setEditable] = useState(query.get("editable") !== "0");
   const [showComments, setShowComments] = useState(query.get("comments") !== "0");
@@ -259,7 +276,7 @@ function App() {
   const [suggesting, setSuggesting] = useState(query.get("suggest") === "1");
   const [pageCount, setPageCount] = useState<number | null>(null);
   const [status, setStatus] = useState<string>("");
-  const [fileName, setFileName] = useState("document.docx");
+  const [fileName, setFileName] = useState(initial.split("/").pop() ?? "document.docx");
   const [api, setApi] = useState<DocxViewApi | null>(null);
   const [findOpen, setFindOpen] = useState(false);
   const [findQ, setFindQ] = useState("");
@@ -315,9 +332,21 @@ function App() {
     setStatus(`Loading ${file.name}…`);
     const buf = await file.arrayBuffer();
     setSource(buf);
+    setPreset("");
     setFileName(file.name);
-    setStatus(file.name);
   }, []);
+
+  const loadPreset = (id: string) => {
+    const next = PRESETS.find((item) => item.id === id);
+    if (!next) return;
+    setPreset(next.id);
+    setSource(next.path);
+    setFileName(next.path.split("/").pop()!);
+    setPageCount(null);
+    setApi(null);
+    setMissingFonts([]);
+    setStatus(`Loading ${next.label}…`);
+  };
 
   const download = (bytes: Uint8Array) => {
     const buf = bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength) as ArrayBuffer;
@@ -333,27 +362,36 @@ function App() {
   };
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", height: "100%" }}>
-      <header
-        style={{
-          display: "flex",
-          gap: 12,
-          rowGap: 6,
-          alignItems: "center",
-          flexWrap: "wrap",
-          padding: "6px 16px",
-          borderBottom: "1px solid #dadce0",
-          background: "#fff",
-          zIndex: 1,
-        }}
-      >
-        <div style={{ display: "flex", flexDirection: "column", lineHeight: 1.2 }}>
-          <strong>WordInWeb</strong>
-          <span style={{ color: "#5f6368", fontSize: 12 }}>
-            JS docx editor with MS Word Visual Parity
+    <div className="app-shell">
+      <header className="app-header">
+        <div className="brand-lockup">
+          <span className="brand-mark" aria-hidden="true">W</span>
+          <span className="brand-copy">
+            <strong>WordInWeb</strong>
+            <span>DOCX rendering and editing, in the browser</span>
           </span>
         </div>
+        <nav className="app-links" aria-label="Project links">
+          <a href="https://github.com/theRealestAEP/wordinweb" target="_blank" rel="noreferrer">GitHub</a>
+          <a href="https://www.aepick.me/blog" target="_blank" rel="noreferrer">Blog</a>
+          <a href="/report" target="_blank" rel="noreferrer">Parity report</a>
+        </nav>
+      </header>
+      <div className="control-bar">
+        <div className="preset-control">
+          <span className="control-label">Try a template</span>
+          <select
+            value={preset}
+            aria-label="Choose a document template"
+            onChange={(event) => loadPreset(event.target.value)}
+          >
+            <option value="" disabled>Choose a document…</option>
+            {PRESETS.map((item) => <option key={item.id} value={item.id}>{item.label}</option>)}
+          </select>
+        </div>
         <input
+          id="docx-upload"
+          className="visually-hidden"
           type="file"
           accept=".docx"
           onChange={(e) => {
@@ -361,9 +399,11 @@ function App() {
             if (f) void onFile(f);
           }}
         />
-        <label style={{ fontSize: 13 }}>
-          Zoom{" "}
-          <select value={zoom} onChange={(e) => setZoom(parseFloat(e.target.value))}>
+        <label className="upload-button" htmlFor="docx-upload">Upload .docx</label>
+        <span className="control-divider" aria-hidden="true" />
+        <label className="compact-control">
+          <span>Zoom</span>
+          <select aria-label="Document zoom" value={zoom} onChange={(e) => setZoom(parseFloat(e.target.value))}>
             <option value={0.5}>50%</option>
             <option value={0.75}>75%</option>
             <option value={1}>100%</option>
@@ -434,22 +474,29 @@ function App() {
             </button>
           </span>
         )}
-        <label style={{ fontSize: 13, display: "inline-flex", alignItems: "center", gap: 4 }} title="Name stamped on your comments and suggestions">
-          Author{" "}
+        <label className="compact-control author-control" title="Name stamped on your comments and suggestions">
+          <span>Author</span>
           <input
             data-dxw-author
             defaultValue={author}
             onBlur={(e) => changeAuthor(e.target.value)}
             onKeyDown={(e) => { if (e.key === "Enter") (e.target as HTMLInputElement).blur(); }}
-            style={{ width: 90, fontSize: 13, padding: "2px 6px" }}
           />
         </label>
-        <label style={{ fontSize: 13 }} title="Show review comments">
-          <input type="checkbox" checked={showComments} onChange={(e) => setShowComments(e.target.checked)} /> Comments
+        <label className="comments-control" title="Show review comments">
+          <input type="checkbox" checked={showComments} onChange={(e) => setShowComments(e.target.checked)} />
+          <span>Comments</span>
         </label>
+        <div className="document-meta" aria-live="polite">
+          <span className={`status-dot${status.startsWith("Error") ? " error" : ""}`} aria-hidden="true" />
+          <span className="file-name">{fileName}</span>
+          <span className="page-count">
+            {status || (pageCount !== null ? `${pageCount} page${pageCount === 1 ? "" : "s"}` : "Loading…")}
+          </span>
+        </div>
         <button
+          className="print-button"
           title="Print / save as PDF"
-          style={{ fontSize: 13 }}
           onClick={() => {
             const root = document.querySelector(".dxw-pages") as HTMLElement | null;
             const page = root?.querySelector(".dxw-page") as HTMLElement | null;
@@ -458,45 +505,10 @@ function App() {
         >
           Print
         </button>
-        <span style={{ color: "#5f6368", fontSize: 13 }}>
-          {pageCount !== null ? `${pageCount} page${pageCount === 1 ? "" : "s"}` : ""} {status}
-        </span>
-        <a
-          href="https://github.com/theRealestAEP/wordinweb"
-          target="_blank"
-          rel="noreferrer"
-          title="Open the WordInWeb source repository"
-          style={{ marginLeft: "auto", fontSize: 13, color: "#1a73e8", textDecoration: "none" }}
-        >
-          GitHub ↗
-        </a>
-        <a
-          href="https://www.aepick.me/blog"
-          target="_blank"
-          rel="noreferrer"
-          title="Read the blog"
-          style={{ fontSize: 13, color: "#1a73e8", textDecoration: "none" }}
-        >
-          Blog ↗
-        </a>
-        <a
-          href="/report"
-          target="_blank"
-          rel="noreferrer"
-          title="Open the pixel-parity dashboard (generated by the eval suite)"
-          style={{ fontSize: 13, color: "#1a73e8", textDecoration: "none" }}
-        >
-          Parity report ↗
-        </a>
-      </header>
-      {editable && <DocxToolbar api={api} onSave={download} />}
+      </div>
+      {editable && <div className="document-toolbar"><DocxToolbar api={api} onSave={download} /></div>}
       {findOpen && (
-        <div
-          style={{
-            display: "flex", gap: 6, alignItems: "center", padding: "6px 16px",
-            borderBottom: "1px solid #dadce0", background: "#fff", fontSize: 13,
-          }}
-        >
+        <div className="find-bar">
           <input
             ref={findInput}
             value={findQ}
@@ -568,7 +580,7 @@ function App() {
           </button>
         </div>
       )}
-      <div style={{ flex: 1, minHeight: 0 }}>
+      <main className="editor-stage">
         {source && (
           <DocxView
             source={source}
@@ -582,7 +594,10 @@ function App() {
             revisions={editable ? "markup" : "final"}
             commentAuthor={author}
             style={{ height: "100%" }}
-            onLoad={({ pageCount }) => setPageCount(pageCount)}
+            onLoad={({ pageCount }) => {
+              setPageCount(pageCount);
+              setStatus("");
+            }}
             onMissingFonts={(m) => {
               setMissingFonts(m);
               setFontWarnDismissed(false);
@@ -591,7 +606,7 @@ function App() {
             onError={(e) => setStatus(`Error: ${e.message}`)}
           />
         )}
-      </div>
+      </main>
       {PERF_ON && <PerfHud />}
     </div>
   );

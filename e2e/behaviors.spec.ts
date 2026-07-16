@@ -50,7 +50,7 @@ test.describe("rendering", () => {
     await expect(page.locator(".dxw-page")).toHaveCount(4);
     await expect(span(page, "Fidelity")).toBeVisible();
     await expect(
-      page.getByText("JS docx editor with MS Word Visual Parity", { exact: true }),
+      page.getByText("DOCX rendering and editing, in the browser", { exact: true }),
     ).toBeVisible();
     const repository = page.getByRole("link", { name: /^GitHub/ });
     await expect(repository).toHaveAttribute("href", "https://github.com/theRealestAEP/wordinweb");

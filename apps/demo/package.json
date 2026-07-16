@@ -6,13 +6,14 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "fixtures": "node scripts/make-fixtures.mjs"
+    "fixtures": "node scripts/make-fixtures.mjs",
+    "presets": "node scripts/make-presets.mjs"
   },
   "dependencies": {
     "@fontsource/noto-sans-lao-looped": "^5.2.7",
     "react": "^18.3.0",
     "react-dom": "^18.3.0",
-    "wordinweb": "0.1.6"
+    "wordinweb": "0.1.7"
   },
   "devDependencies": {
     "@fontsource/caladea": "^5.2.8",
