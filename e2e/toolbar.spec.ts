@@ -261,7 +261,8 @@ test.describe("document controls", () => {
     await load(page, "parity-text");
     const before = (await exact(page, "Plain").boundingBox())!.x;
     await openTab(page, "layout");
-    await page.locator('select[title="Margins"]').selectOption("m:narrow");
+    await page.locator('[data-dxw-layout-menu-trigger="margins"]').click();
+    await page.locator('[data-dxw-layout-option="m:narrow"]').click();
     await page.waitForTimeout(400);
     expect((await exact(page, "Plain").boundingBox())!.x).toBeLessThan(before - 20);
   });
@@ -269,13 +270,15 @@ test.describe("document controls", () => {
   test("layout tab: page border option draws the box", async ({ page }) => {
     await load(page, "parity-text");
     await openTab(page, "layout");
-    await page.locator('select[title="Page border"]').selectOption("thin");
+    await page.locator('[data-dxw-layout-menu-trigger="page-border"]').click();
+    await page.locator('[data-dxw-layout-option="thin"]').click();
     await page.waitForTimeout(400);
     const edges = await page.evaluate(
       () => document.querySelectorAll(".dxw-page [data-dxw-edge]").length,
     );
     expect(edges).toBeGreaterThanOrEqual(4);
-    await page.locator('select[title="Page border"]').selectOption("none");
+    await page.locator('[data-dxw-layout-menu-trigger="page-border"]').click();
+    await page.locator('[data-dxw-layout-option="none"]').click();
     await page.waitForTimeout(400);
     const edges2 = await page.evaluate(
       () => document.querySelectorAll(".dxw-page [data-dxw-edge]").length,
@@ -313,7 +316,8 @@ test.describe("document controls", () => {
     await page.waitForTimeout(200);
     await openTab(page, "layout");
     await page.locator('select[title="Apply layout changes to"]').selectOption("section");
-    await page.locator('select[title="Orientation"]').selectOption("landscape");
+    await page.locator('[data-dxw-layout-menu-trigger="orientation"]').click();
+    await page.locator('[data-dxw-layout-option="landscape"]').click();
     await page.waitForTimeout(500);
     const sizes = await page.evaluate(() =>
       [...document.querySelectorAll(".dxw-page")].map((p) => {

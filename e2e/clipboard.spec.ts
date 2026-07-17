@@ -47,6 +47,7 @@ async function clickExact(page: Page, text: string): Promise<void> {
     for (const el of document.querySelectorAll(".dxw-page span")) {
       if (el.children.length) continue;
       if ((el.textContent || "") === t) {
+        el.scrollIntoView({ block: "center", inline: "center" });
         const r = el.getBoundingClientRect();
         return { x: r.x + r.width / 2, y: r.y + r.height / 2 };
       }

@@ -5,6 +5,9 @@ dist/
 parity/*
 !parity/*-word.pdf
 !parity/*-word-lines.json
+!parity/word-reference-manifest.json
+!parity/word-reference-docx/
+!parity/word-reference-docx/*.docx
 /docs
 .claude/
 test-results/

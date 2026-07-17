@@ -17,6 +17,11 @@ const FIX_DIR = join(__dirname, "../apps/demo/public/fixtures");
 type PerfSample = {
   total: number; layout: number; render: number; destroy: number;
   refresh: number; chromeCaret: number; totalPages: number; pagesReused: number;
+  wall: number;
+  blocksLaid?: number;
+  resumePage?: number;
+  convergedPage?: number;
+  fallbackReason?: string;
 };
 
 function median(xs: number[]): number {
@@ -24,10 +29,15 @@ function median(xs: number[]): number {
   return s[Math.floor(s.length / 2)];
 }
 
+function percentile(xs: number[], p: number): number {
+  const s = [...xs].sort((a, b) => a - b);
+  return s[Math.min(s.length - 1, Math.ceil(s.length * p) - 1)];
+}
+
 /** Open a fixture with perf recording armed before any app script runs, place
  * the caret near the vertical middle of a mid-document page, and type `n`
  * single characters. Returns the recorded samples (one per keystroke commit). */
-async function measure(page: Page, fixture: string, n: number): Promise<PerfSample[]> {
+async function measure(page: Page, fixture: string, n: number, targetOrdinal = 0): Promise<PerfSample[]> {
   await page.addInitScript(() => {
     (globalThis as { __dxwPerf?: unknown }).__dxwPerf = { samples: [] };
   });
@@ -48,9 +58,12 @@ async function measure(page: Page, fixture: string, n: number): Promise<PerfSamp
   const midIdx = Math.floor(count / 2);
   const targetPage = pages.nth(midIdx);
   await targetPage.scrollIntoViewIfNeeded();
-  const span = targetPage.locator("span", { hasText: /\w{3,}/ }).first();
+  const span = targetPage.locator("span:not([data-dxw-hf])", { hasText: /[A-Za-z]{4,}/ }).nth(targetOrdinal);
   await span.waitFor({ state: "visible" });
+  await expect(span).toHaveText(/[A-Za-z]{4,}/);
   await span.click();
+  await expect(page.locator("[data-dxw-caret]").locator("xpath=ancestor::*[@data-page][1]"))
+    .toHaveAttribute("data-page", await targetPage.getAttribute("data-page") ?? "");
   await page.waitForTimeout(150);
   await page.keyboard.press("End");
   await page.waitForTimeout(50);
@@ -62,28 +75,44 @@ async function measure(page: Page, fixture: string, n: number): Promise<PerfSamp
     if (p) p.samples = [];
   });
 
+  const samples: PerfSample[] = [];
   for (let i = 0; i < n; i++) {
+    const started = performance.now();
     await page.keyboard.type("x");
+    const wall = performance.now() - started;
+    const sample = await page.evaluate(() => {
+      const p = (globalThis as {
+        __dxwPerf?: {
+          samples?: PerfSample[];
+          incr?: { blocksLaid?: number; resumePage?: number; convergedPage?: number; fallbackReason?: string };
+        };
+      }).__dxwPerf;
+      const latest = p?.samples?.at(-1);
+      return latest ? { ...latest, ...p?.incr } : null;
+    });
+    if (sample) samples.push({ ...sample, wall });
     await page.waitForTimeout(30);
   }
   await page.waitForTimeout(150);
-
-  return page.evaluate(() => {
-    const p = (globalThis as { __dxwPerf?: { samples?: PerfSample[] } }).__dxwPerf;
-    return p?.samples ?? [];
-  });
+  return samples;
 }
 
 function report(name: string, s: PerfSample[]): string {
   const med = (k: keyof PerfSample) => median(s.map((x) => x[k])).toFixed(1);
-  return `[perf] ${name}: n=${s.length} total=${med("total")} layout=${med("layout")} `
+  const totals = s.map((sample) => sample.total);
+  return `[perf] ${name}: n=${s.length} total first=${totals[0].toFixed(1)} median=${med("total")} `
+    + `p95=${percentile(totals, 0.95).toFixed(1)} max=${Math.max(...totals).toFixed(1)} `
+    + `wall p95=${percentile(s.map((sample) => sample.wall), 0.95).toFixed(1)} `
+    + `layout=${med("layout")} `
     + `render=${med("render")} destroy=${med("destroy")} refresh=${med("refresh")} `
     + `chrome=${med("chromeCaret")} reused=${median(s.map((x) => x.pagesReused))}/${s[0]?.totalPages}`;
 }
 
-const CASES: { fixture: string; budgetMs: number; firstBudgetMs?: number }[] = [
-  // Quiet-machine targets ~ dense 50, image-stress 75, comments 40, NIH 254 ->
-  // ~2x budgets so each scenario is pinned without flaking on a busy box.
+const CASES: {
+  fixture: string;
+  budgetMs: number;
+}[] = [
+  // Quiet-machine targets ~ dense 50, image-stress 75, comments 40.
   // dense-comments guards the comments-reuse regression class: a commented doc
   // used to rebuild every page per keystroke (render ~80ms); it now adopts
   // pages and runs the comment overlay per keystroke (a primary editing case,
@@ -91,10 +120,9 @@ const CASES: { fixture: string; budgetMs: number; firstBudgetMs?: number }[] = [
   { fixture: "dense-skewtest", budgetMs: 120 },
   { fixture: "dense-imagestress", budgetMs: 150 },
   { fixture: "dense-comments", budgetMs: 120 },
-  { fixture: "wild2-legal-nih-contract", budgetMs: 400, firstBudgetMs: 400 },
 ];
 
-for (const { fixture, budgetMs, firstBudgetMs } of CASES) {
+for (const { fixture, budgetMs } of CASES) {
   test(`keystroke budget: ${fixture} < ${budgetMs}ms median`, async ({ page }) => {
     test.setTimeout(120_000); // cold vite + a heavy doc's first render can be slow
     // Some stress fixtures are generated locally and are not part of the
@@ -106,8 +134,44 @@ for (const { fixture, budgetMs, firstBudgetMs } of CASES) {
     // eslint-disable-next-line no-console
     console.log(report(fixture, samples));
     expect(medTotal, `median keystroke total for ${fixture}`).toBeLessThan(budgetMs);
-    if (firstBudgetMs !== undefined) {
-      expect(samples[0].total, `first keystroke total for ${fixture}`).toBeLessThan(firstBudgetMs);
-    }
   });
 }
+
+test("NIH body typing keeps wrapping and non-wrapping keystrokes below 80ms", async ({ page }) => {
+  test.setTimeout(120_000);
+  const fixture = "wild2-legal-nih-contract";
+  const samples = await measure(page, fixture, 15, 20);
+  expect(samples).toHaveLength(15);
+
+  // eslint-disable-next-line no-console
+  console.log(report(fixture, samples));
+  // eslint-disable-next-line no-console
+  console.log(`[perf-samples] ${JSON.stringify(samples.map((sample, key) => ({
+    key: key + 1,
+    wall: sample.wall,
+    total: sample.total,
+    layout: sample.layout,
+    reused: sample.pagesReused,
+    blocks: sample.blocksLaid,
+    resumePage: sample.resumePage,
+    convergedPage: sample.convergedPage,
+    fallback: sample.fallbackReason,
+  })))}`);
+
+  for (const [index, sample] of samples.entries()) {
+    expect(sample.totalPages, `page count after key ${index + 1}`).toBe(419);
+    expect(sample.total, `editor total after key ${index + 1}`).toBeLessThan(80);
+    expect(sample.layout, `layout after key ${index + 1}`).toBeLessThan(80);
+    expect(sample.wall, `wall time after key ${index + 1}`).toBeLessThan(80);
+    expect(sample.fallbackReason, `incremental fallback after key ${index + 1}`).toBe("");
+  }
+
+  const wrapping = samples.filter((sample) => sample.pagesReused < 418);
+  const nonWrapping = samples.filter((sample) => sample.pagesReused === 418);
+  expect(wrapping.length, "burst must cross a real line/page wrap").toBeGreaterThan(0);
+  expect(nonWrapping.length, "burst must include ordinary non-wrapping keys").toBeGreaterThan(8);
+  expect(nonWrapping.every((sample) => (sample.blocksLaid ?? Infinity) <= 32)).toBe(true);
+  expect(wrapping.every((sample) => sample.pagesReused >= 400)).toBe(true);
+  expect(wrapping.every((sample) => (sample.blocksLaid ?? 0) > 32 && (sample.blocksLaid ?? Infinity) <= 256)).toBe(true);
+  expect(wrapping.every((sample) => (sample.convergedPage ?? -1) > (sample.resumePage ?? Infinity))).toBe(true);
+});

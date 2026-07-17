@@ -1,0 +1,664 @@
+{
+  "schemaVersion": 1,
+  "generatedAt": "2026-07-17T05:10:05.320Z",
+  "fixtures": {
+    "benchmark": {
+      "sourcePackageSha256": "fcce177e72a4e214276fe588643c8e39ac11340d424937c31d5bc54507d46e82",
+      "referenceDocx": "apps/demo/public/fixtures/benchmark.docx",
+      "referenceDocxPackageSha256": "fcce177e72a4e214276fe588643c8e39ac11340d424937c31d5bc54507d46e82",
+      "referencePdfSha256": "e3193ac0f20b19fd01cf9bfcbc9d5b060647277834dbb4826567c596bc1dd562",
+      "pages": 4
+    },
+    "benchmark-edited": {
+      "sourcePackageSha256": "716a068edb82a43d72eb84d471fa60451600b0f2c84b02e76cc3e045e4a8d95d",
+      "referenceDocx": "apps/demo/public/fixtures/benchmark-edited.docx",
+      "referenceDocxPackageSha256": "716a068edb82a43d72eb84d471fa60451600b0f2c84b02e76cc3e045e4a8d95d",
+      "referencePdfSha256": "b9f3bcd44b2fe6a4774212b5a7d258acd7c7c673d7e5c1ef33c75e3a6d52faa1",
+      "pages": 4
+    },
+    "chronology": {
+      "sourcePackageSha256": "9fd080f49cd6d2d6b9830d76afddf9cb817d0041f741c0d9ae4ea586c0000ead",
+      "referenceDocx": "apps/demo/public/fixtures/chronology.docx",
+      "referenceDocxPackageSha256": "9fd080f49cd6d2d6b9830d76afddf9cb817d0041f741c0d9ae4ea586c0000ead",
+      "referencePdfSha256": "ad9cda1526fff8593c54fedf68e6b627a5d40ee0a179953338462c9db00ff3b2",
+      "pages": 2
+    },
+    "coverletter-anon": {
+      "sourcePackageSha256": "ba2de991a9d620b77d5b67fa0d2b7d39a80c601dd6bc18d85ad7677dc9915bc8",
+      "referenceDocx": "apps/demo/public/fixtures/coverletter-anon.docx",
+      "referenceDocxPackageSha256": "ba2de991a9d620b77d5b67fa0d2b7d39a80c601dd6bc18d85ad7677dc9915bc8",
+      "referencePdfSha256": "8afe55892b22fc651ff6708fe7c355027fd967b5e3761f6586f85fa1928f7afd",
+      "pages": 1
+    },
+    "parity-colbalance": {
+      "sourcePackageSha256": "066fb2880c806e1675d07018696fa9d27b9e0677cfc70b4e13f93e7a6fc3835c",
+      "referenceDocx": "apps/demo/public/fixtures/parity-colbalance.docx",
+      "referenceDocxPackageSha256": "066fb2880c806e1675d07018696fa9d27b9e0677cfc70b4e13f93e7a6fc3835c",
+      "referencePdfSha256": "c6d48cf03d910b94a6342cdfe97e486af35062acca15aca6f74201f11d8b5ed5",
+      "pages": 1
+    },
+    "parity-columns": {
+      "sourcePackageSha256": "440ee2e7d80432e97d2bc7574e4a78056bcd78c66e33982959b05a99cd104ab3",
+      "referenceDocx": "apps/demo/public/fixtures/parity-columns.docx",
+      "referenceDocxPackageSha256": "440ee2e7d80432e97d2bc7574e4a78056bcd78c66e33982959b05a99cd104ab3",
+      "referencePdfSha256": "5479b8602929c7d069aa625815119edd477d8c7b59aac0047218789d17f706bb",
+      "pages": 1
+    },
+    "parity-comments": {
+      "sourcePackageSha256": "d35214c6fc403cab9490d727ab0a0e7fc0bc512f32c5d71f767a1e618d88a42c",
+      "referenceDocx": "apps/demo/public/fixtures/parity-comments.docx",
+      "referenceDocxPackageSha256": "d35214c6fc403cab9490d727ab0a0e7fc0bc512f32c5d71f767a1e618d88a42c",
+      "referencePdfSha256": "f3f15a4ef43f3c375fe4f1ff342ccf6d53dc2e929771b2dca1a399a0dc004583",
+      "pages": 1
+    },
+    "parity-dividers": {
+      "sourcePackageSha256": "d19439843b30b1f29fc23b421a872bda56eb277e0751ef37d46d90d883297897",
+      "referenceDocx": "apps/demo/public/fixtures/parity-dividers.docx",
+      "referenceDocxPackageSha256": "d19439843b30b1f29fc23b421a872bda56eb277e0751ef37d46d90d883297897",
+      "referencePdfSha256": "b428e26679c9dc676ef561fd382119905c33f30eec624c5d0380d142856dc173",
+      "pages": 1
+    },
+    "parity-firstpage": {
+      "sourcePackageSha256": "f04926970bfe23afd0e0da68eb4348e13154c4ea7a5bdc3c902bb295b8b3e589",
+      "referenceDocx": "apps/demo/public/fixtures/parity-firstpage.docx",
+      "referenceDocxPackageSha256": "f04926970bfe23afd0e0da68eb4348e13154c4ea7a5bdc3c902bb295b8b3e589",
+      "referencePdfSha256": "09fca3c441373796c00884b0dc2962b44eb588b6ff071171b63e6a1ea13fa908",
+      "pages": 2
+    },
+    "parity-headerfooter": {
+      "sourcePackageSha256": "df8b2644cab03083fb4673a454b84cdc0ebe088bbc3520516d7159dfccc4db77",
+      "referenceDocx": "apps/demo/public/fixtures/parity-headerfooter.docx",
+      "referenceDocxPackageSha256": "df8b2644cab03083fb4673a454b84cdc0ebe088bbc3520516d7159dfccc4db77",
+      "referencePdfSha256": "598d0980d9b8accef48724aa656bcf669e36067b709de68c7f503d5367c78ea4",
+      "pages": 2
+    },
+    "parity-hftemplates": {
+      "sourcePackageSha256": "8579c10846b2a3d49d2ff89ae879a4e0b808ca536613ef92392de5f39aac277c",
+      "referenceDocx": "apps/demo/public/fixtures/parity-hftemplates.docx",
+      "referenceDocxPackageSha256": "8579c10846b2a3d49d2ff89ae879a4e0b808ca536613ef92392de5f39aac277c",
+      "referencePdfSha256": "1d207274efb8aae455098b132613e7e2051a4c201eab737b3a9d571f2015e195",
+      "pages": 4
+    },
+    "parity-lists": {
+      "sourcePackageSha256": "a24ded92d1bf41602abdaac3c61240eb9b1b4efe079d3580871a0df6e178cd0b",
+      "referenceDocx": "apps/demo/public/fixtures/parity-lists.docx",
+      "referenceDocxPackageSha256": "a24ded92d1bf41602abdaac3c61240eb9b1b4efe079d3580871a0df6e178cd0b",
+      "referencePdfSha256": "57a7c24ce916b6c241c6e25292eb976d83d6966e423775329dd3f2122fed578e",
+      "pages": 1
+    },
+    "parity-math": {
+      "sourcePackageSha256": "fcccd64fa2c87749cd2372336ba5d9907c08c629b8f8779cb9310a681c86b70c",
+      "referenceDocx": "apps/demo/public/fixtures/parity-math.docx",
+      "referenceDocxPackageSha256": "fcccd64fa2c87749cd2372336ba5d9907c08c629b8f8779cb9310a681c86b70c",
+      "referencePdfSha256": "b40e8f436603a5def0ecb71a5d32976d6a8d85019d7dbb8eb9e5a4cd06c46a35",
+      "pages": 1
+    },
+    "parity-math2": {
+      "sourcePackageSha256": "7ba4fdc840eb3d10c21419844e12f2dd6ca373572f8314aa40a1591b4f12b68a",
+      "referenceDocx": "apps/demo/public/fixtures/parity-math2.docx",
+      "referenceDocxPackageSha256": "7ba4fdc840eb3d10c21419844e12f2dd6ca373572f8314aa40a1591b4f12b68a",
+      "referencePdfSha256": "c4b41020e9c409bc2c9eb27bac189029f0413e638d4f9efa3bbf17e4f9606499",
+      "pages": 1
+    },
+    "parity-pageborders": {
+      "sourcePackageSha256": "7b183f6762f2986b36318794af56b431ae76556588270b7d1d76b9b82e5c5f93",
+      "referenceDocx": "apps/demo/public/fixtures/parity-pageborders.docx",
+      "referenceDocxPackageSha256": "7b183f6762f2986b36318794af56b431ae76556588270b7d1d76b9b82e5c5f93",
+      "referencePdfSha256": "cd8c2ab13498ecf3836711fd092c78764566d2f062c6b1060b3c5350b0019db6",
+      "pages": 1
+    },
+    "parity-pictures": {
+      "sourcePackageSha256": "6d8865aa861466ec72cf6bb46917a1fd64fc07eaa0c2498a883e9e43c23d1c06",
+      "referenceDocx": "apps/demo/public/fixtures/parity-pictures.docx",
+      "referenceDocxPackageSha256": "6d8865aa861466ec72cf6bb46917a1fd64fc07eaa0c2498a883e9e43c23d1c06",
+      "referencePdfSha256": "1ebbf141c08860d696671ec3110330324860f2d035fa6d7e791b9980f896f5be",
+      "pages": 1
+    },
+    "parity-revisions": {
+      "sourcePackageSha256": "86b35f1bd2639ef65c40509b5892f9f74ab5a3ddf3f66fb3b7bfca8365c74e32",
+      "referenceDocx": "apps/demo/public/fixtures/parity-revisions.docx",
+      "referenceDocxPackageSha256": "86b35f1bd2639ef65c40509b5892f9f74ab5a3ddf3f66fb3b7bfca8365c74e32",
+      "referencePdfSha256": "c458dbb6d520e8bd2a85973899864c8943a069c482466a834c034dcc7c37e3d0",
+      "pages": 1
+    },
+    "parity-rowsplit": {
+      "sourcePackageSha256": "f5e6413352d8c349bebbbc1acc782000c5d3cdf892ec827a6dbb9f52e22306d6",
+      "referenceDocx": "apps/demo/public/fixtures/parity-rowsplit.docx",
+      "referenceDocxPackageSha256": "f5e6413352d8c349bebbbc1acc782000c5d3cdf892ec827a6dbb9f52e22306d6",
+      "referencePdfSha256": "148ffa87ead57921275a6c76fe58e1b5f3e4a2145fcfac1174b13dd3cb19ec15",
+      "pages": 3
+    },
+    "parity-tables": {
+      "sourcePackageSha256": "ac41150adcd79524b5b4f767331906d8f131e06839ee6fdb5975b6d587bafaf0",
+      "referenceDocx": "apps/demo/public/fixtures/parity-tables.docx",
+      "referenceDocxPackageSha256": "ac41150adcd79524b5b4f767331906d8f131e06839ee6fdb5975b6d587bafaf0",
+      "referencePdfSha256": "eee878b605ea8a52fa3e158fc910290455c7ffc533ed97c540dbd2ef6c9829df",
+      "pages": 1
+    },
+    "parity-text": {
+      "sourcePackageSha256": "a3bcd91beb213b36fa040fd0a8ab4242daea4b11b6d994397cbdd5936dbe886d",
+      "referenceDocx": "apps/demo/public/fixtures/parity-text.docx",
+      "referenceDocxPackageSha256": "a3bcd91beb213b36fa040fd0a8ab4242daea4b11b6d994397cbdd5936dbe886d",
+      "referencePdfSha256": "d3e3c2b3c1e094255484ab2416b134fc39c8b3e870686b4c9e9fada97887ed2f",
+      "pages": 1
+    },
+    "parity-wrapmodes": {
+      "sourcePackageSha256": "e8ce06d60d2b7adcc0719beb800d1eff0f71c24227c98dea60b86eaa7aa76570",
+      "referenceDocx": "apps/demo/public/fixtures/parity-wrapmodes.docx",
+      "referenceDocxPackageSha256": "e8ce06d60d2b7adcc0719beb800d1eff0f71c24227c98dea60b86eaa7aa76570",
+      "referencePdfSha256": "3df33dc758c7a77f4518900149321ff3010718759a1f08a9edf9b67327d33212",
+      "pages": 1
+    },
+    "parity2-charstyles": {
+      "sourcePackageSha256": "07ddf73a2253ccd905a5833f072ff0aee24fbe258e8263265591dab151f3a421",
+      "referenceDocx": "apps/demo/public/fixtures/parity2-charstyles.docx",
+      "referenceDocxPackageSha256": "07ddf73a2253ccd905a5833f072ff0aee24fbe258e8263265591dab151f3a421",
+      "referencePdfSha256": "424ebfc4df98dbb894f568d8c5e88490a16bdd6a8a6e8625ed575059595f3601",
+      "pages": 2
+    },
+    "parity2-coverpage": {
+      "sourcePackageSha256": "a6c16ef35bcb6005b167e08aac96cbb73b71723f707b93eb521e8769e45c8338",
+      "referenceDocx": "apps/demo/public/fixtures/parity2-coverpage.docx",
+      "referenceDocxPackageSha256": "a6c16ef35bcb6005b167e08aac96cbb73b71723f707b93eb521e8769e45c8338",
+      "referencePdfSha256": "8ccf3b03dcad12ecbef311124ad86ee386fce35cd069b965adb78b4bff6165d8",
+      "pages": 3
+    },
+    "parity2-dropcap": {
+      "sourcePackageSha256": "a3060d5ea392077e947cdcccb23ead54a3182d7bc8dddf3fbbca19a1df9ae421",
+      "referenceDocx": "apps/demo/public/fixtures/parity2-dropcap.docx",
+      "referenceDocxPackageSha256": "a3060d5ea392077e947cdcccb23ead54a3182d7bc8dddf3fbbca19a1df9ae421",
+      "referencePdfSha256": "f76985b62f33b2727ca233f0afdb7f8055cf856cf794141cdd9ad264f7ab8e4d",
+      "pages": 2
+    },
+    "parity2-equations": {
+      "sourcePackageSha256": "36945c57824491836cdaf65dc7f71cbbe0d8c0c8b211f082d9d561ef5f64a36f",
+      "referenceDocx": "apps/demo/public/fixtures/parity2-equations.docx",
+      "referenceDocxPackageSha256": "36945c57824491836cdaf65dc7f71cbbe0d8c0c8b211f082d9d561ef5f64a36f",
+      "referencePdfSha256": "a1628f975f4faafbab122db56046ef2d85f05b29acdee999d03f486e1c3515a4",
+      "pages": 1
+    },
+    "parity2-fields": {
+      "sourcePackageSha256": "aa0ff633f113ef1570f524a84313eccc219f81be55423bb52b6ddeeaef732bbb",
+      "referenceDocx": "apps/demo/public/fixtures/parity2-fields.docx",
+      "referenceDocxPackageSha256": "aa0ff633f113ef1570f524a84313eccc219f81be55423bb52b6ddeeaef732bbb",
+      "referencePdfSha256": "bba618d288ad8d8ad3408c581b7a28fe7e4d3fd7b7295046d1b127afe30c287a",
+      "pages": 2
+    },
+    "parity2-lists": {
+      "sourcePackageSha256": "ef67da5c23d7f35baecd1cfa1beec89f953272b7d25718477153b8d9819c29c5",
+      "referenceDocx": "apps/demo/public/fixtures/parity2-lists.docx",
+      "referenceDocxPackageSha256": "ef67da5c23d7f35baecd1cfa1beec89f953272b7d25718477153b8d9819c29c5",
+      "referencePdfSha256": "b8c889e8ff52f6603a82dece97af4b2a33608ad732c634a7fa270f294ab04841",
+      "pages": 2
+    },
+    "parity2-nestedtables": {
+      "sourcePackageSha256": "09ac29755e245a8658e947962e36d551f0b8006d87dbaa05b9fd4ddcc63e836e",
+      "referenceDocx": "apps/demo/public/fixtures/parity2-nestedtables.docx",
+      "referenceDocxPackageSha256": "09ac29755e245a8658e947962e36d551f0b8006d87dbaa05b9fd4ddcc63e836e",
+      "referencePdfSha256": "c8f6b7301b78f8309b69fc06afe4b676080f39cb3e591cde08702edac9be0013",
+      "pages": 3
+    },
+    "parity2-notes": {
+      "sourcePackageSha256": "c5aba993d7a6568448d7cb565c5042b8b00bb53f07cc1913db929654b4a11a25",
+      "referenceDocx": "apps/demo/public/fixtures/parity2-notes.docx",
+      "referenceDocxPackageSha256": "c5aba993d7a6568448d7cb565c5042b8b00bb53f07cc1913db929654b4a11a25",
+      "referencePdfSha256": "2672a5b82695787f9f51858d27ee213c2d1dfb3f59b7f531d45032ead8555407",
+      "pages": 2
+    },
+    "parity2-sections": {
+      "sourcePackageSha256": "c739e4fc6a976170a349c359ddb1e0da6741cbc9a11513a41bc041404533e2f0",
+      "referenceDocx": "apps/demo/public/fixtures/parity2-sections.docx",
+      "referenceDocxPackageSha256": "c739e4fc6a976170a349c359ddb1e0da6741cbc9a11513a41bc041404533e2f0",
+      "referencePdfSha256": "daa1368e2283f3a6518b98edc20f1dbba456ecaf658713c5f830b35a71c09691",
+      "pages": 5
+    },
+    "parity2-tabs": {
+      "sourcePackageSha256": "7da4eb980f4222e2dafc235dd1326562070c9b7ead9b9654991d3d6401a01816",
+      "referenceDocx": "apps/demo/public/fixtures/parity2-tabs.docx",
+      "referenceDocxPackageSha256": "7da4eb980f4222e2dafc235dd1326562070c9b7ead9b9654991d3d6401a01816",
+      "referencePdfSha256": "66410a6749441f864dc97c217665c2b274de4c4db30375e4b780da43fedf0f14",
+      "pages": 2
+    },
+    "parity2-textboxes": {
+      "sourcePackageSha256": "6aab181c0204bb078d602f6156f192ecb763d8d692e8e877351b86ad62445603",
+      "referenceDocx": "apps/demo/public/fixtures/parity2-textboxes.docx",
+      "referenceDocxPackageSha256": "6aab181c0204bb078d602f6156f192ecb763d8d692e8e877351b86ad62445603",
+      "referencePdfSha256": "8cbbabe149e763b423d6c66884db803b73a6badba29395e7497c6e5177aa2e13",
+      "pages": 2
+    },
+    "parity2-toc": {
+      "sourcePackageSha256": "defedf5deff6f8b430a735a59ec51690fae3c67566a9f178c87561d15e574a40",
+      "referenceDocx": "apps/demo/public/fixtures/parity2-toc.docx",
+      "referenceDocxPackageSha256": "defedf5deff6f8b430a735a59ec51690fae3c67566a9f178c87561d15e574a40",
+      "referencePdfSha256": "0559a7d953e46068c36d6f8bb8c5b4ca02c97e01e84d6d413289d6b816b5647c",
+      "pages": 6
+    },
+    "parity2-watermark": {
+      "sourcePackageSha256": "1287e47574302a5ab156d8dc55ad8dcfaaae069de677a8a7be7e6f1f29cc98ba",
+      "referenceDocx": "apps/demo/public/fixtures/parity2-watermark.docx",
+      "referenceDocxPackageSha256": "1287e47574302a5ab156d8dc55ad8dcfaaae069de677a8a7be7e6f1f29cc98ba",
+      "referencePdfSha256": "d49a19fc66940d5efaa10a2fb1201b87dca927a2038fba622fcacf5a5f4933a2",
+      "pages": 4
+    },
+    "pleading-anon": {
+      "sourcePackageSha256": "c9717f2fee004c96cfdefc41c4255c6f5dc38a3e3ce2426c263db135d660fe8a",
+      "referenceDocx": "apps/demo/public/fixtures/pleading-anon.docx",
+      "referenceDocxPackageSha256": "c9717f2fee004c96cfdefc41c4255c6f5dc38a3e3ce2426c263db135d660fe8a",
+      "referencePdfSha256": "46aff5647b2badee8a878990ef8b2e10ac248b694ecfac9f43ad16e2f226691c",
+      "pages": 7
+    },
+    "probe-nih-rowheight": {
+      "sourcePackageSha256": "64a8898d404461ee0d782f32d205f0ef966703cfcf61ec69b2e4a78308822890",
+      "referenceDocx": "apps/demo/public/fixtures/probe-nih-rowheight.docx",
+      "referenceDocxPackageSha256": "64a8898d404461ee0d782f32d205f0ef966703cfcf61ec69b2e4a78308822890",
+      "referencePdfSha256": "5ffa1a94b09e5f7cb212b463f7ef16750a2c9de246dae8c0641ff719c92f0d16",
+      "pages": 12
+    },
+    "probe2-arabic-rtl": {
+      "sourcePackageSha256": "10f06f5cf71aa408256c00415954eed9fac2133a1ec68bfe8f13846c3a92c0cb",
+      "referenceDocx": "apps/demo/public/fixtures/probe2-arabic-rtl.docx",
+      "referenceDocxPackageSha256": "10f06f5cf71aa408256c00415954eed9fac2133a1ec68bfe8f13846c3a92c0cb",
+      "referencePdfSha256": "e40d724512a25b8635d358ff4acc623e207346a7d654231d67785537a8f15234",
+      "pages": 1
+    },
+    "probe2-content-controls": {
+      "sourcePackageSha256": "e5d406dfb63174d43696ed9824e02455d6f03bfe02be4546cff24c5d90ff4ea4",
+      "referenceDocx": "apps/demo/public/fixtures/probe2-content-controls.docx",
+      "referenceDocxPackageSha256": "e5d406dfb63174d43696ed9824e02455d6f03bfe02be4546cff24c5d90ff4ea4",
+      "referencePdfSha256": "ea12d761e3a4657f6e77235f8e935b681bed4d71416a6b1b3eef5c6dde7448a5",
+      "pages": 1
+    },
+    "probe2-dropcaps-frames": {
+      "sourcePackageSha256": "f5ff2b067e36f527be915016e3ed56dbba8b97e171ca5d9df1369f280346abf5",
+      "referenceDocx": "apps/demo/public/fixtures/probe2-dropcaps-frames.docx",
+      "referenceDocxPackageSha256": "f5ff2b067e36f527be915016e3ed56dbba8b97e171ca5d9df1369f280346abf5",
+      "referencePdfSha256": "abd83776160ccfca56223e8dd8be5f6bba9f2841f7b0f5e1a9501ec73aa0f85d",
+      "pages": 2
+    },
+    "probe2-form-checkboxes": {
+      "sourcePackageSha256": "1cf75f8ffbb9c4db109b7f757badd90ccddd9a32016dadbbbcfb5c8be92e2245",
+      "referenceDocx": "apps/demo/public/fixtures/probe2-form-checkboxes.docx",
+      "referenceDocxPackageSha256": "1cf75f8ffbb9c4db109b7f757badd90ccddd9a32016dadbbbcfb5c8be92e2245",
+      "referencePdfSha256": "6190ddfe7b09bd99280f6630387333164e4488ce80fef3709385a1969102299b",
+      "pages": 1
+    },
+    "probe2-hyphenation": {
+      "sourcePackageSha256": "4e33e888f0f41c956e2c4d489e8016e65986ec7ce126d5f94144d1c0841fc370",
+      "referenceDocx": "apps/demo/public/fixtures/probe2-hyphenation.docx",
+      "referenceDocxPackageSha256": "4e33e888f0f41c956e2c4d489e8016e65986ec7ce126d5f94144d1c0841fc370",
+      "referencePdfSha256": "d495606d90026cb045e68bea58093f8f715d328d04021e5caa9a4ccb4d8eb6b8",
+      "pages": 3
+    },
+    "probe2-math-matrices": {
+      "sourcePackageSha256": "99c336a664a643247a95a302a866f88accbbc42a2c48a8aa84cf117857c84436",
+      "referenceDocx": "apps/demo/public/fixtures/probe2-math-matrices.docx",
+      "referenceDocxPackageSha256": "99c336a664a643247a95a302a866f88accbbc42a2c48a8aa84cf117857c84436",
+      "referencePdfSha256": "198fc3e13db17fdfccf56454ca0af62d32eaae1f32072d3ac85a3f1056a6332d",
+      "pages": 1
+    },
+    "probe2-mixed-orientation": {
+      "sourcePackageSha256": "b4fc510f4884525e8315d05252d0706ea3f475aec073500535d3e53617111cdf",
+      "referenceDocx": "apps/demo/public/fixtures/probe2-mixed-orientation.docx",
+      "referenceDocxPackageSha256": "b4fc510f4884525e8315d05252d0706ea3f475aec073500535d3e53617111cdf",
+      "referencePdfSha256": "230a8559f0a67d3b3790b43c15dbfcdffaa0cdaad5a1281d10ad260eb68baf4e",
+      "pages": 3
+    },
+    "probe2-modern-template": {
+      "sourcePackageSha256": "f3aef7bc94d17679bd9a1b4ffe76e96d5ca62a011a76f2e37d8a7f29e8885693",
+      "referenceDocx": "apps/demo/public/fixtures/probe2-modern-template.docx",
+      "referenceDocxPackageSha256": "f3aef7bc94d17679bd9a1b4ffe76e96d5ca62a011a76f2e37d8a7f29e8885693",
+      "referencePdfSha256": "edb12a5c847a9855a9a77e173422176c911bdba38410293f95391c587dfe5ea8",
+      "pages": 2
+    },
+    "probe2-picture-watermark": {
+      "sourcePackageSha256": "a01f5395837cc5a785e93aca5f746e69280ecbfcc95939914cd439314b68ef5a",
+      "referenceDocx": "apps/demo/public/fixtures/probe2-picture-watermark.docx",
+      "referenceDocxPackageSha256": "a01f5395837cc5a785e93aca5f746e69280ecbfcc95939914cd439314b68ef5a",
+      "referencePdfSha256": "027a1c2006c207dc0b10499c06839c347cc8c5d5fe847ef3c1bcc7a6d83e19c6",
+      "pages": 6
+    },
+    "probe2-ruby-vertical": {
+      "sourcePackageSha256": "526bec65c3f8953e7d28a84e7282b951ed4c724ad3945be7f9417d20bfdbb8e0",
+      "referenceDocx": "apps/demo/public/fixtures/probe2-ruby-vertical.docx",
+      "referenceDocxPackageSha256": "526bec65c3f8953e7d28a84e7282b951ed4c724ad3945be7f9417d20bfdbb8e0",
+      "referencePdfSha256": "1d7d7927945c77d4ce82315ef0fb8280c628a68c7e13237b2c2b2d1ef172de40",
+      "pages": 2
+    },
+    "probe2-run-borders": {
+      "sourcePackageSha256": "7cae28b7e43757e438dc4873eba484074902cd3a159b3d2dde5c9ac2284f74ad",
+      "referenceDocx": "apps/demo/public/fixtures/probe2-run-borders.docx",
+      "referenceDocxPackageSha256": "7cae28b7e43757e438dc4873eba484074902cd3a159b3d2dde5c9ac2284f74ad",
+      "referencePdfSha256": "13014263e051caf7f820a0942202959cd8944e80d89b62643f6410aea041e163",
+      "pages": 1
+    },
+    "probe2-styleref-headers": {
+      "sourcePackageSha256": "f14c1a67146b85025700f6881176317cca1ba7fe51250766d075bd9ddf56e2ff",
+      "referenceDocx": "apps/demo/public/fixtures/probe2-styleref-headers.docx",
+      "referenceDocxPackageSha256": "f14c1a67146b85025700f6881176317cca1ba7fe51250766d075bd9ddf56e2ff",
+      "referencePdfSha256": "e572154bdc719929acc5f2d58ed21694eed9899423287349e61362716f5b22ad",
+      "pages": 2
+    },
+    "probe3-chargrid": {
+      "sourcePackageSha256": "e33ca57fcb70b513aa55d220da0821abeab6002646a8aa5de76af6a410939b79",
+      "referenceDocx": "apps/demo/public/fixtures/probe3-chargrid.docx",
+      "referenceDocxPackageSha256": "e33ca57fcb70b513aa55d220da0821abeab6002646a8aa5de76af6a410939b79",
+      "referencePdfSha256": "dbc141401b2b489df5cff00bc0ef72d531cf9dfe6b1482d34d077024cb87f177",
+      "pages": 1
+    },
+    "probe3-columns-unequal": {
+      "sourcePackageSha256": "b6956f0419175af89b9ad12ec47fb851869d27aea998a7e6985ad6a800e0a0b5",
+      "referenceDocx": "apps/demo/public/fixtures/probe3-columns-unequal.docx",
+      "referenceDocxPackageSha256": "b6956f0419175af89b9ad12ec47fb851869d27aea998a7e6985ad6a800e0a0b5",
+      "referencePdfSha256": "7b3d876a100d92bfdf21ca8cfc6f24ea695e5800eae00384025c1e5d9419e992",
+      "pages": 3
+    },
+    "probe3-emoji": {
+      "sourcePackageSha256": "37603cb442b212c06f64fd126e984b22e9bf890f01e336d6b02e7ef9b0747182",
+      "referenceDocx": "apps/demo/public/fixtures/probe3-emoji.docx",
+      "referenceDocxPackageSha256": "37603cb442b212c06f64fd126e984b22e9bf890f01e336d6b02e7ef9b0747182",
+      "referencePdfSha256": "610ff3277a81ee83171251ca5b1149207ba7acffbb7625528e3c5d87c7c17993",
+      "pages": 1
+    },
+    "probe3-field-switches": {
+      "sourcePackageSha256": "aa1bcf8c04c1ea4417bd01a617b6bed13b936d5b2dead45374772127208c6c3e",
+      "referenceDocx": "apps/demo/public/fixtures/probe3-field-switches.docx",
+      "referenceDocxPackageSha256": "aa1bcf8c04c1ea4417bd01a617b6bed13b936d5b2dead45374772127208c6c3e",
+      "referencePdfSha256": "0bc20a97cbf74b65784e10bcc804fa39f373906c11b7bd1b0aefcef79912bea3",
+      "pages": 2
+    },
+    "probe3-index-xrefs": {
+      "sourcePackageSha256": "8852bbaa1eaf8d571a1563fad11a569d795fff6a12c22f24062e60ae2a4b1e0e",
+      "referenceDocx": "apps/demo/public/fixtures/probe3-index-xrefs.docx",
+      "referenceDocxPackageSha256": "8852bbaa1eaf8d571a1563fad11a569d795fff6a12c22f24062e60ae2a4b1e0e",
+      "referencePdfSha256": "ba366f2c85967a63ac1cd982b6fccca8d9cc12bd7787cdc2ccf4a0c5e72b256e",
+      "pages": 1
+    },
+    "probe3-indic": {
+      "sourcePackageSha256": "c648501981c0bc8421e745d6d8cf84ba4733f1293173588c16e0ed85d0d2453f",
+      "referenceDocx": "apps/demo/public/fixtures/probe3-indic.docx",
+      "referenceDocxPackageSha256": "c648501981c0bc8421e745d6d8cf84ba4733f1293173588c16e0ed85d0d2453f",
+      "referencePdfSha256": "b2ad29401be8a3f239ec757da4026b825d9d89fdfb9ac384c37d0441425b1eac",
+      "pages": 1
+    },
+    "probe3-kashida": {
+      "sourcePackageSha256": "c3b0597d129335840ec1db2d1d7bb3b3f005993bf92145acc3d4ad86b3e330ae",
+      "referenceDocx": "apps/demo/public/fixtures/probe3-kashida.docx",
+      "referenceDocxPackageSha256": "c3b0597d129335840ec1db2d1d7bb3b3f005993bf92145acc3d4ad86b3e330ae",
+      "referencePdfSha256": "efe32c8437464faf6355bc85a8a9e138643d9b2e9c358098a624e1bfca99c2ee",
+      "pages": 1
+    },
+    "probe3-linked-textboxes": {
+      "sourcePackageSha256": "83bbd41bac571ad7354f7b2cf7987c728fc4afbfd7536117e578dede8018b178",
+      "referenceDocx": "apps/demo/public/fixtures/probe3-linked-textboxes.docx",
+      "referenceDocxPackageSha256": "83bbd41bac571ad7354f7b2cf7987c728fc4afbfd7536117e578dede8018b178",
+      "referencePdfSha256": "e43a5721839156a9845c9c4344237cffe2e40de67a23dd1ad31cb3400b4c3c77",
+      "pages": 1
+    },
+    "probe3-lo-provenance": {
+      "sourcePackageSha256": "8273afa6e561c5faf0e7775948dd2a82e8413449f6e73a29dce4b928b15c35ff",
+      "referenceDocx": "apps/demo/public/fixtures/probe3-lo-provenance.docx",
+      "referenceDocxPackageSha256": "8273afa6e561c5faf0e7775948dd2a82e8413449f6e73a29dce4b928b15c35ff",
+      "referencePdfSha256": "37893bfb2e2ee9d8c5d4255d599d93a3e60c03c804a65bb652647bf38f5c705c",
+      "pages": 1
+    },
+    "probe3-mirror-book": {
+      "sourcePackageSha256": "901edd0e9826c5d9b85703fd9e7f9e0065b7ddd3fd6eacb8365934b82dfde2fb",
+      "referenceDocx": "apps/demo/public/fixtures/probe3-mirror-book.docx",
+      "referenceDocxPackageSha256": "901edd0e9826c5d9b85703fd9e7f9e0065b7ddd3fd6eacb8365934b82dfde2fb",
+      "referencePdfSha256": "007b3911e62327d5576f9bf0f615780660e282c0c8fb47851a56604ba5999027",
+      "pages": 2
+    },
+    "probe3-shape-autofit": {
+      "sourcePackageSha256": "90a00ff583c258e499d6c7f21be5962ef0b9da888e99708762354a2a6851e3df",
+      "referenceDocx": "apps/demo/public/fixtures/probe3-shape-autofit.docx",
+      "referenceDocxPackageSha256": "90a00ff583c258e499d6c7f21be5962ef0b9da888e99708762354a2a6851e3df",
+      "referencePdfSha256": "644824640ece0cc21349e6ad4397a69160938ee70d7aa2246fddc0bb870780ed",
+      "pages": 1
+    },
+    "probe3-table-exotics": {
+      "sourcePackageSha256": "625b4ffd476916bea37780acda34629a6a826e248b02757b1c07708a580cd011",
+      "referenceDocx": "apps/demo/public/fixtures/probe3-table-exotics.docx",
+      "referenceDocxPackageSha256": "625b4ffd476916bea37780acda34629a6a826e248b02757b1c07708a580cd011",
+      "referencePdfSha256": "f3e6e9239ec106dbfb9373bd2fb57a0707ce592c694e4c0b65320b2b7239efb1",
+      "pages": 2
+    },
+    "probe3-text-effects": {
+      "sourcePackageSha256": "79ec5cfd180c8353e2488f6b13e7f013b0e5f5b6097b00d09c46ce1ece76d5b6",
+      "referenceDocx": "apps/demo/public/fixtures/probe3-text-effects.docx",
+      "referenceDocxPackageSha256": "79ec5cfd180c8353e2488f6b13e7f013b0e5f5b6097b00d09c46ce1ece76d5b6",
+      "referencePdfSha256": "9f1b1afa4cbd49eb49ef548909924d025edcdd3598e305baedbced66b232e738",
+      "pages": 1
+    },
+    "probe3-thai": {
+      "sourcePackageSha256": "e25ac9d93f980269b8149bee0e4bf85da721e87d55b4be0fa1a28a37f706c4a0",
+      "referenceDocx": "apps/demo/public/fixtures/probe3-thai.docx",
+      "referenceDocxPackageSha256": "e25ac9d93f980269b8149bee0e4bf85da721e87d55b4be0fa1a28a37f706c4a0",
+      "referencePdfSha256": "8403cb7c9befd9cbd38fa39c69dcf13f0f7173742d18d191540a2b5e3cd1f01b",
+      "pages": 2
+    },
+    "probe3-tracked-changes": {
+      "sourcePackageSha256": "dce8d610169821a0685dc241399e3e7ab761c36a112c20365313d513de783ae6",
+      "referenceDocx": "apps/demo/public/fixtures/probe3-tracked-changes.docx",
+      "referenceDocxPackageSha256": "dce8d610169821a0685dc241399e3e7ab761c36a112c20365313d513de783ae6",
+      "referencePdfSha256": "a02415009411c3ec0a33e465a9d009d6e1c37ffc0b03c223890c15c4ae8a5547",
+      "pages": 1
+    },
+    "probe3-wordart-warps": {
+      "sourcePackageSha256": "4cfb5e24e98850b5e59669679eae229b09b97ae74e642af7f50e974d95cb2946",
+      "referenceDocx": "apps/demo/public/fixtures/probe3-wordart-warps.docx",
+      "referenceDocxPackageSha256": "4cfb5e24e98850b5e59669679eae229b09b97ae74e642af7f50e974d95cb2946",
+      "referencePdfSha256": "0f363d6818a367c67bb62d7bf2c137e785da477fd18c57c8423735258645d821",
+      "pages": 1
+    },
+    "sample": {
+      "sourcePackageSha256": "4b3d6e3f4ac924e8dc834b23956b4b7dd14a75f18892e885240ced99f95b8b0a",
+      "referenceDocx": "apps/demo/public/fixtures/sample.docx",
+      "referenceDocxPackageSha256": "4b3d6e3f4ac924e8dc834b23956b4b7dd14a75f18892e885240ced99f95b8b0a",
+      "referencePdfSha256": "d344d249c86574aa87e2e56da3d7844b66c8d2b2dbc85d182ae025ad63f2ed07",
+      "pages": 4
+    },
+    "staging-anchors2": {
+      "sourcePackageSha256": "f408d37976d61f7ffb8ee8fe1c95061932ce79e7099bd2643e5317680c60ed78",
+      "referenceDocx": "apps/demo/public/fixtures/staging-anchors2.docx",
+      "referenceDocxPackageSha256": "f408d37976d61f7ffb8ee8fe1c95061932ce79e7099bd2643e5317680c60ed78",
+      "referencePdfSha256": "7b7de77bd1e9b7ccf99f8a0825952bf0d977b5fb1ac6fe00bb24f25d67ec7f6a",
+      "pages": 2
+    },
+    "staging-bidi": {
+      "sourcePackageSha256": "8fe7626e7932eca78b50062506d958a2e9e1a6e9818820c588eb63e34a4325f3",
+      "referenceDocx": "apps/demo/public/fixtures/staging-bidi.docx",
+      "referenceDocxPackageSha256": "8fe7626e7932eca78b50062506d958a2e9e1a6e9818820c588eb63e34a4325f3",
+      "referencePdfSha256": "f0709196b208fef466669bdb99964b2b0db37f277e4ee92ff4d99f0c854fae72",
+      "pages": 1
+    },
+    "staging-breaks": {
+      "sourcePackageSha256": "bac1fb0be8e091f0744840188445a09e993ca5e40e6b3d32db54f85f19a77837",
+      "referenceDocx": "apps/demo/public/fixtures/staging-breaks.docx",
+      "referenceDocxPackageSha256": "bac1fb0be8e091f0744840188445a09e993ca5e40e6b3d32db54f85f19a77837",
+      "referencePdfSha256": "d895b7a05d0ac41fc551a380eb7b0f7f4637302ad3ccb578eb382750c0c8c1a3",
+      "pages": 7
+    },
+    "staging-eastasian": {
+      "sourcePackageSha256": "5046d90b9397f0f5d9083d311b10153878fbe53d396532e0a5cf9e09e7f1cfe0",
+      "referenceDocx": "apps/demo/public/fixtures/staging-eastasian.docx",
+      "referenceDocxPackageSha256": "5046d90b9397f0f5d9083d311b10153878fbe53d396532e0a5cf9e09e7f1cfe0",
+      "referencePdfSha256": "46ce972ffd002e5d29f2373560da3d64a227d6172f9fc57b554ad646207708aa",
+      "pages": 1
+    },
+    "staging-fields2": {
+      "sourcePackageSha256": "0812076517e7df57a3a25077ef748090def67714a5e7ba11212c22ac84cdee65",
+      "referenceDocx": "apps/demo/public/fixtures/staging-fields2.docx",
+      "referenceDocxPackageSha256": "0812076517e7df57a3a25077ef748090def67714a5e7ba11212c22ac84cdee65",
+      "referencePdfSha256": "69fd7c0f6dfb46c32f0d5baa850e379032c2badaf8136b0a1d4f1c8f9a39456e",
+      "pages": 2
+    },
+    "staging-frames": {
+      "sourcePackageSha256": "dfd10771f270a56ded3a4d3d93a1e8a2815e65b133e078edfc3dfb15b137909b",
+      "referenceDocx": "apps/demo/public/fixtures/staging-frames.docx",
+      "referenceDocxPackageSha256": "dfd10771f270a56ded3a4d3d93a1e8a2815e65b133e078edfc3dfb15b137909b",
+      "referencePdfSha256": "4ce6add0c8859b4f7f075e9d2f808c934d2f8387196f628a0a6bf2519add53bf",
+      "pages": 2
+    },
+    "staging-grid4": {
+      "sourcePackageSha256": "25eb8ee89d00f5160729fac158a5f764f7aa9c9b7ea4fe1db9e34c00cbd0b089",
+      "referenceDocx": "apps/demo/public/fixtures/staging-grid4.docx",
+      "referenceDocxPackageSha256": "25eb8ee89d00f5160729fac158a5f764f7aa9c9b7ea4fe1db9e34c00cbd0b089",
+      "referencePdfSha256": "230a65115e5ed1b2d6023119e236bb94c119b748efdc33da58709c7c85c10c06",
+      "pages": 3
+    },
+    "staging-hf2": {
+      "sourcePackageSha256": "676a80d372182bfbd2ae591bb1d8190c4b20fdc676b54573d6533005da181bd9",
+      "referenceDocx": "apps/demo/public/fixtures/staging-hf2.docx",
+      "referenceDocxPackageSha256": "676a80d372182bfbd2ae591bb1d8190c4b20fdc676b54573d6533005da181bd9",
+      "referencePdfSha256": "0db3e89cf40d1d3a10a5af3e89f83853b5a9784f4b9dbec461a435e2f99ad33c",
+      "pages": 5
+    },
+    "staging-longtable": {
+      "sourcePackageSha256": "def7abd0ace9356b478641cb70078f671501f769b51c66895788297608765de7",
+      "referenceDocx": "apps/demo/public/fixtures/staging-longtable.docx",
+      "referenceDocxPackageSha256": "def7abd0ace9356b478641cb70078f671501f769b51c66895788297608765de7",
+      "referencePdfSha256": "67540e8f82127db1d8fa126521c87ea78310e09c6cef5dcbe96753526169878a",
+      "pages": 9
+    },
+    "staging-styles": {
+      "sourcePackageSha256": "b41539774b4abd80dc3ab6bca8b0c53bcb794f7cdc6865d2e746b7667386129b",
+      "referenceDocx": "apps/demo/public/fixtures/staging-styles.docx",
+      "referenceDocxPackageSha256": "b41539774b4abd80dc3ab6bca8b0c53bcb794f7cdc6865d2e746b7667386129b",
+      "referencePdfSha256": "c2cdb871a45a8f9eb05abcc7378d8dce86c3ba334cd1dc5ad91e96d305b2daa4",
+      "pages": 1
+    },
+    "staging-tblextreme": {
+      "sourcePackageSha256": "20fa164cf776e15a754ffa5a0174d9bc7fde8eb6972ac72d64fb36019e64d63f",
+      "referenceDocx": "apps/demo/public/fixtures/staging-tblextreme.docx",
+      "referenceDocxPackageSha256": "20fa164cf776e15a754ffa5a0174d9bc7fde8eb6972ac72d64fb36019e64d63f",
+      "referencePdfSha256": "978b729c5af0e72dfa70f64bcb11ce3bc9b93e8bd1156fe2bf3476faf6028da0",
+      "pages": 2
+    },
+    "staging-typography": {
+      "sourcePackageSha256": "862f3fc999258ca545fecc5d6e84e23e65f1ffd269e1a55c022d900917c7c078",
+      "referenceDocx": "apps/demo/public/fixtures/staging-typography.docx",
+      "referenceDocxPackageSha256": "862f3fc999258ca545fecc5d6e84e23e65f1ffd269e1a55c022d900917c7c078",
+      "referencePdfSha256": "78eb1c4371c6f6e7890611ab8b542c3928f9d899f25832159299bf7603442ad2",
+      "pages": 1
+    },
+    "wild-athabasca": {
+      "sourcePackageSha256": "d76a74b028eb6ef0f05a5e7bf4f272fa9798204f614a9bf97f0bc308f99f1579",
+      "referenceDocx": "apps/demo/public/fixtures/wild-athabasca.docx",
+      "referenceDocxPackageSha256": "d76a74b028eb6ef0f05a5e7bf4f272fa9798204f614a9bf97f0bc308f99f1579",
+      "referencePdfSha256": "c9e37d97a55988fb2a254bf01d9a547f982003e518d9ba087282e73c9a5adb61",
+      "pages": 31
+    },
+    "wild-doerfp": {
+      "sourcePackageSha256": "2d7313b6e95bc4a9c48677643312a1d59175adc09ce37de49d9406022c5e3152",
+      "referenceDocx": "apps/demo/public/fixtures/wild-doerfp.docx",
+      "referenceDocxPackageSha256": "2d7313b6e95bc4a9c48677643312a1d59175adc09ce37de49d9406022c5e3152",
+      "referencePdfSha256": "c4adb95e443b124a2238519bd35129ae9e9b9d112b69680022d16964cec2e208",
+      "pages": 38
+    },
+    "wild-gatech": {
+      "sourcePackageSha256": "97ffbb7ffa10e43e7cf4b386e60f0b4a6ce7da2a515e19b4b9654ac14ba53b1c",
+      "referenceDocx": "apps/demo/public/fixtures/wild-gatech.docx",
+      "referenceDocxPackageSha256": "97ffbb7ffa10e43e7cf4b386e60f0b4a6ce7da2a515e19b4b9654ac14ba53b1c",
+      "referencePdfSha256": "335b5a95b75e1abfa357e2069468a4b912de9decec7dffda1ff7a64295670db1",
+      "pages": 22
+    },
+    "wild-hamburg": {
+      "sourcePackageSha256": "216a6a9d7fc2e26b165b8611f03c2639ca399a432eccccc995c0183734508712",
+      "referenceDocx": "apps/demo/public/fixtures/wild-hamburg.docx",
+      "referenceDocxPackageSha256": "216a6a9d7fc2e26b165b8611f03c2639ca399a432eccccc995c0183734508712",
+      "referencePdfSha256": "cdd8a1a8491896615415d5fff0b1e08b41ecbfa9672bdd51e9a3ba822f27e663",
+      "pages": 17
+    },
+    "wild-multicolumn": {
+      "sourcePackageSha256": "47f4fe7dfec06fd91bb9d71584fbe6a4a8987c75404a3d898b136107119e1006",
+      "referenceDocx": "apps/demo/public/fixtures/wild-multicolumn.docx",
+      "referenceDocxPackageSha256": "47f4fe7dfec06fd91bb9d71584fbe6a4a8987c75404a3d898b136107119e1006",
+      "referencePdfSha256": "716cb6aac5d799689bab7b4bdc566a2496ed8b889c327cebcd2887e86826bc12",
+      "pages": 46
+    },
+    "wild-wirfp": {
+      "sourcePackageSha256": "4ef0c545f6e7924f6217d4c958fef0a0998d06c1a53a01d01ac9e2b71e853ecf",
+      "referenceDocx": "apps/demo/public/fixtures/wild-wirfp.docx",
+      "referenceDocxPackageSha256": "4ef0c545f6e7924f6217d4c958fef0a0998d06c1a53a01d01ac9e2b71e853ecf",
+      "referencePdfSha256": "7939e41a4e4e946d7fe7d716fd751f63551bfc2ceabe8eb895f02733c2a8455b",
+      "pages": 20
+    },
+    "wild2-legal-ca-agreement": {
+      "sourcePackageSha256": "ac9319e04c4d2a646bd00cc6ca0b5e86994d75d766d0484947dfa0b8a47f25fe",
+      "referenceDocx": "apps/demo/public/fixtures/wild2-legal-ca-agreement.docx",
+      "referenceDocxPackageSha256": "ac9319e04c4d2a646bd00cc6ca0b5e86994d75d766d0484947dfa0b8a47f25fe",
+      "referencePdfSha256": "76e59926bfbc2402ab4edde99d32795e6c2d9236bb1045993f3735f9ae093461",
+      "pages": 23
+    },
+    "wild2-legal-nih-contract": {
+      "sourcePackageSha256": "0fa8ada77596ef5593ea0df72ff73fe9a14859eacc0a68a94fc56ea160398c1a",
+      "referenceDocx": "apps/demo/public/fixtures/wild2-legal-nih-contract.docx",
+      "referenceDocxPackageSha256": "0fa8ada77596ef5593ea0df72ff73fe9a14859eacc0a68a94fc56ea160398c1a",
+      "referencePdfSha256": "ed1413e8b9c2bcb62966c9f6b8c26f8d9433e16259b8ed0943d2bed62911861e",
+      "pages": 419
+    },
+    "wild2-lit-yiddish-rtl": {
+      "sourcePackageSha256": "6fadd5900317a0592e6449452d3b119a8068806dba71ef145354f2ed05bad08e",
+      "referenceDocx": "apps/demo/public/fixtures/wild2-lit-yiddish-rtl.docx",
+      "referenceDocxPackageSha256": "6fadd5900317a0592e6449452d3b119a8068806dba71ef145354f2ed05bad08e",
+      "referencePdfSha256": "a78875826a627cb8b30c4f9243abc856e07871b7d4b09088cf04a64e5c87cff9",
+      "pages": 215
+    },
+    "wild2-math-eq-as-images": {
+      "sourcePackageSha256": "0e60d34431ddf0abc72ffee9687c2225b06de175fa01c775dab1bbd035e5c21a",
+      "referenceDocx": "parity/word-reference-docx/wild2-math-eq-as-images.docx",
+      "referenceDocxPackageSha256": "d38afdf34b668182cd81e1cff29f674a5def31ed44c8a5e15a26b5df5e91ce96",
+      "referencePdfSha256": "8523eafa96d7b31d192920236d58798d95bfd33dd79289d65de9da2ce792cb99",
+      "pages": 8
+    },
+    "wild2-math-omml-dense": {
+      "sourcePackageSha256": "67ee64afbe7500e3dae8baee6459b2aa0555c617ac101230ae38eadc23e7013b",
+      "referenceDocx": "apps/demo/public/fixtures/wild2-math-omml-dense.docx",
+      "referenceDocxPackageSha256": "67ee64afbe7500e3dae8baee6459b2aa0555c617ac101230ae38eadc23e7013b",
+      "referencePdfSha256": "1b1230a63e3a9caa820033c13dd4d5fa7ef261e4763c93a5ef2ffeb0039f0c71",
+      "pages": 17
+    },
+    "wild2-med-nccih-protocol": {
+      "sourcePackageSha256": "55a5d6ecb6bb669d186fd338faba55726896e759b09aba30c15c4259fa738ae3",
+      "referenceDocx": "parity/word-reference-docx/wild2-med-nccih-protocol.docx",
+      "referenceDocxPackageSha256": "33b0261a629ed8a2dde2a1bed159f66021a3dd4d5cbcc56f1ffa5ba7d1266086",
+      "referencePdfSha256": "3fa36f426e9172d7db507249ec96785dd277a38d03f6760343102e27c1d9470b",
+      "pages": 23
+    },
+    "wild2-med-phase23-protocol": {
+      "sourcePackageSha256": "57eb2c057a829ec2c2bf7291446c790ce2b62a7359f121b5efcdbb38a4eda39c",
+      "referenceDocx": "apps/demo/public/fixtures/wild2-med-phase23-protocol.docx",
+      "referenceDocxPackageSha256": "57eb2c057a829ec2c2bf7291446c790ce2b62a7359f121b5efcdbb38a4eda39c",
+      "referencePdfSha256": "82e745387c019838d565fe1a76797a673bb021906c10807bb9813feab7495ab4",
+      "pages": 70
+    },
+    "wild2-sci-chem-omml": {
+      "sourcePackageSha256": "96bb5cf997a606db44418556be916e74a7bcc1c1e986be72d88ebc93ca29eba2",
+      "referenceDocx": "apps/demo/public/fixtures/wild2-sci-chem-omml.docx",
+      "referenceDocxPackageSha256": "96bb5cf997a606db44418556be916e74a7bcc1c1e986be72d88ebc93ca29eba2",
+      "referencePdfSha256": "5af5cda9f39de15d9ac205746c31b53ba127dbbae76b429082b750248fe8d84e",
+      "pages": 13
+    },
+    "wild2-sci-elsevier-template": {
+      "sourcePackageSha256": "21a0fa568af54263a196198bb045de4fddab00627859986c3117ce2035811fab",
+      "referenceDocx": "apps/demo/public/fixtures/wild2-sci-elsevier-template.docx",
+      "referenceDocxPackageSha256": "21a0fa568af54263a196198bb045de4fddab00627859986c3117ce2035811fab",
+      "referencePdfSha256": "23845a274fd8eae3e12300eed1b26f576a77b45925135abf47d48668229e6112",
+      "pages": 11
+    },
+    "wild2-sci-ieee-2col": {
+      "sourcePackageSha256": "8fb2397d14422c2cd851730e666d28a38195aabf67f7889bb224b010da5f5f2d",
+      "referenceDocx": "apps/demo/public/fixtures/wild2-sci-ieee-2col.docx",
+      "referenceDocxPackageSha256": "8fb2397d14422c2cd851730e666d28a38195aabf67f7889bb224b010da5f5f2d",
+      "referencePdfSha256": "431153a8a095c4a5f060845564941c8a7b39f2e3bf2666805d7e7ad683a0d5bf",
+      "pages": 4
+    },
+    "word-interop-embedded-only": {
+      "sourcePackageSha256": "2a40106455a26cbf20c1266c38b0ffe66527929474db7c4dd74ced77512cdfc6",
+      "referenceDocx": "apps/demo/public/fixtures/word-interop-embedded-only.docx",
+      "referenceDocxPackageSha256": "2a40106455a26cbf20c1266c38b0ffe66527929474db7c4dd74ced77512cdfc6",
+      "referencePdfSha256": "f3d634aea25aee54437f6ec581d144d9f0b354e25d5b92a06f40e2fe76bb8c59",
+      "pages": 1
+    }
+  }
+}

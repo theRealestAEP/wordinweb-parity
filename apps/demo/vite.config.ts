@@ -17,11 +17,9 @@ const realNodeModules = (() => {
   }
 })();
 
-// Serve the parity dashboard at /report straight from parity/out/report.html so
-// `npm run dev` gives you the viewer AND the eval dashboard side by side. The
-// report is self-contained (no external image refs), so streaming the one file
-// is enough. parity/ is git-ignored and absent until the suite runs, so when
-// the file is missing we serve a friendly "run the suite" page instead of a 404.
+// Serve the Word-export parity dashboard and its inspected page pairs from
+// parity/out so `npm run dev` gives the viewer and release gate side by side.
+// parity/out is generated locally by the full candidate gate.
 function parityReport(): Plugin {
   const reportPath = fileURLToPath(new URL("../../parity/out/report.html", import.meta.url));
   const placeholder = `<!doctype html>
@@ -43,11 +41,10 @@ function parityReport(): Plugin {
 </style></head>
 <body><div class="card">
   <h1>No parity results yet</h1>
-  <p>The pixel-parity dashboard is generated from a full comparison run against
-  the Word reference PDFs. Nothing has been run in this checkout yet.</p>
+  <p>The pixel-parity dashboard is generated from a full built-in Download →
+  Microsoft Word PDF comparison against the cached Word reference PDFs.</p>
   <p>Generate it, then reload this page:</p>
-  <code>node scripts/parity-parallel.mjs
-node scripts/parity-render-report.mjs</code>
+  <code>node scripts/word-download-parity.mjs</code>
   <p><a href="/">← back to the viewer</a></p>
 </div></body></html>`;
 

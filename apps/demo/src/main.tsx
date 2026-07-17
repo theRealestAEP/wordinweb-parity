@@ -257,6 +257,8 @@ function ModeControl({ mode, author, onChange }: { mode: Mode; author: string; o
 
 function App() {
   const query = new URLSearchParams(location.search);
+  const toolbarMode = query.get("toolbar") === "simple" ? "simple" : "advanced";
+  const toolbarFeatures = query.get("layout") === "off" ? { layout: false } : undefined;
   const initial = query.get("doc") ?? "/fixtures/showcase.docx";
   const [source, setSource] = useState<ArrayBuffer | string | null>(initial);
   const [preset, setPreset] = useState(PRESETS.find((item) => item.path === initial)?.id ?? "");
@@ -330,10 +332,16 @@ function App() {
 
   const onFile = useCallback(async (file: File) => {
     setStatus(`Loading ${file.name}…`);
-    const buf = await file.arrayBuffer();
-    setSource(buf);
-    setPreset("");
-    setFileName(file.name);
+    setPageCount(null);
+    setApi(null);
+    try {
+      const buf = await file.arrayBuffer();
+      setSource(buf);
+      setPreset("");
+      setFileName(file.name);
+    } catch (error) {
+      setStatus(`Error: ${error instanceof Error ? error.message : "Could not read file"}`);
+    }
   }, []);
 
   const loadPreset = (id: string) => {
@@ -506,7 +514,7 @@ function App() {
           Print
         </button>
       </div>
-      {editable && <div className="document-toolbar"><DocxToolbar api={api} onSave={download} /></div>}
+      {editable && <div className="document-toolbar"><DocxToolbar api={api} mode={toolbarMode} features={toolbarFeatures} onSave={download} /></div>}
       {findOpen && (
         <div className="find-bar">
           <input
@@ -581,6 +589,13 @@ function App() {
         </div>
       )}
       <main className="editor-stage">
+        {status.startsWith("Loading ") && (
+          <div className="document-loading" data-dxw-loading="" role="status" aria-live="assertive" aria-busy="true">
+            <span className="document-loading-spinner" aria-hidden="true" />
+            <strong>{status}</strong>
+            <span>Preparing pages for editing…</span>
+          </div>
+        )}
         {source && (
           <DocxView
             source={source}

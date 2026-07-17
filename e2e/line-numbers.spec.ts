@@ -31,27 +31,32 @@ async function marginNumbers(page: Page): Promise<number> {
   });
 }
 
+async function pickLineNumbers(page: Page, value: string): Promise<void> {
+  await page.locator('[data-dxw-layout-menu-trigger="line-numbers"]').click();
+  await page.locator(`[data-dxw-layout-option="${value}"]`).click();
+}
+
 test.describe("line-number editing", () => {
   test("toggling line numbers on then off adds and removes margin numbers", async ({ page }) => {
     await open(page);
     expect(await marginNumbers(page)).toBe(0);
 
-    await page.selectOption('select[title="Line numbers"]', "continuous");
+    await pickLineNumbers(page, "continuous");
     await page.waitForTimeout(400);
     const on = await marginNumbers(page);
     expect(on, "line numbers appear in the left margin").toBeGreaterThan(10);
 
-    await page.selectOption('select[title="Line numbers"]', "off");
+    await pickLineNumbers(page, "off");
     await page.waitForTimeout(400);
     expect(await marginNumbers(page), "line numbers removed").toBe(0);
   });
 
   test("count-by-5 numbers only every fifth line", async ({ page }) => {
     await open(page);
-    await page.selectOption('select[title="Line numbers"]', "continuous");
+    await pickLineNumbers(page, "continuous");
     await page.waitForTimeout(400);
     const all = await marginNumbers(page);
-    await page.selectOption('select[title="Line numbers"]', "by5");
+    await pickLineNumbers(page, "by5");
     await page.waitForTimeout(400);
     const by5 = await marginNumbers(page);
     // Every-5th prints far fewer numbers than every line.
