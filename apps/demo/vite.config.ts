@@ -17,11 +17,9 @@ const realNodeModules = (() => {
   }
 })();
 
-// Serve the Word-export parity dashboard and its inspected page pairs from
-// parity/out so `npm run dev` gives the viewer and release gate side by side.
-// parity/out is generated locally by the full candidate gate.
+// Serve the tracked parity dashboard and its diff images at /report/.
 function parityReport(): Plugin {
-  const reportPath = fileURLToPath(new URL("../../parity/out/report.html", import.meta.url));
+  const reportPath = fileURLToPath(new URL("./public/report.html", import.meta.url));
   const placeholder = `<!doctype html>
 <html lang="en"><head><meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1"/>
@@ -41,10 +39,11 @@ function parityReport(): Plugin {
 </style></head>
 <body><div class="card">
   <h1>No parity results yet</h1>
-  <p>The pixel-parity dashboard is generated from a full built-in Download →
-  Microsoft Word PDF comparison against the cached Word reference PDFs.</p>
+  <p>The pixel-parity dashboard is generated from a full comparison run against
+  the Word reference PDFs. Nothing has been run in this checkout yet.</p>
   <p>Generate it, then reload this page:</p>
-  <code>node scripts/word-download-parity.mjs</code>
+  <code>node scripts/parity-parallel.mjs
+node scripts/parity-render-report.mjs</code>
   <p><a href="/">← back to the viewer</a></p>
 </div></body></html>`;
 
