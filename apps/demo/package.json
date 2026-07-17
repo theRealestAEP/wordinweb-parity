@@ -6,7 +6,8 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "fixtures": "node scripts/make-fixtures.mjs",
+    "fixtures": "node scripts/make-fixtures.mjs && node scripts/make-model3d-fixture.mjs",
+    "fixture:model3d": "node scripts/make-model3d-fixture.mjs",
     "presets": "node scripts/make-presets.mjs"
   },
   "dependencies": {

@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="640" height="440" viewBox="0 0 640 440">
+  <defs>
+    <filter id="shadow" x="-30%" y="-30%" width="160%" height="180%">
+      <feGaussianBlur stdDeviation="14"/>
+    </filter>
+  </defs>
+  <rect width="640" height="440" rx="28" fill="#162c5b"/>
+  <circle cx="552" cy="72" r="92" fill="#70b7ff" opacity=".12"/>
+  <circle cx="86" cy="372" r="126" fill="#07142f" opacity=".22"/>
+  <text x="44" y="62" fill="#d9ebff" font-family="Arial, sans-serif" font-size="23" font-weight="700" letter-spacing="4">3D MODEL</text>
+  <text x="44" y="92" fill="#9fc8f4" font-family="Arial, sans-serif" font-size="15" letter-spacing="1.5">NATIVE GLB ASSET</text>
+  <ellipse cx="332" cy="363" rx="170" ry="34" fill="#06142f" opacity=".55" filter="url(#shadow)"/>
+  <g stroke="#d5ecff" stroke-opacity=".55" stroke-width="2">
+    <path d="M320 116 483 200 320 286 157 200Z" fill="#73b7f6"/>
+    <path d="M157 200 320 286 320 374 157 287Z" fill="#2379cb"/>
+    <path d="M483 200 320 286 320 374 483 287Z" fill="#174d99"/>
+  </g>
+  <path d="M320 116v170M157 200l163 86 163-86" fill="none" stroke="#edf7ff" stroke-opacity=".36" stroke-width="2"/>
+  <rect x="430" y="366" width="166" height="36" rx="18" fill="#071832" opacity=".65"/>
+  <text x="513" y="389" text-anchor="middle" fill="#cde6ff" font-family="Arial, sans-serif" font-size="14" font-weight="700" letter-spacing="1">GLB • OFFICE 2019+</text>
+</svg>

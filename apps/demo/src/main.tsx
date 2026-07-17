@@ -143,6 +143,7 @@ const PRESETS = [
   { id: "tables", label: "Tables & reports", path: "/fixtures/preset-tables.docx" },
   { id: "publication", label: "Magazine / newspaper", path: "/fixtures/preset-publication.docx" },
   { id: "chapter", label: "Chapter book", path: "/fixtures/preset-chapter-book.docx" },
+  { id: "model3d", label: "Native 3D model", path: "/fixtures/model3d-cube.docx" },
 ] as const;
 
 /**
