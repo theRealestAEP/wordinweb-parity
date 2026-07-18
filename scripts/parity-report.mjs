@@ -225,6 +225,11 @@ const FIXTURE_CATEGORY = {
   "wild2-sci-chem-omml": "realworld",
   "wild2-sci-elsevier-template": "realworld",
   "wild2-sci-ieee-2col": "realworld",
+  "wild3-template-caed-pleading": "realworld",
+  "wild3-template-fws-manual": "realworld",
+  "wild3-template-nps-science-report": "realworld",
+  "wild3-template-us-courts-answer": "realworld",
+  "wild3-template-uspto-follow-on": "realworld",
 };
 
 // Category metadata. `accent` drives the per-category colour so the report reads
@@ -1030,39 +1035,11 @@ function buildTable(results, prev) {
 }
 
 export function buildReport(results, history, meta) {
-  // Provenance tabs: the main page evaluates Word-authored fixtures only
-  // (the parity target). Other provenances (libreoffice, googledocs, ...)
-  // each get their own tab so cross-suite drift is visible without
-  // polluting the Word axis. History deltas stay word-only for continuity.
-  const byProv = new Map();
-  for (const r of results) {
-    const prov = r.provenance ?? "word";
-    if (!byProv.has(prov)) byProv.set(prov, []);
-    byProv.get(prov).push(r);
-  }
-  if (byProv.size > 1) {
-    const tabs = [...byProv.keys()].sort((a, b) => (a === "word" ? -1 : b === "word" ? 1 : a < b ? -1 : 1));
-    const sections = tabs.map((prov) => {
-      const inner = buildReportSingle(byProv.get(prov), prov === "word" ? history : [], {
-        ...meta,
-        provenanceLabel: prov,
-      });
-      const body = inner.replace(/^[\s\S]*?<body[^>]*>/, "").replace(/<\/body>[\s\S]*$/, "");
-      return `<div class="prov-tab" id="tab-${prov}" style="display:${prov === "word" ? "block" : "none"}">${body}</div>`;
-    });
-    const nav = tabs
-      .map(
-        (prov) =>
-          `<button class="prov-btn${prov === "word" ? " active" : ""}" onclick="for(const t of document.querySelectorAll('.prov-tab'))t.style.display='none';document.getElementById('tab-${prov}').style.display='block';for(const b of document.querySelectorAll('.prov-btn'))b.classList.remove('active');this.classList.add('active')">${prov}${prov === "word" ? "" : " (deferred)"}</button>`,
-      )
-      .join("");
-    const shell = buildReportSingle(byProv.get("word") ?? results, history, meta);
-    const head = shell.match(/^[\s\S]*?<body[^>]*>/)[0];
-    const tail = shell.match(/<\/body>[\s\S]*$/)[0];
-    const navCss = `<style>.prov-nav{display:flex;gap:8px;margin:0 0 16px}.prov-btn{padding:6px 14px;border:1px solid var(--border,#ccc);border-radius:6px;background:transparent;cursor:pointer;font:inherit}.prov-btn.active{background:var(--text-secondary,#333);color:#fff}</style>`;
-    return head + navCss + `<nav class="prov-nav">${nav}</nav>` + sections.join("") + tail;
-  }
-  return buildReportSingle(results, history, meta);
+  const wordResults = results.filter((r) => (r.provenance ?? "word") === "word");
+  return buildReportSingle(wordResults.length ? wordResults : results, history, {
+    ...meta,
+    provenanceLabel: "word",
+  });
 }
 
 // One-line framing for the report header.

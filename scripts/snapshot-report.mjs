@@ -1,5 +1,5 @@
 import { execFile } from "node:child_process";
-import { copyFile, mkdir, readFile } from "node:fs/promises";
+import { access, copyFile, mkdir, readFile } from "node:fs/promises";
 import { basename, join } from "node:path";
 import { promisify } from "node:util";
 
@@ -30,14 +30,23 @@ async function convertImages() {
       throw new Error(`Unexpected report image path: ${image}`);
     }
 
+    const sourceImage = join(sourceDirectory, image);
+    const publicImage = join(publicDirectory, image);
+    try {
+      await access(sourceImage);
+    } catch {
+      await access(publicImage);
+      continue;
+    }
+
     await execFileAsync("magick", [
-      join(sourceDirectory, image),
+      sourceImage,
       "-resize",
       "1800x>",
       "-strip",
       "-colors",
       "128",
-      `PNG8:${join(publicDirectory, image)}`,
+      `PNG8:${publicImage}`,
     ]);
   }
 }

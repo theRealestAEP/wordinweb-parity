@@ -17,7 +17,7 @@ import "@fontsource/noto-sans-lao-looped/700.css";
 import "./fonts-local.css";
 import "./app.css";
 import { createRoot } from "react-dom/client";
-import { DocxView, DocxToolbar, DocxViewApi, printPages } from "wordinweb";
+import { DocxView, DocxToolbar, DocxViewApi, ToolbarMenuSelect, printPages } from "wordinweb";
 
 // Tracked-change insertion ink (see packages/core/src/parse/document.ts) — the
 // color your suggestions render in, echoed by the mode control + author chip.
@@ -389,14 +389,16 @@ function App() {
       <div className="control-bar">
         <div className="preset-control">
           <span className="control-label">Try a template</span>
-          <select
+          <ToolbarMenuSelect
+            className="app-preset-select"
             value={preset}
-            aria-label="Choose a document template"
-            onChange={(event) => loadPreset(event.target.value)}
-          >
-            <option value="" disabled>Choose a document…</option>
-            {PRESETS.map((item) => <option key={item.id} value={item.id}>{item.label}</option>)}
-          </select>
+            ariaLabel="Choose a document template"
+            placeholder="Choose a document…"
+            width={218}
+            menuWidth={260}
+            options={PRESETS.map((item) => ({ value: item.id, label: item.label }))}
+            onChange={(value) => loadPreset(value)}
+          />
         </div>
         <input
           id="docx-upload"
@@ -412,13 +414,21 @@ function App() {
         <span className="control-divider" aria-hidden="true" />
         <label className="compact-control">
           <span>Zoom</span>
-          <select aria-label="Document zoom" value={zoom} onChange={(e) => setZoom(parseFloat(e.target.value))}>
-            <option value={0.5}>50%</option>
-            <option value={0.75}>75%</option>
-            <option value={1}>100%</option>
-            <option value={1.25}>125%</option>
-            <option value={1.5}>150%</option>
-          </select>
+          <ToolbarMenuSelect
+            className="app-zoom-select"
+            ariaLabel="Document zoom"
+            value={String(zoom)}
+            width={86}
+            menuWidth={112}
+            options={[
+              { value: "0.5", label: "50%" },
+              { value: "0.75", label: "75%" },
+              { value: "1", label: "100%" },
+              { value: "1.25", label: "125%" },
+              { value: "1.5", label: "150%" },
+            ]}
+            onChange={(value) => setZoom(parseFloat(value))}
+          />
         </label>
         <ModeControl
           mode={!editable ? "viewing" : suggesting ? "suggesting" : "editing"}

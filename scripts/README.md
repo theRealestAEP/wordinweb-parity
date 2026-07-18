@@ -4,8 +4,10 @@ The public scripts support three workflows.
 
 ## Visual parity
 
-- `parity-parallel.mjs` runs the complete Word comparison in parallel.
-- `parity-compare.mjs` runs selected fixtures or a serial comparison.
+- `parity-parallel.mjs` is the canonical runner for every complete or large
+  Word comparison. It shards fixtures and large page ranges across workers.
+- `parity-compare.mjs` runs selected fixtures and serves as the worker process
+  launched by `parity-parallel.mjs`.
 - `parity-render-report.mjs` rebuilds the HTML report from saved results.
 - `parity-report.mjs` contains the shared report generator.
 - `word-download-parity.mjs` is the saved-DOCX release gate. It clicks the
@@ -16,6 +18,17 @@ The public scripts support three workflows.
 - `word-parity.sh` exports one source DOCX to a Word reference PDF. Use it only
   when intentionally updating source-of-truth references.
 - `word-parity-all.sh` intentionally updates the standard reference set.
+
+Run a complete parity check with the parallel runner, then publish its finished
+report to the demo only when the `/report/` artifacts should be refreshed:
+
+```bash
+node scripts/parity-parallel.mjs
+npm run report:snapshot
+```
+
+Set `DXW_PARITY_JOBS` to override the default worker count when needed. Direct
+`parity-compare.mjs` runs are reserved for focused fixture work.
 
 Run the candidate-only gate while the demo is available at port 5299:
 

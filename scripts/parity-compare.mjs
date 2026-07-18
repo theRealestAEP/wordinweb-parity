@@ -11,6 +11,10 @@
  *   npm run dev              # demo server (default http://localhost:5299)
  *   node scripts/parity-compare.mjs [name ...] [--base http://localhost:5299]
  *
+ * Use scripts/parity-parallel.mjs for every full-corpus or large parity run.
+ * Direct runs of this file are intended for selected fixtures and as workers
+ * launched by the parallel runner.
+ *
  * Requires poppler (`brew install poppler`) for pdftoppm.
  */
 import { execFileSync } from "node:child_process";
@@ -1803,4 +1807,11 @@ try {
   console.warn(`Report generation skipped: ${err.message}`);
 } finally {
   await browser.close();
+}
+
+if (outcome === "accepted") {
+  execFileSync(process.execPath, [join(root, "scripts", "snapshot-report.mjs")], {
+    cwd: root,
+    stdio: "inherit",
+  });
 }

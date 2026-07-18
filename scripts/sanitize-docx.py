@@ -69,7 +69,10 @@ def scramble_part(xml: str) -> str:
 
 
 def scrub_core(xml: str) -> str:
-    for tag in ("dc:creator", "cp:lastModifiedBy", "dc:title", "dc:subject", "dc:description", "cp:keywords"):
+    for tag in (
+        "dc:creator", "cp:lastModifiedBy", "dc:title", "dc:subject",
+        "dc:description", "cp:keywords", "cp:category", "cp:contentStatus",
+    ):
         xml = re.sub(rf"(<{tag}[^>]*>)[^<]*(</{tag}>)", r"\g<1>Fixture\g<2>", xml)
     return xml
 
@@ -88,6 +91,11 @@ def scrub_app(xml: str) -> str:
     for tag in ("Company", "Manager"):
         xml = re.sub(rf"(<{tag}>)[^<]*(</{tag}>)", r"\1Fixture\2", xml)
     xml = re.sub(r"(<vt:lpwstr>)https?://[^<]*(</vt:lpwstr>)", r"\1https://example.com/\2", xml)
+    xml = re.sub(
+        r"(<vt:lpw?str>)([^<]+)(</vt:lpw?str>)",
+        lambda m: m.group(1) + scramble_text(m.group(2)) + m.group(3),
+        xml,
+    )
     return xml
 
 
@@ -132,6 +140,8 @@ def main() -> None:
                     xml = scrub_core(xml)
                 elif name == "docProps/app.xml":
                     xml = scrub_app(xml)
+                elif name == "docProps/custom.xml":
+                    xml = scrub_custom_xml(xml)
                 elif name.startswith("customXml/"):
                     xml = scrub_custom_xml(xml)
                 data = xml.encode("utf-8", "surrogateescape")

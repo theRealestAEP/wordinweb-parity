@@ -2,9 +2,13 @@
 /**
  * Parallel parity runner: shards the fixture list across N worker processes
  * (each a normal scripts/parity-compare.mjs run in DXW_PARITY_SHARD_OUT mode),
- * then merges the shards into the accepted results.json and appends ONE
- * full-run history entry — the same artifacts a serial full run produces,
- * minus report.html (run the serial script when the dashboard is wanted).
+ * then merges the shards into the accepted results.json, appends ONE full-run
+ * history entry, and regenerates parity/out/report.html.
+ *
+ * This is the canonical entry point for every full-corpus or large parity run.
+ * After a run that should be published at /report/, run
+ * `npm run report:snapshot` once to copy the completed report and images into
+ * apps/demo/public.
  *
  * Shards are balanced by reference page count (LPT), so the NIH contract
  * anchors one worker while the small fixtures pack the others. Reference
@@ -236,4 +240,4 @@ const sev = results.map((r) => Number(r.severityPct) || 0);
 const hot = results.filter((r) => (Number(r.severityPct) || 0) >= 1);
 console.log(`\n${results.length} pages in ${secs}s — mean ${(sev.reduce((a, b) => a + b, 0) / sev.length).toFixed(3)}%, pages ≥1%: ${hot.length}`);
 for (const h of hot) console.log(`  ${h.fixture} p${h.page}: ${h.severityPct}`);
-console.log(`results.json + history updated (no report.html in parallel mode).`);
+console.log(`results.json + history + report.html updated.`);

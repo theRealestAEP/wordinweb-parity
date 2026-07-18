@@ -1,11 +1,42 @@
-# fixtures-staging
+# Fixture corpus sources and staging notes
 
-Staging area for the NEXT render-parity optimization pass. **Nothing here is live** —
-the benchmark in `apps/demo/public/fixtures` and `parity/` must stay untouched until a
-maintainer promotes selected fixtures.
+This file records provenance for public-source fixtures, whether they are still in
+`fixtures-staging` or have been promoted. A fixture is benchmark-live only when its
+DOCX is in `apps/demo/public/fixtures`, its Word PDF is in `parity`, and it has a
+`parity/word-reference-manifest.json` entry.
 
 Each entry is `<name>.docx` (the fixture) plus `<name>-word.pdf` (Word reference PDF,
 exported from the *sanitized* .docx so line-break parity holds by construction).
+
+---
+
+## wild3 — public agency authoring templates
+
+Five current government templates promoted to the live benchmark. These target
+template-authoring structures that the earlier corpus only touched incidentally:
+repeating header/footer layers, court forms, content controls, policy numbering,
+embedded template fonts, and multi-section author guidance. All five were sanitized,
+passed `scripts/validate-docx.py`, and received Word-exported PDF references.
+
+| doc | source | Word pages | notable features |
+|---|---|---:|---|
+| `wild3-template-caed-pleading.docx` | U.S. District Court, Eastern District of California | 1 | official pleading-paper template; default/first/even header and footer parts plus the numbered pleading grid |
+| `wild3-template-fws-manual.docx` | U.S. Fish & Wildlife Service | 5 | policy-manual chapter template; multilevel numbering, 4 tables, repeated footer lines, multiple header/footer parts |
+| `wild3-template-nps-science-report.docx` | National Park Service | 12 | 3 sections, 374 paragraphs, 3 tables, 2 figures, extensive custom styles, embedded template fonts and mixed report examples |
+| `wild3-template-us-courts-answer.docx` | Administrative Office of the U.S. Courts | 7 | dense defendant-answer form with 189 field markers and repeating court-form headers/footers |
+| `wild3-template-uspto-follow-on.docx` | U.S. Patent and Trademark Office | 7 | structured follow-on filing template with 7 content controls, filing metadata and repeating page furniture |
+
+### Source URLs
+
+- CAED pleading paper: https://www.caed.uscourts.gov/caednew/index.cfm/attorney-info/word-format/ — `ArialPleadingPaper.docx`
+- FWS Service Manual chapter: https://www.fws.gov/policy-library/e1011fw2 — `e1011fw2-word-template-revised-v2.docx`
+- NPS Science Report: https://www.nps.gov/im/report-templates.htm — IRMA file `Simplified_Author_Template_v1.4.docx`
+- U.S. Courts defendant answer: https://www.uscourts.gov/forms-rules/forms/defendants-answer-complaint — `the_defendants_answer_to_the_complaint.docx`
+- USPTO DOCX templates: https://www.uspto.gov/patents/docx — `Follow-On-Template-August-2025.docx`
+
+The USPTO initial-filing template was evaluated but left out because the source uses
+an undefined `numId=0` and an out-of-schema `w:rPr` child order; the follow-on template
+covers the same producer and content-control family while passing the hard validator.
 
 ---
 

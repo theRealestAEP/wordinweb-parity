@@ -175,3 +175,62 @@ test("NIH body typing keeps wrapping and non-wrapping keystrokes below 80ms", as
   expect(wrapping.every((sample) => (sample.blocksLaid ?? 0) > 32 && (sample.blocksLaid ?? Infinity) <= 256)).toBe(true);
   expect(wrapping.every((sample) => (sample.convergedPage ?? -1) > (sample.resumePage ?? Infinity))).toBe(true);
 });
+
+test("NIH page 50 repeated paragraph splits stay responsive", async ({ page }) => {
+  test.setTimeout(180_000);
+  await page.addInitScript(() => {
+    (globalThis as { __dxwPerf?: unknown }).__dxwPerf = { samples: [] };
+  });
+  await page.goto("/?doc=/fixtures/wild2-legal-nih-contract.docx");
+
+  const pages = page.locator(".dxw-page");
+  await pages.first().waitFor({ state: "attached", timeout: 60_000 });
+  await expect(pages).toHaveCount(419, { timeout: 60_000 });
+  const targetPage = pages.nth(49);
+  await targetPage.scrollIntoViewIfNeeded();
+  const target = targetPage.locator("span:not([data-dxw-hf])", { hasText: /[A-Za-z]{4,}/ }).nth(20);
+  await target.waitFor({ state: "visible" });
+  await target.click();
+  await page.keyboard.press("End");
+  await page.evaluate(() => {
+    const perf = (globalThis as { __dxwPerf?: { samples?: unknown[] } }).__dxwPerf;
+    if (perf) perf.samples = [];
+  });
+
+  const timings: Array<{
+    wall: number;
+    sample?: PerfSample;
+    sampleCount: number;
+    pages: number;
+    caretPage?: string;
+    activeElement?: string;
+  }> = [];
+  for (let index = 0; index < 6; index++) {
+    const started = performance.now();
+    await page.keyboard.press("Enter");
+    const wall = performance.now() - started;
+    await expect(page.locator("[data-dxw-caret]")).toBeVisible();
+    const state = await page.evaluate(() => {
+      const samples = (globalThis as { __dxwPerf?: { samples?: PerfSample[] } }).__dxwPerf?.samples ?? [];
+      const caret = document.querySelector<HTMLElement>("[data-dxw-caret]");
+      return {
+        sample: samples.at(-1),
+        sampleCount: samples.length,
+        caretPage: caret?.closest<HTMLElement>(".dxw-page")?.dataset.page,
+        activeElement: document.activeElement?.tagName,
+      };
+    });
+    timings.push({ wall, ...state, pages: await pages.count() });
+  }
+
+  // eslint-disable-next-line no-console
+  console.log(`[nih-page-50-enter] ${JSON.stringify(timings)}`);
+  for (const [index, timing] of timings.entries()) {
+    expect(timing.wall, `Enter ${index + 1} wall time`).toBeLessThan(250);
+    expect(timing.sampleCount, `Enter ${index + 1} must commit`).toBe(index + 1);
+    expect(timing.sample?.total, `Enter ${index + 1} editor time`).toBeLessThan(100);
+    expect(timing.sample?.layout, `Enter ${index + 1} layout time`).toBeLessThan(100);
+    expect(timing.pages, `Enter ${index + 1} page count`).toBeGreaterThanOrEqual(419);
+    expect(timing.pages, `Enter ${index + 1} page count`).toBeLessThanOrEqual(421);
+  }
+});

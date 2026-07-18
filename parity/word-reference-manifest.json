@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "generatedAt": "2026-07-17T05:10:05.320Z",
+  "generatedAt": "2026-07-17T20:12:44.000Z",
   "fixtures": {
     "benchmark": {
       "sourcePackageSha256": "fcce177e72a4e214276fe588643c8e39ac11340d424937c31d5bc54507d46e82",
@@ -652,6 +652,41 @@
       "referenceDocxPackageSha256": "8fb2397d14422c2cd851730e666d28a38195aabf67f7889bb224b010da5f5f2d",
       "referencePdfSha256": "431153a8a095c4a5f060845564941c8a7b39f2e3bf2666805d7e7ad683a0d5bf",
       "pages": 4
+    },
+    "wild3-template-caed-pleading": {
+      "sourcePackageSha256": "bc31b7bffbcc14ac219b3d70e7f157560179e8b5d45d0bebfd5f0c9930a494e2",
+      "referenceDocx": "apps/demo/public/fixtures/wild3-template-caed-pleading.docx",
+      "referenceDocxPackageSha256": "bc31b7bffbcc14ac219b3d70e7f157560179e8b5d45d0bebfd5f0c9930a494e2",
+      "referencePdfSha256": "d86281517f3c74cde222a3495a052b3c27a1147b55c056ce4837677713a5797b",
+      "pages": 1
+    },
+    "wild3-template-fws-manual": {
+      "sourcePackageSha256": "e561f2c039270b4961aeae7131798f5df9984b3bd1a642a3aa092e94702f9f17",
+      "referenceDocx": "apps/demo/public/fixtures/wild3-template-fws-manual.docx",
+      "referenceDocxPackageSha256": "e561f2c039270b4961aeae7131798f5df9984b3bd1a642a3aa092e94702f9f17",
+      "referencePdfSha256": "51335af2230bc25caf03224955066fd788942b2727832248342619c5ee545340",
+      "pages": 5
+    },
+    "wild3-template-nps-science-report": {
+      "sourcePackageSha256": "472cdd4d50c0060e335517560cb8330b8577ba8196267b2508cfcce62f4fc98d",
+      "referenceDocx": "apps/demo/public/fixtures/wild3-template-nps-science-report.docx",
+      "referenceDocxPackageSha256": "472cdd4d50c0060e335517560cb8330b8577ba8196267b2508cfcce62f4fc98d",
+      "referencePdfSha256": "2962028c414cab426ee162ba8f67e69205fa15ca29c4a6f5c88303aec3960255",
+      "pages": 12
+    },
+    "wild3-template-us-courts-answer": {
+      "sourcePackageSha256": "a1da056a358e6a1897304bc38b799f3d9acc63a20cf2cf6b5fbc8d27a666a3fa",
+      "referenceDocx": "apps/demo/public/fixtures/wild3-template-us-courts-answer.docx",
+      "referenceDocxPackageSha256": "a1da056a358e6a1897304bc38b799f3d9acc63a20cf2cf6b5fbc8d27a666a3fa",
+      "referencePdfSha256": "9ab42f2dac007671374430c4adc56322092e8cf460330399cb4232bf0bcb4894",
+      "pages": 7
+    },
+    "wild3-template-uspto-follow-on": {
+      "sourcePackageSha256": "2a365844c72c5505c303ac87997786221a529bddbfb6caa6c87d68eabbce700c",
+      "referenceDocx": "apps/demo/public/fixtures/wild3-template-uspto-follow-on.docx",
+      "referenceDocxPackageSha256": "2a365844c72c5505c303ac87997786221a529bddbfb6caa6c87d68eabbce700c",
+      "referencePdfSha256": "5798e3133b6f08aac21600b683585d8d1ec993cf2b20bb4bee3e6f96da561e7a",
+      "pages": 7
     },
     "word-interop-embedded-only": {
       "sourcePackageSha256": "2a40106455a26cbf20c1266c38b0ffe66527929474db7c4dd74ced77512cdfc6",

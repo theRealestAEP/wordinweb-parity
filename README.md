@@ -33,7 +33,7 @@ Append `?perf=1` to the demo URL to show the per-edit performance HUD.
 | --- | --- |
 | `apps/demo/` | Vite demo, fixture corpus, and demo fonts. |
 | `e2e/` | Browser editing and performance tests. |
-| `fixtures-staging/` | Additional layout and robustness probes. |
+| `fixtures-staging/` | Fixture provenance, staging notes, and additional layout probes. |
 | `parity/` | Microsoft Word reference PDFs. |
 | `scripts/` | Fixture and visual-parity tooling. |
 
