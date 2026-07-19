@@ -28,11 +28,11 @@ label {
 
 .app-header {
   display: flex;
-  min-height: 24px;
+  min-height: 48px;
   align-items: center;
   justify-content: space-between;
-  gap: 12px;
-  padding: 1px 10px;
+  gap: 20px;
+  padding: 8px 16px;
   color: #fff;
   background: linear-gradient(110deg, #132640 0%, #1b365d 58%, #224b7a 100%);
   border-bottom: 1px solid rgba(5, 18, 34, 0.24);
@@ -45,21 +45,21 @@ label {
 }
 
 .brand-lockup {
-  gap: 6px;
+  gap: 9px;
   min-width: 0;
 }
 
 .brand-mark {
   display: grid;
-  width: 20px;
-  height: 20px;
-  flex: 0 0 20px;
+  width: 30px;
+  height: 30px;
+  flex: 0 0 30px;
   place-items: center;
   border: 1px solid rgba(255, 255, 255, 0.24);
   border-radius: 4px;
   background: #2f6fed;
   font-family: Georgia, serif;
-  font-size: 13px;
+  font-size: 18px;
   font-weight: 700;
 }
 
@@ -71,25 +71,26 @@ label {
 
 .brand-copy strong {
   font-family: Georgia, "Times New Roman", serif;
-  font-size: 13px;
+  font-size: 17px;
   letter-spacing: -0.01em;
 }
 
 .brand-copy span {
-  display: none;
+  color: #b9cae0;
+  font-size: 10.5px;
 }
 
 .app-links {
   display: flex;
   align-items: center;
-  gap: 7px;
+  gap: 4px;
 }
 
 .app-links a {
-  padding: 2px 5px;
-  border-radius: 4px;
+  padding: 6px 9px;
+  border-radius: 6px;
   color: #dbe7f7;
-  font-size: 10.5px;
+  font-size: 12.5px;
   font-weight: 600;
   text-decoration: none;
   transition: background 120ms ease, color 120ms ease;
