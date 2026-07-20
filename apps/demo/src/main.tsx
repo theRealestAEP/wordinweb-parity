@@ -17,6 +17,7 @@ import "@fontsource/noto-sans-lao-looped/700.css";
 import "./fonts-local.css";
 import "./app.css";
 import { createRoot } from "react-dom/client";
+import { gzip, gunzip } from "fflate";
 import { DocxView, DocxToolbar, DocxViewApi, ToolbarMenuSelect, printPages } from "wordinweb";
 
 // Tracked-change insertion ink (see packages/core/src/parse/document.ts) — the
@@ -146,6 +147,74 @@ const PRESETS = [
   { id: "model3d", label: "Native 3D model", path: "/fixtures/model3d-cube.docx" },
 ] as const;
 
+const WORKSPACE_DB = "wordinweb-demo";
+const WORKSPACE_STORE = "workspace";
+const WORKSPACE_KEY = "current";
+const AUTOSAVE_MS = 60_000;
+
+type SavedWorkspace = {
+  id: typeof WORKSPACE_KEY;
+  version: 1;
+  fileName: string;
+  preset: string;
+  savedAt: number;
+  compression: "gzip" | "none";
+  bytes: ArrayBuffer;
+};
+
+let workspaceDb: Promise<IDBDatabase> | null = null;
+
+function openWorkspaceDb(): Promise<IDBDatabase> {
+  if (workspaceDb) return workspaceDb;
+  workspaceDb = new Promise((resolve, reject) => {
+    const request = indexedDB.open(WORKSPACE_DB, 1);
+    request.onupgradeneeded = () => {
+      if (!request.result.objectStoreNames.contains(WORKSPACE_STORE)) {
+        request.result.createObjectStore(WORKSPACE_STORE, { keyPath: "id" });
+      }
+    };
+    request.onsuccess = () => resolve(request.result);
+    request.onerror = () => reject(request.error ?? new Error("Could not open local storage"));
+  });
+  return workspaceDb;
+}
+
+async function readSavedWorkspace(): Promise<SavedWorkspace | null> {
+  const db = await openWorkspaceDb();
+  return new Promise((resolve, reject) => {
+    const request = db.transaction(WORKSPACE_STORE, "readonly").objectStore(WORKSPACE_STORE).get(WORKSPACE_KEY);
+    request.onsuccess = () => resolve((request.result as SavedWorkspace | undefined) ?? null);
+    request.onerror = () => reject(request.error ?? new Error("Could not read local work"));
+  });
+}
+
+async function writeSavedWorkspace(workspace: SavedWorkspace): Promise<void> {
+  const db = await openWorkspaceDb();
+  return new Promise((resolve, reject) => {
+    const transaction = db.transaction(WORKSPACE_STORE, "readwrite");
+    transaction.objectStore(WORKSPACE_STORE).put(workspace);
+    transaction.oncomplete = () => resolve();
+    transaction.onerror = () => reject(transaction.error ?? new Error("Could not save local work"));
+    transaction.onabort = () => reject(transaction.error ?? new Error("Local save was cancelled"));
+  });
+}
+
+function gzipBytes(bytes: Uint8Array): Promise<Uint8Array> {
+  return new Promise((resolve, reject) => {
+    gzip(bytes, { level: 6 }, (error, result) => error ? reject(error) : resolve(result));
+  });
+}
+
+function gunzipBytes(bytes: Uint8Array): Promise<Uint8Array> {
+  return new Promise((resolve, reject) => {
+    gunzip(bytes, (error, result) => error ? reject(error) : resolve(result));
+  });
+}
+
+function copyBuffer(bytes: Uint8Array): ArrayBuffer {
+  return bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength) as ArrayBuffer;
+}
+
 /**
  * Google-Docs mode picker: one pencil dropdown replacing the tangle of
  * Edit/Suggesting toggles. Editing edits directly, Suggesting records tracked
@@ -261,7 +330,8 @@ function App() {
   const toolbarMode = query.get("toolbar") === "simple" ? "simple" : "advanced";
   const toolbarFeatures = query.get("layout") === "off" ? { layout: false } : undefined;
   const initial = query.get("doc") ?? "/fixtures/showcase.docx";
-  const [source, setSource] = useState<ArrayBuffer | string | null>(initial);
+  const persistenceEnabled = !query.has("doc");
+  const [source, setSource] = useState<ArrayBuffer | string | null>(persistenceEnabled ? null : initial);
   const [preset, setPreset] = useState(PRESETS.find((item) => item.path === initial)?.id ?? "");
   const [zoom, setZoom] = useState(1);
   const [editable, setEditable] = useState(query.get("editable") !== "0");
@@ -278,9 +348,14 @@ function App() {
   };
   const [suggesting, setSuggesting] = useState(query.get("suggest") === "1");
   const [pageCount, setPageCount] = useState<number | null>(null);
-  const [status, setStatus] = useState<string>("");
+  const [status, setStatus] = useState<string>(persistenceEnabled ? "Loading saved work…" : "");
   const [fileName, setFileName] = useState(initial.split("/").pop() ?? "document.docx");
   const [api, setApi] = useState<DocxViewApi | null>(null);
+  const apiRef = useRef<DocxViewApi | null>(null);
+  const workspaceMetaRef = useRef({ fileName, preset });
+  const saveInFlight = useRef<Promise<void> | null>(null);
+  const [saveState, setSaveState] = useState<"idle" | "saving" | "saved" | "error">("idle");
+  const [lastSaved, setLastSaved] = useState<number | null>(null);
   const [findOpen, setFindOpen] = useState(false);
   const [findQ, setFindQ] = useState("");
   const [replQ, setReplQ] = useState("");
@@ -288,6 +363,34 @@ function App() {
   const findInput = useRef<HTMLInputElement | null>(null);
   const [missingFonts, setMissingFonts] = useState<{ family: string }[]>([]);
   const [fontWarnDismissed, setFontWarnDismissed] = useState(false);
+  workspaceMetaRef.current = { fileName, preset };
+
+  useEffect(() => {
+    if (!persistenceEnabled) return;
+    let active = true;
+    void readSavedWorkspace()
+      .then(async (saved) => {
+        if (!active) return;
+        if (!saved || saved.version !== 1) {
+          setSource(initial);
+          return;
+        }
+        const stored = new Uint8Array(saved.bytes);
+        const restored = saved.compression === "gzip" ? await gunzipBytes(stored) : stored;
+        if (!active) return;
+        setFileName(saved.fileName);
+        setPreset(saved.preset);
+        setLastSaved(saved.savedAt);
+        setSaveState("saved");
+        setSource(copyBuffer(restored));
+      })
+      .catch(() => {
+        if (!active) return;
+        setSaveState("error");
+        setSource(initial);
+      });
+    return () => { active = false; };
+  }, []);
   // Pending tracked changes (suggestions) — drives the review pill. Updated
   // on selection events (clicks, accept/reject) and polled lightly while
   // suggesting so the count follows live typing.
@@ -331,10 +434,63 @@ function App() {
     setFindStat({ index: total > 0 ? 1 : 0, total });
   }, [api]);
 
+  const saveLocally = useCallback((currentApi = apiRef.current): Promise<void> => {
+    if (!persistenceEnabled || !currentApi) return Promise.resolve();
+    let raw: Uint8Array;
+    try {
+      raw = currentApi.save();
+    } catch {
+      setSaveState("error");
+      return Promise.resolve();
+    }
+    setSaveState("saving");
+    const previous = saveInFlight.current;
+    const task = (async () => {
+      if (previous) await previous;
+      const compressed = await gzipBytes(raw);
+      const useCompression = compressed.byteLength < raw.byteLength;
+      const savedAt = Date.now();
+      await writeSavedWorkspace({
+        id: WORKSPACE_KEY,
+        version: 1,
+        ...workspaceMetaRef.current,
+        savedAt,
+        compression: useCompression ? "gzip" : "none",
+        bytes: copyBuffer(useCompression ? compressed : raw),
+      });
+      setLastSaved(savedAt);
+      setSaveState("saved");
+    })().catch(() => {
+      setSaveState("error");
+    }).finally(() => {
+      if (saveInFlight.current === task) saveInFlight.current = null;
+    });
+    saveInFlight.current = task;
+    return task;
+  }, [persistenceEnabled]);
+
+  useEffect(() => {
+    if (!api || !persistenceEnabled) return;
+    const interval = window.setInterval(() => void saveLocally(api), AUTOSAVE_MS);
+    return () => clearInterval(interval);
+  }, [api, persistenceEnabled, saveLocally]);
+
+  useEffect(() => {
+    if (!persistenceEnabled) return;
+    const saveShortcut = (event: KeyboardEvent) => {
+      if (!(event.metaKey || event.ctrlKey) || event.key.toLowerCase() !== "s") return;
+      event.preventDefault();
+      void saveLocally();
+    };
+    document.addEventListener("keydown", saveShortcut);
+    return () => document.removeEventListener("keydown", saveShortcut);
+  }, [persistenceEnabled, saveLocally]);
+
   const onFile = useCallback(async (file: File) => {
     setStatus(`Loading ${file.name}…`);
     setPageCount(null);
     setApi(null);
+    apiRef.current = null;
     try {
       const buf = await file.arrayBuffer();
       setSource(buf);
@@ -353,6 +509,7 @@ function App() {
     setFileName(next.path.split("/").pop()!);
     setPageCount(null);
     setApi(null);
+    apiRef.current = null;
     setMissingFonts([]);
     setStatus(`Loading ${next.label}…`);
   };
@@ -369,6 +526,16 @@ function App() {
     a.click();
     URL.revokeObjectURL(url);
   };
+
+  const onEditorReady = useCallback((nextApi: DocxViewApi) => {
+    apiRef.current = nextApi;
+    setApi(nextApi);
+    void saveLocally(nextApi);
+  }, [saveLocally]);
+
+  const savedTime = lastSaved
+    ? new Date(lastSaved).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })
+    : null;
 
   return (
     <div className="app-shell">
@@ -513,6 +680,18 @@ function App() {
             {status || (pageCount !== null ? `${pageCount} page${pageCount === 1 ? "" : "s"}` : "Loading…")}
           </span>
         </div>
+        {persistenceEnabled && (
+          <button
+            className={`save-button${saveState === "error" ? " error" : ""}`}
+            disabled={!api || saveState === "saving"}
+            title={saveState === "error"
+              ? "Local save failed. Download a copy to keep your work."
+              : `Save to this browser. Autosaves every minute${savedTime ? `; last saved ${savedTime}` : ""}.`}
+            onClick={() => void saveLocally()}
+          >
+            {saveState === "saving" ? "Saving…" : saveState === "error" ? "Save failed" : savedTime ? `Saved ${savedTime}` : "Save"}
+          </button>
+        )}
         <button
           className="print-button"
           title="Print / save as PDF"
@@ -628,7 +807,7 @@ function App() {
               setMissingFonts(m);
               setFontWarnDismissed(false);
             }}
-            onReady={setApi}
+            onReady={onEditorReady}
             onError={(e) => setStatus(`Error: ${e.message}`)}
           />
         )}

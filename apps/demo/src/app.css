@@ -185,6 +185,7 @@ label {
 }
 
 .upload-button,
+.save-button,
 .print-button {
   display: inline-flex;
   height: 32px;
@@ -202,13 +203,26 @@ label {
 }
 
 .upload-button:hover,
+.save-button:hover:not(:disabled),
 .print-button:hover {
   border-color: #8fa1b6;
   background: #f4f7fb;
 }
 
+.save-button,
 .print-button {
   margin-left: 2px;
+}
+
+.save-button:disabled {
+  cursor: default;
+  opacity: 0.65;
+}
+
+.save-button.error {
+  border-color: #e0a39d;
+  color: #a82d23;
+  background: #fff5f4;
 }
 
 .control-divider {
