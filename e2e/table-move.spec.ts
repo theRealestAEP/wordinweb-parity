@@ -205,6 +205,36 @@ test.describe("Word-style table movement", () => {
     expect(xml).toContain('w:vertAnchor="page"');
   });
 
+  test("dragging a table from the top of a later page keeps it on that page", async ({ page }) => {
+    await page.goto("/?doc=/fixtures/pleading-paper.docx");
+    await page.waitForSelector(".dxw-page span");
+    await page.waitForTimeout(300);
+
+    const firstPage = page.locator(".dxw-page").first();
+    const secondPage = page.locator(".dxw-page").nth(1);
+    await secondPage.scrollIntoViewIfNeeded();
+    const tableText = secondPage.locator("span").filter({ hasText: "MEWINE" }).first();
+    await tableText.hover();
+    const handle = secondPage.locator("[data-dxw-table-move]");
+    await expect(handle).toHaveCount(1);
+    const box = (await handle.boundingBox())!;
+
+    await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+    await page.mouse.down();
+    await page.mouse.move(box.x + box.width / 2 + 30, box.y + box.height / 2 + 30, { steps: 6 });
+    await page.mouse.up();
+    await page.waitForTimeout(400);
+
+    await expect(firstPage).not.toContainText("MEWINE");
+    await expect(secondPage).toContainText("MEWINE");
+    await expect(page.locator(".dxw-page")).toHaveCount(7);
+
+    await downloadAndReopen(page);
+    await expect(page.locator(".dxw-page").first()).not.toContainText("MEWINE");
+    await expect(page.locator(".dxw-page").nth(1)).toContainText("MEWINE");
+    await expect(page.locator(".dxw-page")).toHaveCount(7);
+  });
+
   test("typing below a moved terminal table stays below and outside its cells", async ({ page }) => {
     await open(page);
     const lastCell = exact(page, "16");
