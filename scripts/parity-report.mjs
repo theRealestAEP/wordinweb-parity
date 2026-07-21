@@ -168,7 +168,9 @@ const FIXTURE_CATEGORY = {
   "probe3-thai": "languages",
   "staging-bidi": "languages",
   "staging-eastasian": "languages",
-  // Formatting & layout — columns, sections, breaks, tabs, borders, styles, frames
+  // Tabs — explicit/default stops, alignment and leaders
+  "parity2-tabs": "tabs",
+  // Formatting & layout — columns, sections, breaks, borders, styles, frames
   "parity-colbalance": "formatting",
   "parity-columns": "formatting",
   "parity-dividers": "formatting",
@@ -182,7 +184,6 @@ const FIXTURE_CATEGORY = {
   "parity2-dropcap": "formatting",
   "parity2-lists": "formatting",
   "parity2-sections": "formatting",
-  "parity2-tabs": "formatting",
   "parity2-textboxes": "formatting",
   "probe2-dropcaps-frames": "formatting",
   "probe2-hyphenation": "formatting",
@@ -269,7 +270,14 @@ const CATEGORIES = [
     label: "Formatting & layout",
     accent: "#2ba3c7",
     blurb:
-      "Page and character layout — columns, sections and breaks, tabs, drop caps, borders, styles, frames, orientation, mirror margins and typography.",
+      "Page and character layout — columns, sections and breaks, drop caps, borders, styles, frames, orientation, mirror margins and typography.",
+  },
+  {
+    id: "tabs",
+    label: "Tabs & tab stops",
+    accent: "#178f9f",
+    blurb:
+      "Tab positioning — left, center, right, decimal and bar stops, default increments, and dot, hyphen, underscore, middle-dot and heavy leaders.",
   },
   {
     id: "graphics",
@@ -1034,12 +1042,104 @@ function buildTable(results, prev) {
   );
 }
 
+function buildInteropTab(interop, engineKey, engineLabel) {
+  const engineEntries = (interop?.results ?? []).filter((result) => result[engineKey]);
+  const entries = engineEntries.filter((result) => result.reference?.previews?.length);
+  const renderPreviews = (previews, fixture, label) =>
+    previews
+      .map((preview, index) => {
+        const previewUrl = preview.startsWith("/") ? preview : `/${preview}`;
+        return (
+          `<a class="interop-preview" href="${escapeHtml(previewUrl)}" target="_blank" rel="noopener">` +
+          `<img src="${escapeHtml(previewUrl)}" alt="${escapeHtml(`${fixture} in ${label}, page ${index + 1}`)}" loading="lazy"/>` +
+          `<span>Page ${index + 1}</span></a>`
+        );
+      })
+      .join("");
+  const cards = entries
+    .map((result) => {
+      const engine = result[engineKey];
+      const reference = result.reference;
+      const referenceLabel = reference.label ?? "WordInWeb";
+      const detail = engine.status === "pass"
+        ? `${engine.summary}`
+        : engine.error ?? "Compatibility check failed";
+      return (
+        `<article class="interop-card">` +
+        `<div class="interop-card-head"><h3>${escapeHtml(result.fixture)}</h3>` +
+        `<span class="interop-status ${engine.status === "pass" ? "pass" : "fail"}">${escapeHtml(engine.status)}</span></div>` +
+        `<p>${escapeHtml(detail)}</p>` +
+        `<div class="interop-compare-grid">` +
+        `<section class="interop-column"><h4>${escapeHtml(referenceLabel)} reference · ${reference.pages} page${reference.pages === 1 ? "" : "s"}</h4>` +
+        `<div class="interop-previews">${renderPreviews(reference.previews, result.fixture, referenceLabel)}</div></section>` +
+        `<section class="interop-column"><h4>${escapeHtml(engineLabel)} output · ${engine.pages} page${engine.pages === 1 ? "" : "s"}</h4>` +
+        `<div class="interop-previews">${renderPreviews(engine.previews ?? [], result.fixture, engineLabel)}</div></section>` +
+        `</div>` +
+        `</article>`
+      );
+    })
+    .join("");
+  return (
+    `<div class="viz-root interop-root">` +
+    `<header class="report-head"><h1>${escapeHtml(engineLabel)} compatibility</h1>` +
+    `<div class="subtitle">${escapeHtml(interop?.generatedAt ?? "Awaiting first run")}</div></header>` +
+    `<p class="intro">Each card compares WordInWeb's in-browser render with the same WordInWeb-saved DOCX ` +
+    `opened and exported by ${escapeHtml(engineLabel)}. The smoke status checks retained structure, text, visible content and bounded pagination.</p>` +
+    (cards || `<p class="empty-note">Run the ${escapeHtml(engineLabel)} compatibility smoke suite to populate this tab.</p>`) +
+    `</div>`
+  );
+}
+
 export function buildReport(results, history, meta) {
   const wordResults = results.filter((r) => (r.provenance ?? "word") === "word");
-  return buildReportSingle(wordResults.length ? wordResults : results, history, {
+  const wordDocument = buildReportSingle(wordResults.length ? wordResults : results, history, {
     ...meta,
     provenanceLabel: "word",
   });
+  const head = wordDocument.match(/^[\s\S]*?<body[^>]*>/)?.[0] ?? "";
+  const body = wordDocument.replace(/^[\s\S]*?<body[^>]*>/, "").replace(/<\/body>[\s\S]*$/, "");
+  const tail = wordDocument.match(/<\/body>[\s\S]*$/)?.[0] ?? "";
+  const tabCss = `<style>
+.report-tabs-shell{position:sticky;top:0;z-index:20;background:var(--surface-1,#fcfcfb);border-bottom:1px solid var(--grid,#e8e7e3)}
+.report-tabs{max-width:1100px;margin:0 auto;padding:10px 24px;display:flex;gap:8px}
+.report-tab-button{border:1px solid var(--grid,#d8d8d4);border-radius:8px;background:transparent;color:inherit;padding:8px 14px;font:600 14px system-ui,-apple-system,sans-serif;cursor:pointer}
+.report-tab-button[aria-selected="true"]{background:#2a78d6;border-color:#2a78d6;color:#fff}
+.report-tab-panel[hidden]{display:none}
+.interop-root{max-width:1400px}
+.interop-card{border:1px solid var(--grid);border-radius:12px;padding:16px;margin:16px 0}
+.interop-card-head{display:flex;align-items:center;justify-content:space-between;gap:16px}
+.interop-card h3{margin:0;font-size:17px}.interop-card p{color:var(--text-secondary);font-size:13px}
+.interop-status{font-size:11px;font-weight:700;text-transform:uppercase;border-radius:999px;padding:4px 8px}
+.interop-status.pass{background:#ddf6e9;color:#087944}.interop-status.fail{background:#fde5e2;color:#ad2c21}
+.interop-compare-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px;align-items:start}
+.interop-column{min-width:0}.interop-column h4{font-size:13px;margin:0 0 10px;color:var(--text-secondary)}
+.interop-previews{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px}
+.interop-preview{display:flex;flex-direction:column;gap:6px;color:var(--text-secondary);font-size:12px;text-decoration:none}
+.interop-preview img{width:100%;height:auto;border:1px solid var(--grid);border-radius:6px;background:#fff;box-shadow:0 2px 8px #0001}
+@media(max-width:760px){.interop-compare-grid{grid-template-columns:1fr}}
+</style>`;
+  const nav = `<div class="report-tabs-shell"><nav class="report-tabs" aria-label="Report source">` +
+    `<button class="report-tab-button" type="button" data-report-tab="word" aria-selected="true">Microsoft Word</button>` +
+    `<button class="report-tab-button" type="button" data-report-tab="google-docs" aria-selected="false">Google Docs</button>` +
+    `<button class="report-tab-button" type="button" data-report-tab="libreoffice" aria-selected="false">LibreOffice</button>` +
+    `</nav></div>`;
+  const tabsScript = `<script>
+for (const button of document.querySelectorAll('[data-report-tab]')) {
+  button.addEventListener('click', () => {
+    const selected = button.dataset.reportTab;
+    for (const panel of document.querySelectorAll('[data-report-panel]')) panel.hidden = panel.dataset.reportPanel !== selected;
+    for (const candidate of document.querySelectorAll('[data-report-tab]')) candidate.setAttribute('aria-selected', String(candidate === button));
+    history.replaceState(null, '', '#report-' + selected);
+  });
+}
+const initialReportTab = location.hash.startsWith('#report-') ? location.hash.slice(8) : 'word';
+document.querySelector('[data-report-tab="' + initialReportTab + '"]')?.click();
+</script>`;
+  return head + tabCss + nav +
+    `<section class="report-tab-panel" data-report-panel="word">${body}</section>` +
+    `<section class="report-tab-panel" data-report-panel="google-docs" hidden>${buildInteropTab(meta.interop, "googleDocs", "Google Docs")}</section>` +
+    `<section class="report-tab-panel" data-report-panel="libreoffice" hidden>${buildInteropTab(meta.interop, "libreOffice", "LibreOffice")}</section>` +
+    tabsScript + tail;
 }
 
 // One-line framing for the report header.
@@ -1092,7 +1192,6 @@ ${STYLE}
   ${buildCategorySections(results, prev)}
   ${buildSemanticKpis(results, appearancePrev, meta.appearanceMetricVersion)}
   ${buildTrend(history, meta.provenanceLabel)}
-  ${buildRunHistory(history)}
   ${buildTable(results, prev)}
   <div class="tooltip" style="display:none"></div>
 </div>
@@ -1104,20 +1203,20 @@ ${SCRIPT}
 }
 
 const STYLE = `
-.viz-root {
+:root {
   --surface-1:#fcfcfb; --text-primary:#0b0b0b; --text-secondary:#52514e;
   --grid:#e8e7e3; --series-1:#2a78d6; --series-2:#1baf7a;
   --good:#0ca30c; --critical:#d03b3b;
 }
 @media (prefers-color-scheme: dark) {
-  .viz-root {
+  :root {
     --surface-1:#1a1a19; --text-primary:#ffffff; --text-secondary:#c3c2b7;
     --grid:#33332f; --series-1:#3987e5; --series-2:#199e70;
     --good:#0ca30c; --critical:#d03b3b;
   }
 }
 * { box-sizing: border-box; }
-body { margin: 0; background: var(--surface-1); }
+body { margin: 0; background: var(--surface-1); color: var(--text-primary); }
 .viz-root {
   font-family: system-ui, -apple-system, sans-serif;
   color: var(--text-primary);

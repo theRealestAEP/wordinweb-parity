@@ -12,6 +12,8 @@
     "test": "npm run test:e2e",
     "dev": "npm run dev -w demo",
     "test:e2e": "playwright test",
+    "test:interop": "node scripts/interop-smoke.mjs",
+    "test:interop:google": "node scripts/interop-smoke.mjs --google",
     "parity": "node scripts/parity-compare.mjs",
     "report:snapshot": "node scripts/snapshot-report.mjs"
   },

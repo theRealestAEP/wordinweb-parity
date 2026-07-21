@@ -19,6 +19,7 @@ const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 const outDir = join(root, "parity", "out");
 const resultsFile = join(outDir, "results.json");
 const historyFile = join(root, "parity", "history.jsonl");
+const interopFile = join(root, "apps", "demo", "public", "interop", "results.json");
 const reportFile = join(outDir, "report.html");
 const reportPng = join(outDir, "report.png");
 
@@ -44,6 +45,7 @@ const history = existsSync(historyFile)
       })
       .filter((e) => e && Array.isArray(e.results))
   : [];
+const interop = existsSync(interopFile) ? JSON.parse(readFileSync(interopFile, "utf8")) : null;
 
 const html = buildReport(results, history, {
   generatedAt: doc.generatedAt ?? new Date().toISOString(),
@@ -54,6 +56,7 @@ const html = buildReport(results, history, {
   label: doc.label ?? null,
   refreshed: doc.refreshed ?? null,
   appearanceMetricVersion: doc.appearanceMetricVersion ?? APPEARANCE_METRIC_VERSION,
+  interop,
 });
 writeFileSync(reportFile, html);
 console.log(`Report: ${reportFile} (${results.length} pages)`);

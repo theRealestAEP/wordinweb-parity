@@ -1,0 +1,150 @@
+{
+  "generatedAt": "2026-07-21T14:34:30.000Z",
+  "results": [
+    {
+      "fixture": "parity-tables.docx",
+      "libreOffice": {
+        "status": "pass",
+        "testedAt": "2026-07-21T14:17:18.656Z",
+        "pages": 1,
+        "summary": "2 tables, 4 rows, 10 cells, 0 tab stops, 0 tabs, 270 text characters",
+        "previews": [
+          "interop/parity-tables-libreoffice-1.png"
+        ]
+      },
+      "googleDocs": {
+        "status": "pass",
+        "testedAt": "2026-07-21T14:34:30Z",
+        "pages": 1,
+        "summary": "2 tables, 4 rows, 10 cells, readable column widths, 255 rendered text characters",
+        "previews": [
+          "interop/parity-tables-google-docs-1.png"
+        ]
+      },
+      "reference": {
+        "label": "WordInWeb",
+        "pages": 1,
+        "previews": [
+          "interop/parity-tables-wordinweb-1.png"
+        ]
+      }
+    },
+    {
+      "fixture": "parity2-nestedtables.docx",
+      "libreOffice": {
+        "status": "pass",
+        "testedAt": "2026-07-21T14:17:22.693Z",
+        "pages": 3,
+        "summary": "4 tables, 30 rows, 101 cells, 0 tab stops, 0 tabs, 2307 text characters",
+        "previews": [
+          "interop/parity2-nestedtables-libreoffice-1.png",
+          "interop/parity2-nestedtables-libreoffice-2.png",
+          "interop/parity2-nestedtables-libreoffice-3.png"
+        ]
+      },
+      "googleDocs": {
+        "status": "pass",
+        "testedAt": "2026-07-21T06:14:59Z",
+        "pages": 3,
+        "summary": "4 tables, 30 rows, nested tables retained, 1865 rendered text characters",
+        "previews": [
+          "interop/parity2-nestedtables-google-docs-1.png",
+          "interop/parity2-nestedtables-google-docs-2.png",
+          "interop/parity2-nestedtables-google-docs-3.png"
+        ]
+      },
+      "reference": {
+        "label": "WordInWeb",
+        "pages": 3,
+        "previews": [
+          "interop/parity2-nestedtables-wordinweb-1.png",
+          "interop/parity2-nestedtables-wordinweb-2.png",
+          "interop/parity2-nestedtables-wordinweb-3.png"
+        ]
+      }
+    },
+    {
+      "fixture": "parity2-tabs.docx",
+      "libreOffice": {
+        "status": "pass",
+        "testedAt": "2026-07-21T14:17:26.685Z",
+        "pages": 2,
+        "summary": "0 tables, 0 rows, 0 cells, 67 tab stops, 29 tabs, 761 text characters",
+        "previews": [
+          "interop/parity2-tabs-libreoffice-1.png",
+          "interop/parity2-tabs-libreoffice-2.png"
+        ]
+      },
+      "googleDocs": {
+        "status": "pass",
+        "testedAt": "2026-07-21T06:14:59Z",
+        "pages": 2,
+        "summary": "tab alignment preview captured, 736 rendered text characters",
+        "previews": [
+          "interop/parity2-tabs-google-docs-1.png",
+          "interop/parity2-tabs-google-docs-2.png"
+        ]
+      },
+      "reference": {
+        "label": "WordInWeb",
+        "pages": 2,
+        "previews": [
+          "interop/parity2-tabs-wordinweb-1.png",
+          "interop/parity2-tabs-wordinweb-2.png"
+        ]
+      }
+    },
+    {
+      "fixture": "probe3-table-exotics.docx",
+      "libreOffice": {
+        "status": "pass",
+        "testedAt": "2026-07-21T14:17:30.529Z",
+        "pages": 2,
+        "summary": "4 tables, 11 rows, 29 cells, 0 tab stops, 0 tabs, 2107 text characters",
+        "previews": [
+          "interop/probe3-table-exotics-libreoffice-1.png",
+          "interop/probe3-table-exotics-libreoffice-2.png"
+        ]
+      },
+      "googleDocs": {
+        "status": "pass",
+        "testedAt": "2026-07-21T06:14:59Z",
+        "pages": 2,
+        "summary": "3 imported tables, 11 rows, 1758 rendered text characters",
+        "previews": [
+          "interop/probe3-table-exotics-google-docs-1.png",
+          "interop/probe3-table-exotics-google-docs-2.png"
+        ]
+      },
+      "reference": {
+        "label": "WordInWeb",
+        "pages": 2,
+        "previews": [
+          "interop/probe3-table-exotics-wordinweb-1.png",
+          "interop/probe3-table-exotics-wordinweb-2.png"
+        ]
+      }
+    },
+    {
+      "fixture": "preset-tables.docx",
+      "libreOffice": {
+        "status": "pass",
+        "testedAt": "2026-07-21T14:17:33.706Z",
+        "pages": 1,
+        "summary": "2 tables, 9 rows, 31 cells, 0 tab stops, 0 tabs, 469 text characters",
+        "previews": [
+          "interop/preset-tables-libreoffice-1.png"
+        ]
+      },
+      "googleDocs": {
+        "status": "pass",
+        "testedAt": "2026-07-21T06:14:59Z",
+        "pages": 1,
+        "summary": "2 tables, 9 rows, 402 rendered text characters",
+        "previews": [
+          "interop/preset-tables-google-docs-1.png"
+        ]
+      }
+    }
+  ]
+}

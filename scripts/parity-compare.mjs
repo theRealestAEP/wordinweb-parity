@@ -31,6 +31,8 @@ import {
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 const parityDir = join(root, "parity");
 const outDir = join(parityDir, "out");
+const interopReportFile = join(root, "apps", "demo", "public", "interop", "results.json");
+const interop = existsSync(interopReportFile) ? JSON.parse(readFileSync(interopReportFile, "utf8")) : null;
 const scratchDir = join(outDir, ".tmp");
 const args = process.argv.slice(2);
 const baseIdx = args.indexOf("--base");
@@ -1715,6 +1717,7 @@ try {
         label: runLabel,
         refreshed: refs,
         appearanceMetricVersion: APPEARANCE_METRIC_VERSION,
+        interop,
       }),
     );
     const shot = await browser.newPage({
@@ -1785,6 +1788,7 @@ try {
       label: runLabel,
       refreshed: isFullRun ? null : refs,
       appearanceMetricVersion: APPEARANCE_METRIC_VERSION,
+      interop,
     });
     writeFileSync(reportFile, html);
     console.log(`\nReport: ${reportFile}`);

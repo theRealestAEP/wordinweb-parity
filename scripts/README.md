@@ -2,6 +2,26 @@
 
 The public scripts support three workflows.
 
+## Cross-editor compatibility
+
+`interop-smoke.mjs` is the structural cross-editor compatibility gate. It saves
+a small representative corpus of table and tab-stop documents through
+WordInWeb, sends each candidate through LibreOffice, and checks the re-exported
+DOCX and PDF for retained tables, rows, cells, tab stops, text, bounded page
+counts, and nonblank rendered content:
+
+```bash
+npm run test:interop
+```
+
+Pass `--google` (or use `npm run test:interop:google`) to run the same candidates
+through native Google Docs import/export. Authentication uses
+`GOOGLE_INTEROP_ACCESS_TOKEN` or `GOOGLE_INTEROP_SERVICE_ACCOUNT_JSON`, with an
+optional `GOOGLE_INTEROP_FOLDER_ID` for a shared Drive destination. The script
+deletes each imported Google Doc after its exports are checked.
+Each successful run also writes the compact compatibility manifest and page
+previews consumed by the Google Docs and LibreOffice tabs on `/report/`.
+
 ## Visual parity
 
 - `parity-parallel.mjs` is the canonical runner for every complete or large
