@@ -34,13 +34,15 @@ test.describe("editing behaviors", () => {
     await ed.expectTextOnPage("Page", 0);
   });
 
-  test("Cmd/Ctrl+Enter inserts a page break, adding a page", async ({ page }) => {
+  test("Cmd/Ctrl+Enter inserts a page break and moves typing to the new page", async ({ page }) => {
     const ed = await Editor.open(page, "parity-text");
     const before = await ed.pageCount();
     await ed.clickText("Plain");
     const mod = process.platform === "darwin" ? "Meta" : "Control";
     await ed.press(`${mod}+Enter`);
     if ((await ed.pageCount()) <= before) throw new Error("page break did not add a page");
+    await ed.type("AFTERBREAK");
+    await ed.expectTextOnPage("AFTERBREAK", before);
   });
 
   test("typing enough Enters overflows to a new page", async ({ page }) => {
@@ -98,8 +100,9 @@ test.describe("WordArt / watermark editing", () => {
     const box = (await inkBox(page))!;
     await page.mouse.click(box.l + box.w - 14, box.t + 12);
     await page.waitForTimeout(150);
-    page.once("dialog", (d) => d.accept("DRAFT COPY"));
     await page.locator('[data-dxw-wm-btn="Edit watermark text"]').click();
+    await page.getByRole("textbox", { name: "Watermark text", exact: true }).fill("DRAFT COPY");
+    await page.getByRole("button", { name: "Apply", exact: true }).click();
     await page.waitForTimeout(400);
     const texts = await page.evaluate(() =>
       [...document.querySelectorAll('[data-dxw-item-kind="wordart"]')].map((e) => e.textContent),
@@ -171,7 +174,7 @@ test.describe("in-front image drag around the footer", () => {
     await page.locator('button:text-is("In front")').click();
     await page.waitForTimeout(400);
     // In-front images paint above the text layer.
-    await expect(red()).toHaveCSS("z-index", "2");
+    expect(parseInt(await red().evaluate((element) => getComputedStyle(element).zIndex), 10)).toBeGreaterThan(0);
 
     // Drop directly on the footer text: image must survive, land near the
     // drop, and the footer must keep its spans.

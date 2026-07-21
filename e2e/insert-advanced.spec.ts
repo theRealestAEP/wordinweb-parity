@@ -122,10 +122,27 @@ test.describe("advanced Insert ribbon", () => {
     await page.keyboard.press("End");
     await page.keyboard.type(" revised");
     await expect(page.locator('[data-dxw-textbox-story]').filter({ hasText: "revised" }).last()).toBeVisible();
+    await page.keyboard.press(`${MOD}+a`);
+    await page.getByRole("button", { name: "home", exact: true }).click();
+    await tool(page, "Bold (⌘B)").click();
+    const fontSelect = page.locator('select[title="Font"]');
+    const currentFont = await fontSelect.inputValue();
+    const fonts = await fontSelect.locator("option").evaluateAll((options) =>
+      options.map((option) => (option as HTMLOptionElement).value).filter(Boolean),
+    );
+    const chosenFont = fonts.find((font) => font !== currentFont)!;
+    await fontSelect.selectOption(chosenFont);
+    await page.locator('select[title="Font size"]').selectOption("18");
+    await tool(page, "Text color").click();
+    await page.getByRole("button", { name: "Choose #cc0000" }).click();
     const xml = await downloadXml(page);
     expect(xml).toContain('name="Text Box ');
     expect(xml).toContain("Editable text box");
     expect(xml).toContain("revised");
     expect(xml).toContain("<wps:txbx>");
+    expect(xml).toContain(`<w:rFonts w:ascii="${chosenFont}"`);
+    expect(xml).toContain('<w:sz w:val="36"');
+    expect(xml).toContain('<w:color w:val="CC0000"');
+    expect(xml).toContain("<w:b/>");
   });
 });

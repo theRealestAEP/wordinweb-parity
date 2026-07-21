@@ -17,7 +17,7 @@ import "@fontsource/noto-sans-lao-looped/700.css";
 import "./fonts-local.css";
 import "./app.css";
 import { createRoot } from "react-dom/client";
-import { gzip, gunzip } from "fflate";
+import { gzip, gunzip, strToU8, zipSync } from "fflate";
 import { DocxView, DocxToolbar, DocxViewApi, ToolbarMenuSelect, printPages } from "wordinweb";
 
 // Tracked-change insertion ink (see packages/core/src/parse/document.ts) — the
@@ -137,7 +137,31 @@ const MODES: { id: Mode; label: string; desc: string; ink: string; bg: string; I
 // fixture (authentic 28-line layout) with its digit-ciphered literal line
 // numbers restored to 1–28 — pleading-anon.docx itself stays byte-identical
 // to the copy its Word-reference parity PDF was exported from.
+const BLANK_DOCUMENT = zipSync({
+  "[Content_Types].xml": strToU8(`<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">
+  <Default Extension="xml" ContentType="application/xml"/>
+  <Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>
+  <Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/>
+</Types>`),
+  "_rels/.rels": strToU8(`<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
+  <Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="word/document.xml"/>
+</Relationships>`),
+  "word/document.xml": strToU8(`<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">
+  <w:body>
+    <w:p><w:r><w:t xml:space="preserve"></w:t></w:r></w:p>
+    <w:sectPr>
+      <w:pgSz w:w="12240" w:h="15840"/>
+      <w:pgMar w:top="1440" w:right="1440" w:bottom="1440" w:left="1440" w:header="720" w:footer="720" w:gutter="0"/>
+    </w:sectPr>
+  </w:body>
+</w:document>`),
+});
+
 const PRESETS = [
+  { id: "blank", label: "Blank document", path: null },
   { id: "resume", label: "Résumé", path: "/fixtures/wild3-resume.docx" },
   { id: "pleading", label: "California pleading paper", path: "/fixtures/pleading-paper.docx" },
   { id: "equations", label: "Math equations", path: "/fixtures/preset-equations.docx" },
@@ -153,10 +177,11 @@ const WORKSPACE_KEY = "current";
 const AUTOSAVE_MS = 60_000;
 
 type SavedWorkspace = {
-  id: typeof WORKSPACE_KEY;
+  id: string;
   version: 1;
   fileName: string;
   preset: string;
+  savedDocumentId?: string;
   savedAt: number;
   compression: "gzip" | "none";
   bytes: ArrayBuffer;
@@ -199,6 +224,19 @@ async function writeSavedWorkspace(workspace: SavedWorkspace): Promise<void> {
   });
 }
 
+async function listSavedDocuments(): Promise<SavedWorkspace[]> {
+  const db = await openWorkspaceDb();
+  return new Promise((resolve, reject) => {
+    const request = db.transaction(WORKSPACE_STORE, "readonly").objectStore(WORKSPACE_STORE).getAll();
+    request.onsuccess = () => resolve(
+      (request.result as SavedWorkspace[])
+        .filter((workspace) => workspace.id.startsWith("document:"))
+        .sort((a, b) => b.savedAt - a.savedAt),
+    );
+    request.onerror = () => reject(request.error ?? new Error("Could not list saved documents"));
+  });
+}
+
 function gzipBytes(bytes: Uint8Array): Promise<Uint8Array> {
   return new Promise((resolve, reject) => {
     gzip(bytes, { level: 6 }, (error, result) => error ? reject(error) : resolve(result));
@@ -213,6 +251,15 @@ function gunzipBytes(bytes: Uint8Array): Promise<Uint8Array> {
 
 function copyBuffer(bytes: Uint8Array): ArrayBuffer {
   return bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength) as ArrayBuffer;
+}
+
+function blankDocumentBuffer(): ArrayBuffer {
+  return copyBuffer(BLANK_DOCUMENT);
+}
+
+function normalizeDocumentName(value: string): string {
+  const name = value.trim() || "Untitled document";
+  return /\.docx$/i.test(name) ? name : `${name}.docx`;
 }
 
 /**
@@ -329,10 +376,10 @@ function App() {
   const query = new URLSearchParams(location.search);
   const toolbarMode = query.get("toolbar") === "simple" ? "simple" : "advanced";
   const toolbarFeatures = query.get("layout") === "off" ? { layout: false } : undefined;
-  const initial = query.get("doc") ?? "/fixtures/showcase.docx";
+  const initial = query.get("doc");
   const persistenceEnabled = !query.has("doc");
   const [source, setSource] = useState<ArrayBuffer | string | null>(persistenceEnabled ? null : initial);
-  const [preset, setPreset] = useState(PRESETS.find((item) => item.path === initial)?.id ?? "");
+  const [preset, setPreset] = useState(initial ? PRESETS.find((item) => item.path === initial)?.id ?? "" : "blank");
   const [zoom, setZoom] = useState(1);
   const [editable, setEditable] = useState(query.get("editable") !== "0");
   const [showComments, setShowComments] = useState(query.get("comments") !== "0");
@@ -349,13 +396,20 @@ function App() {
   const [suggesting, setSuggesting] = useState(query.get("suggest") === "1");
   const [pageCount, setPageCount] = useState<number | null>(null);
   const [status, setStatus] = useState<string>(persistenceEnabled ? "Loading saved work…" : "");
-  const [fileName, setFileName] = useState(initial.split("/").pop() ?? "document.docx");
+  const [fileName, setFileName] = useState(initial?.split("/").pop() ?? "Untitled document.docx");
   const [api, setApi] = useState<DocxViewApi | null>(null);
   const apiRef = useRef<DocxViewApi | null>(null);
-  const workspaceMetaRef = useRef({ fileName, preset });
+  const [savedDocumentId, setSavedDocumentId] = useState<string | null>(null);
+  const workspaceMetaRef = useRef({ fileName, preset, savedDocumentId });
   const saveInFlight = useRef<Promise<void> | null>(null);
   const [saveState, setSaveState] = useState<"idle" | "saving" | "saved" | "error">("idle");
   const [lastSaved, setLastSaved] = useState<number | null>(null);
+  const [saveAsOpen, setSaveAsOpen] = useState(false);
+  const [saveAsName, setSaveAsName] = useState(fileName);
+  const [fileMenuOpen, setFileMenuOpen] = useState(false);
+  const [savedDocuments, setSavedDocuments] = useState<SavedWorkspace[]>([]);
+  const [savedDocumentsLoading, setSavedDocumentsLoading] = useState(false);
+  const fileMenuRef = useRef<HTMLDivElement | null>(null);
   const [findOpen, setFindOpen] = useState(false);
   const [findQ, setFindQ] = useState("");
   const [replQ, setReplQ] = useState("");
@@ -363,7 +417,7 @@ function App() {
   const findInput = useRef<HTMLInputElement | null>(null);
   const [missingFonts, setMissingFonts] = useState<{ family: string }[]>([]);
   const [fontWarnDismissed, setFontWarnDismissed] = useState(false);
-  workspaceMetaRef.current = { fileName, preset };
+  workspaceMetaRef.current = { fileName, preset, savedDocumentId };
 
   useEffect(() => {
     if (!persistenceEnabled) return;
@@ -372,7 +426,9 @@ function App() {
       .then(async (saved) => {
         if (!active) return;
         if (!saved || saved.version !== 1) {
-          setSource(initial);
+          setPreset("blank");
+          setFileName("Untitled document.docx");
+          setSource(blankDocumentBuffer());
           return;
         }
         const stored = new Uint8Array(saved.bytes);
@@ -380,6 +436,7 @@ function App() {
         if (!active) return;
         setFileName(saved.fileName);
         setPreset(saved.preset);
+        setSavedDocumentId(saved.savedDocumentId ?? null);
         setLastSaved(saved.savedAt);
         setSaveState("saved");
         setSource(copyBuffer(restored));
@@ -387,7 +444,9 @@ function App() {
       .catch(() => {
         if (!active) return;
         setSaveState("error");
-        setSource(initial);
+        setPreset("blank");
+        setFileName("Untitled document.docx");
+        setSource(blankDocumentBuffer());
       });
     return () => { active = false; };
   }, []);
@@ -415,6 +474,7 @@ function App() {
         setTimeout(() => findInput.current?.focus(), 0);
       } else if (e.key === "Escape") {
         setFindOpen(false);
+        setSaveAsOpen(false);
       }
     };
     document.addEventListener("keydown", onKey);
@@ -434,8 +494,9 @@ function App() {
     setFindStat({ index: total > 0 ? 1 : 0, total });
   }, [api]);
 
-  const saveLocally = useCallback((currentApi = apiRef.current): Promise<void> => {
-    if (!persistenceEnabled || !currentApi) return Promise.resolve();
+  const saveLocally = useCallback((currentApi = apiRef.current, explicit = false): Promise<void> => {
+    const meta = workspaceMetaRef.current;
+    if ((!persistenceEnabled && !meta.savedDocumentId && !explicit) || !currentApi) return Promise.resolve();
     let raw: Uint8Array;
     try {
       raw = currentApi.save();
@@ -450,14 +511,17 @@ function App() {
       const compressed = await gzipBytes(raw);
       const useCompression = compressed.byteLength < raw.byteLength;
       const savedAt = Date.now();
-      await writeSavedWorkspace({
+      const workspace: SavedWorkspace = {
         id: WORKSPACE_KEY,
         version: 1,
-        ...workspaceMetaRef.current,
+        ...meta,
+        savedDocumentId: meta.savedDocumentId ?? undefined,
         savedAt,
         compression: useCompression ? "gzip" : "none",
         bytes: copyBuffer(useCompression ? compressed : raw),
-      });
+      };
+      await writeSavedWorkspace(workspace);
+      if (meta.savedDocumentId) await writeSavedWorkspace({ ...workspace, id: meta.savedDocumentId });
       setLastSaved(savedAt);
       setSaveState("saved");
     })().catch(() => {
@@ -470,21 +534,20 @@ function App() {
   }, [persistenceEnabled]);
 
   useEffect(() => {
-    if (!api || !persistenceEnabled) return;
+    if (!api || (!persistenceEnabled && !savedDocumentId)) return;
     const interval = window.setInterval(() => void saveLocally(api), AUTOSAVE_MS);
     return () => clearInterval(interval);
-  }, [api, persistenceEnabled, saveLocally]);
+  }, [api, persistenceEnabled, savedDocumentId, saveLocally]);
 
   useEffect(() => {
-    if (!persistenceEnabled) return;
     const saveShortcut = (event: KeyboardEvent) => {
-      if (!(event.metaKey || event.ctrlKey) || event.key.toLowerCase() !== "s") return;
+      if (!(event.metaKey || event.ctrlKey) || event.shiftKey || event.key.toLowerCase() !== "s") return;
       event.preventDefault();
-      void saveLocally();
+      void saveLocally(undefined, true);
     };
     document.addEventListener("keydown", saveShortcut);
     return () => document.removeEventListener("keydown", saveShortcut);
-  }, [persistenceEnabled, saveLocally]);
+  }, [saveLocally]);
 
   const onFile = useCallback(async (file: File) => {
     setStatus(`Loading ${file.name}…`);
@@ -496,6 +559,8 @@ function App() {
       setSource(buf);
       setPreset("");
       setFileName(file.name);
+      setSavedDocumentId(null);
+      setSaveState("idle");
     } catch (error) {
       setStatus(`Error: ${error instanceof Error ? error.message : "Could not read file"}`);
     }
@@ -505,8 +570,10 @@ function App() {
     const next = PRESETS.find((item) => item.id === id);
     if (!next) return;
     setPreset(next.id);
-    setSource(next.path);
-    setFileName(next.path.split("/").pop()!);
+    setSavedDocumentId(null);
+    setSource(next.path ?? blankDocumentBuffer());
+    setFileName(next.path ? next.path.split("/").pop()! : "Untitled document.docx");
+    setSaveState("idle");
     setPageCount(null);
     setApi(null);
     apiRef.current = null;
@@ -514,7 +581,7 @@ function App() {
     setStatus(`Loading ${next.label}…`);
   };
 
-  const download = (bytes: Uint8Array) => {
+  const download = (bytes: Uint8Array, name = fileName.replace(/\.docx$/i, "") + "-edited.docx") => {
     const buf = bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength) as ArrayBuffer;
     const blob = new Blob([buf], {
       type: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
@@ -522,7 +589,7 @@ function App() {
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = fileName.replace(/\.docx$/i, "") + "-edited.docx";
+    a.download = name;
     a.click();
     URL.revokeObjectURL(url);
   };
@@ -536,6 +603,91 @@ function App() {
   const savedTime = lastSaved
     ? new Date(lastSaved).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })
     : null;
+
+  const commitDocumentName = (value = fileName) => {
+    const normalized = normalizeDocumentName(value);
+    setFileName(normalized);
+    workspaceMetaRef.current = { ...workspaceMetaRef.current, fileName: normalized };
+    return normalized;
+  };
+
+  const openSaveAs = () => {
+    setSaveAsName(fileName);
+    setFileMenuOpen(false);
+    setSaveAsOpen(true);
+  };
+
+  const saveAs = () => {
+    if (!api) return;
+    const name = commitDocumentName(saveAsName);
+    const id = `document:${name.toLocaleLowerCase()}`;
+    setSavedDocumentId(id);
+    workspaceMetaRef.current = { ...workspaceMetaRef.current, fileName: name, savedDocumentId: id };
+    setSaveAsOpen(false);
+    void saveLocally(api, true).then(() => {
+      void listSavedDocuments().then(setSavedDocuments);
+    });
+  };
+
+  const openFileMenu = () => {
+    const open = !fileMenuOpen;
+    setFileMenuOpen(open);
+    if (!open) return;
+    setSavedDocumentsLoading(true);
+    void listSavedDocuments()
+      .then(setSavedDocuments)
+      .finally(() => setSavedDocumentsLoading(false));
+  };
+
+  const openSavedDocument = async (saved: SavedWorkspace) => {
+    setFileMenuOpen(false);
+    setStatus(`Loading ${saved.fileName}…`);
+    setPageCount(null);
+    setApi(null);
+    apiRef.current = null;
+    const stored = new Uint8Array(saved.bytes);
+    const restored = saved.compression === "gzip" ? await gunzipBytes(stored) : stored;
+    const savedDocumentId = saved.id;
+    setSource(copyBuffer(restored));
+    setFileName(saved.fileName);
+    setPreset(saved.preset);
+    setSavedDocumentId(savedDocumentId);
+    setLastSaved(saved.savedAt);
+    setSaveState("saved");
+    workspaceMetaRef.current = {
+      fileName: saved.fileName,
+      preset: saved.preset,
+      savedDocumentId,
+    };
+    await writeSavedWorkspace({ ...saved, id: WORKSPACE_KEY, savedDocumentId });
+  };
+
+  useEffect(() => {
+    if (!fileMenuOpen) return;
+    const close = (event: MouseEvent) => {
+      if (!fileMenuRef.current?.contains(event.target as Node)) setFileMenuOpen(false);
+    };
+    document.addEventListener("mousedown", close);
+    return () => document.removeEventListener("mousedown", close);
+  }, [fileMenuOpen]);
+
+  useEffect(() => {
+    const fileShortcut = (event: KeyboardEvent) => {
+      if (!(event.metaKey || event.ctrlKey)) return;
+      if (event.shiftKey && event.key.toLowerCase() === "s") {
+        event.preventDefault();
+        openSaveAs();
+      } else if (!event.shiftKey && event.key.toLowerCase() === "o") {
+        event.preventDefault();
+        document.getElementById("docx-upload")?.click();
+      } else if (!event.shiftKey && event.key.toLowerCase() === "n") {
+        event.preventDefault();
+        loadPreset("blank");
+      }
+    };
+    document.addEventListener("keydown", fileShortcut);
+    return () => document.removeEventListener("keydown", fileShortcut);
+  }, [fileName, api]);
 
   return (
     <div className="app-shell">
@@ -554,19 +706,6 @@ function App() {
         </nav>
       </header>
       <div className="control-bar">
-        <div className="preset-control">
-          <span className="control-label">Try a template</span>
-          <ToolbarMenuSelect
-            className="app-preset-select"
-            value={preset}
-            ariaLabel="Choose a document template"
-            placeholder="Choose a document…"
-            width={218}
-            menuWidth={260}
-            options={PRESETS.map((item) => ({ value: item.id, label: item.label }))}
-            onChange={(value) => loadPreset(value)}
-          />
-        </div>
         <input
           id="docx-upload"
           className="visually-hidden"
@@ -575,9 +714,81 @@ function App() {
           onChange={(e) => {
             const f = e.target.files?.[0];
             if (f) void onFile(f);
+            e.currentTarget.value = "";
           }}
         />
-        <label className="upload-button" htmlFor="docx-upload">Upload .docx</label>
+        <div ref={fileMenuRef} className="file-menu-root">
+          <button
+            className="file-menu-button"
+            data-file-menu-trigger=""
+            type="button"
+            aria-haspopup="menu"
+            aria-expanded={fileMenuOpen}
+            onClick={openFileMenu}
+          >
+            File <span aria-hidden="true">⌄</span>
+          </button>
+          {fileMenuOpen && (
+            <div className="file-menu" role="menu" aria-label="File">
+              <button type="button" role="menuitem" onClick={() => { setFileMenuOpen(false); loadPreset("blank"); }}>
+                <span>New blank document</span><kbd>Ctrl/⌘+N</kbd>
+              </button>
+              <label role="menuitem" htmlFor="docx-upload" onClick={() => setFileMenuOpen(false)}>
+                <span>Open .docx…</span><kbd>Ctrl/⌘+O</kbd>
+              </label>
+              {(savedDocumentsLoading || savedDocuments.length > 0) && <span className="file-menu-divider" />}
+              {savedDocumentsLoading && <span className="file-menu-note">Loading saved documents…</span>}
+              {!savedDocumentsLoading && savedDocuments.map((saved) => (
+                <button key={saved.id} type="button" role="menuitem" onClick={() => void openSavedDocument(saved)}>
+                  <span>{saved.fileName}</span>
+                  <small>{new Date(saved.savedAt).toLocaleDateString()}</small>
+                </button>
+              ))}
+              <span className="file-menu-divider" />
+              <button
+                type="button"
+                role="menuitem"
+                data-file-action="save"
+                disabled={!api || saveState === "saving"}
+                onClick={() => {
+                  setFileMenuOpen(false);
+                  commitDocumentName();
+                  void saveLocally(undefined, true);
+                }}
+              >
+                <span>Save</span><kbd>Ctrl/⌘+S</kbd>
+              </button>
+              <button type="button" role="menuitem" data-file-action="save-as" disabled={!api} onClick={openSaveAs}>
+                <span>Save as…</span><kbd>Ctrl/⌘+Shift+S</kbd>
+              </button>
+              <button
+                type="button"
+                role="menuitem"
+                disabled={!api}
+                onClick={() => {
+                  setFileMenuOpen(false);
+                  if (api) download(api.save());
+                }}
+              >
+                <span>Download .docx</span>
+              </button>
+            </div>
+          )}
+        </div>
+        <span className="control-divider" aria-hidden="true" />
+        <div className="preset-control">
+          <span className="control-label">Start with</span>
+          <ToolbarMenuSelect
+            className="app-preset-select"
+            value={preset}
+            ariaLabel="Choose a document starting point"
+            placeholder="Choose a document…"
+            width={218}
+            menuWidth={260}
+            options={PRESETS.map((item) => ({ value: item.id, label: item.label }))}
+            onChange={(value) => loadPreset(value)}
+          />
+        </div>
         <span className="control-divider" aria-hidden="true" />
         <label className="compact-control">
           <span>Zoom</span>
@@ -675,23 +886,44 @@ function App() {
         </label>
         <div className="document-meta" aria-live="polite">
           <span className={`status-dot${status.startsWith("Error") ? " error" : ""}`} aria-hidden="true" />
-          <span className="file-name">{fileName}</span>
+          {persistenceEnabled ? (
+            <input
+              className="file-name document-name-input"
+              type="text"
+              aria-label="Document name"
+              title="Name used when saving this document in your browser"
+              value={fileName}
+              onChange={(event) => {
+                setFileName(event.target.value);
+                workspaceMetaRef.current = { ...workspaceMetaRef.current, fileName: event.target.value };
+                setSaveState("idle");
+              }}
+              onBlur={(event) => commitDocumentName(event.target.value)}
+              onKeyDown={(event) => {
+                if (event.key === "Enter") event.currentTarget.blur();
+              }}
+            />
+          ) : (
+            <span className="file-name">{fileName}</span>
+          )}
           <span className="page-count">
             {status || (pageCount !== null ? `${pageCount} page${pageCount === 1 ? "" : "s"}` : "Loading…")}
           </span>
         </div>
-        {persistenceEnabled && (
-          <button
-            className={`save-button${saveState === "error" ? " error" : ""}`}
-            disabled={!api || saveState === "saving"}
-            title={saveState === "error"
-              ? "Local save failed. Download a copy to keep your work."
-              : `Save to this browser. Autosaves every minute${savedTime ? `; last saved ${savedTime}` : ""}.`}
-            onClick={() => void saveLocally()}
-          >
-            {saveState === "saving" ? "Saving…" : saveState === "error" ? "Save failed" : savedTime ? `Saved ${savedTime}` : "Save"}
-          </button>
-        )}
+        <span
+          className={`save-indicator ${saveState}`}
+          aria-live="polite"
+          title={savedTime ? `Last saved in this browser at ${savedTime}` : "This document has not been saved in this browser"}
+        >
+          <span aria-hidden="true" />
+          {saveState === "saving"
+            ? "Saving…"
+            : saveState === "error"
+              ? "Save failed"
+              : saveState === "saved" && savedTime
+                ? `Saved ${savedTime}`
+                : "Not saved"}
+        </span>
         <button
           className="print-button"
           title="Print / save as PDF"
@@ -704,6 +936,37 @@ function App() {
           Print
         </button>
       </div>
+      {saveAsOpen && (
+        <div className="save-as-backdrop" role="presentation" onMouseDown={() => setSaveAsOpen(false)}>
+          <form
+            className="save-as-dialog"
+            role="dialog"
+            aria-modal="true"
+            aria-label="Save document in browser"
+            onMouseDown={(event) => event.stopPropagation()}
+            onSubmit={(event) => {
+              event.preventDefault();
+              saveAs();
+            }}
+          >
+            <strong>Save in this browser</strong>
+            <label>
+              <span>File name</span>
+              <input
+                autoFocus
+                aria-label="Save as file name"
+                value={saveAsName}
+                onChange={(event) => setSaveAsName(event.target.value)}
+                onFocus={(event) => event.currentTarget.select()}
+              />
+            </label>
+            <div className="save-as-dialog-actions">
+              <button type="button" onClick={() => setSaveAsOpen(false)}>Cancel</button>
+              <button type="submit" disabled={!api}>Save in browser</button>
+            </div>
+          </form>
+        </div>
+      )}
       {editable && <div className="document-toolbar"><DocxToolbar api={api} mode={toolbarMode} features={toolbarFeatures} onSave={download} /></div>}
       {findOpen && (
         <div className="find-bar">
@@ -803,6 +1066,7 @@ function App() {
               setPageCount(pageCount);
               setStatus("");
             }}
+            onPageCountChange={setPageCount}
             onMissingFonts={(m) => {
               setMissingFonts(m);
               setFontWarnDismissed(false);

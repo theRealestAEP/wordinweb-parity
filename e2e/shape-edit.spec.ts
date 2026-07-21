@@ -4,7 +4,8 @@ test("wordart-warps: colored fill selects the shape (no click-through)", async (
   await page.goto(`/?doc=/fixtures/probe3-wordart-warps.docx`);
   await page.waitForTimeout(1500);
   const fill = await page.evaluate(() => {
-    const h = document.querySelector('[data-dxw-drawing][style*="z-index: 1"]') as HTMLElement | null;
+    const h = [...document.querySelectorAll<HTMLElement>("[data-dxw-drawing]")]
+      .find((element) => parseInt(getComputedStyle(element).zIndex, 10) >= 0) ?? null;
     if (!h) return null;
     const r = h.getBoundingClientRect();
     return { x: Math.round(r.x + 8), y: Math.round(r.y + 8) };

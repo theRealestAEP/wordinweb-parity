@@ -6,6 +6,36 @@ function tool(page: Page, title: string) {
   return page.locator(`[title=${JSON.stringify(title)}], [data-tip=${JSON.stringify(title)}]`).first();
 }
 
+test("pen and highlighter remember independent colors and widths", async ({ page }) => {
+  await page.goto("/?doc=/fixtures/benchmark.docx");
+  await page.waitForSelector(".dxw-page span");
+  await page.getByRole("button", { name: "draw", exact: true }).click();
+
+  await tool(page, "Draw with pen").click();
+  await tool(page, "Pen color").click();
+  await page.getByLabel("Choose #ff0000").click();
+  await page.getByRole("button", { name: "Pen width", exact: true }).click();
+  await page.getByRole("option", { name: "4 px", exact: true }).click();
+
+  await tool(page, "Draw with highlighter").click();
+  await expect(page.getByRole("button", { name: "Highlighter width", exact: true })).toContainText("12 px");
+  await tool(page, "Highlighter color").click();
+  await page.getByLabel("Choose #4a86e8").click();
+  await page.getByRole("button", { name: "Highlighter width", exact: true }).click();
+  await page.getByRole("option", { name: "8 px", exact: true }).click();
+
+  await tool(page, "Draw with pen").click();
+  await expect(page.getByRole("button", { name: "Pen width", exact: true })).toContainText("4 px");
+  await tool(page, "Pen color").click();
+  await expect(page.getByLabel("Custom hex color")).toHaveValue("#ff0000");
+  await page.keyboard.press("Escape");
+
+  await tool(page, "Draw with highlighter").click();
+  await expect(page.getByRole("button", { name: "Highlighter width", exact: true })).toContainText("8 px");
+  await tool(page, "Highlighter color").click();
+  await expect(page.getByLabel("Custom hex color")).toHaveValue("#4a86e8");
+});
+
 test("freehand pen creates selectable DrawingML ink with undo, redo, and save-back", async ({ page }) => {
   await page.goto("/?doc=/fixtures/benchmark.docx");
   await page.waitForSelector(".dxw-page span");

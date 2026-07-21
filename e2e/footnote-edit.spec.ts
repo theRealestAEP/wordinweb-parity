@@ -1,4 +1,6 @@
 import { expect, test, Page } from "@playwright/test";
+import { readFileSync } from "node:fs";
+import { strFromU8, unzipSync } from "fflate";
 
 /**
  * Footnote editing (user: "how do we edit footnotes?"). Footnote content was
@@ -62,6 +64,22 @@ test.describe("footnote editing", () => {
       [...document.querySelectorAll(".dxw-page span")].some((s) => (s.textContent || "").startsWith("ZZ")),
     );
     expect(edited, "typed text appears in the footnote").toBe(true);
+
+    const undo = process.platform === "darwin" ? "Meta+z" : "Control+z";
+    const redo = process.platform === "darwin" ? "Meta+Shift+z" : "Control+y";
+    await page.keyboard.press(undo);
+    await expect(page.locator(".dxw-page span").filter({ hasText: /^ZZ/ })).toHaveCount(0);
+    await page.keyboard.press(redo);
+    await expect(page.locator(".dxw-page span").filter({ hasText: /^ZZ/ }).first()).toBeVisible();
+
+    const pending = page.waitForEvent("download");
+    await page.getByText("Download", { exact: true }).click();
+    const path = await (await pending).path();
+    if (!path) throw new Error("download path unavailable");
+    const files = unzipSync(new Uint8Array(readFileSync(path)));
+    expect(strFromU8(files["word/footnotes.xml"])).toContain("ZZ");
+    await page.locator("#docx-upload").setInputFiles(path);
+    await expect(page.locator(".dxw-page span").filter({ hasText: /^ZZ/ }).first()).toBeVisible();
   });
 
   test("double-clicking a reference mark jumps to its note", async ({ page }) => {

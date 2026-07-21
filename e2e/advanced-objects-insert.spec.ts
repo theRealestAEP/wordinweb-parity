@@ -66,6 +66,29 @@ test("advanced Insert creates editable native 3D, media, and embedded objects", 
   const resized = await page.locator("[data-dxw-model3d]").last().boundingBox();
   expect(resized!.width).toBeGreaterThan(before!.width + 20);
 
+  const viewer = page.locator("[data-dxw-model3d-viewer]").last();
+  const viewerBox = (await viewer.boundingBox())!;
+  await page.mouse.move(viewerBox.x + viewerBox.width / 2, viewerBox.y + viewerBox.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(viewerBox.x + viewerBox.width / 2 + 40, viewerBox.y + viewerBox.height / 2 + 20, { steps: 6 });
+  await page.mouse.up();
+  await expect(viewer).toHaveAttribute("orientation", /0deg 10deg 20deg/);
+
+  const rotatedBox = (await model.boundingBox())!;
+  const moveGrip = page.locator('[data-dxw-object-move][title="Drag to move 3D object"]');
+  const moveBox = (await moveGrip.boundingBox())!;
+  await page.mouse.move(moveBox.x + moveBox.width / 2, moveBox.y + moveBox.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(moveBox.x + moveBox.width / 2 + 50, moveBox.y + moveBox.height / 2, { steps: 6 });
+  await page.mouse.up();
+  const movedBox = (await model.boundingBox())!;
+  expect(movedBox.x).toBeGreaterThan(rotatedBox.x + 35);
+
+  await page.getByRole("button", { name: "Reset 3D", exact: true }).click();
+  await expect(viewer).toHaveAttribute("orientation", "0deg 0deg 0deg");
+  await page.keyboard.press(process.platform === "darwin" ? "Meta+z" : "Control+z");
+  await expect(viewer).toHaveAttribute("orientation", /0deg 10deg 20deg/);
+
   await page.keyboard.press("Escape");
   await object.click();
   await expect(page.locator("[data-dxw-img-handle]")).toHaveCount(8);
@@ -79,6 +102,7 @@ test("advanced Insert creates editable native 3D, media, and embedded objects", 
   const rels = strFromU8(files["word/_rels/document.xml.rels"]);
   const contentTypes = strFromU8(files["[Content_Types].xml"]);
   expect(documentXml).toContain("<am3d:model3d");
+  expect(documentXml).toMatch(/<am3d:rot\b[^>]*ax="600000"[^>]*ay="1200000"/);
   expect(documentXml).toContain("<wp15:webVideoPr");
   expect(documentXml).toContain("<o:OLEObject");
   expect(documentXml).toContain("https://www.youtube.com/embed/dQw4w9WgXcQ");

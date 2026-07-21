@@ -110,6 +110,27 @@ test.describe("header-owned pleading textbox story", () => {
     expect(after).toEqual(before);
   });
 
+  test("clicking the blank body below the page-two table places a caret and types there", async ({ page }) => {
+    await open(page);
+    const secondPage = page.locator(".dxw-page").nth(1);
+    await secondPage.scrollIntoViewIfNeeded();
+    const pageBox = await secondPage.boundingBox();
+    if (!pageBox) throw new Error("page two missing");
+    const clickY = pageBox.y + pageBox.height * 0.68;
+
+    await page.mouse.click(pageBox.x + pageBox.width / 2, clickY);
+    const caret = page.locator("[data-dxw-caret]");
+    await expect(caret).toBeVisible();
+    const caretBox = await caret.boundingBox();
+    expect(caretBox).not.toBeNull();
+    expect(Math.abs(caretBox!.y - clickY)).toBeLessThan(24);
+
+    await page.keyboard.type("PLEADING-BODY-TOKEN");
+    await expect.poll(async () =>
+      (await secondPage.locator("span:not([data-dxw-hf])").allTextContents()).join(""),
+    ).toContain("PLEADING-BODY-TOKEN");
+  });
+
   test("Escape returns to the selected object on the active repeated page", async ({ page }) => {
     await open(page);
     const objects = storyObject(page);

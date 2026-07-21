@@ -55,8 +55,9 @@ export class Editor {
 
   /** Click at an absolute fraction of the first page (0..1). */
   async clickPageFraction(fx: number, fy: number): Promise<void> {
-    const b = (await this.page.locator(".dxw-page").first().boundingBox())!;
-    await this.page.mouse.click(b.x + b.width * fx, b.y + b.height * fy);
+    const page = this.page.locator(".dxw-page").first();
+    const b = (await page.boundingBox())!;
+    await page.click({ position: { x: b.width * fx, y: b.height * fy } });
     await this.page.waitForTimeout(120);
   }
 

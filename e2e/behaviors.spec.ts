@@ -35,8 +35,54 @@ async function caretVisible(page: Page): Promise<boolean> {
 }
 
 test.describe("rendering", () => {
-  test("loads the visual parity showcase by default", async ({ page }) => {
+  test("File menu saves named browser documents that can be reopened later", async ({ page }) => {
+    await page.goto("/?doc=/fixtures/parity-text.docx");
+    await expect(page.locator(".dxw-page")).toHaveCount(1);
+    await page.locator("[data-file-menu-trigger]").click();
+    const menu = page.getByRole("menu", { name: "File" });
+    await expect(menu.getByText("Open .docx…", { exact: true })).toBeVisible();
+    await menu.locator('[data-file-action="save-as"]').click();
+
+    const dialog = page.getByRole("dialog", { name: "Save document in browser" });
+    await expect(dialog).toBeVisible();
+    await dialog.getByRole("textbox", { name: "Save as file name" }).fill("Named browser copy");
+    await dialog.getByRole("button", { name: "Save in browser", exact: true }).click();
+    await expect(page.locator(".save-indicator")).toContainText("Saved");
+
+    await page.locator("[data-file-menu-trigger]").click();
+    await expect(page.getByRole("menu", { name: "File" }).getByText("Named browser copy.docx", { exact: true })).toBeVisible();
     await page.goto("/");
+    await expect(page.getByRole("textbox", { name: "Document name" })).toHaveValue("Named browser copy.docx");
+    await expect(page.locator(".dxw-page")).toContainText("Plain");
+  });
+
+  test("starts with a named blank document and restores its browser save", async ({ page }) => {
+    await page.goto("/");
+    const document = page.locator(".dxw-page");
+    await expect(document).toHaveCount(1);
+    await expect(page.locator(".app-preset-select [data-dxw-menu-select-trigger]")).toContainText("Blank document");
+    const name = page.getByRole("textbox", { name: "Document name" });
+    await expect(name).toHaveValue("Untitled document.docx");
+
+    const box = (await document.boundingBox())!;
+    const bodyTop = Number(await document.getAttribute("data-body-top"));
+    await page.mouse.click(box.x + 120, box.y + bodyTop + 12);
+    await page.keyboard.type("BROWSER SAVED DRAFT");
+    await expect(document).toContainText("BROWSER SAVED DRAFT");
+
+    await name.fill("My browser draft");
+    await name.press("Enter");
+    await page.locator("[data-file-menu-trigger]").click();
+    await page.getByRole("menu", { name: "File" }).locator('[data-file-action="save"]').click();
+    await expect(page.locator(".save-indicator")).toContainText("Saved");
+
+    await page.reload();
+    await expect(page.getByRole("textbox", { name: "Document name" })).toHaveValue("My browser draft.docx");
+    await expect(page.locator(".dxw-page")).toContainText("BROWSER SAVED DRAFT");
+  });
+
+  test("loads the visual parity showcase when requested", async ({ page }) => {
+    await page.goto("/?doc=/fixtures/showcase.docx");
     const document = page.locator(".dxw-page");
     await expect(document).toHaveCount(1);
     await expect(document).toContainText("Sample scientific document");
@@ -855,9 +901,10 @@ test.describe("selection gating", () => {
     await page.goto("/?doc=/fixtures/parity-text.docx");
     await page.waitForSelector(".dxw-page span");
     await page.waitForTimeout(300);
-    const pg = (await page.locator(".dxw-page").first().boundingBox())!;
+    const firstPage = page.locator(".dxw-page").first();
+    const pg = (await firstPage.boundingBox())!;
     // click deep in the blank lower half of the page
-    await page.mouse.click(pg.x + pg.width / 2, pg.y + pg.height * 0.7);
+    await firstPage.click({ position: { x: pg.width / 2, y: pg.height * 0.7 } });
     await page.waitForTimeout(250);
     const caretVisible = await page.evaluate(() => {
       const carets = [...document.querySelectorAll("div")].filter((d) => d.style.width === "1.5px" && d.style.display === "block");
@@ -872,7 +919,7 @@ test.describe("selection gating", () => {
 });
 
 test.describe("page break hotkey", () => {
-  test("Cmd/Ctrl+Enter inserts a page break at the caret", async ({ page }) => {
+  test("Cmd/Ctrl+Enter inserts a page break and carries the caret forward", async ({ page }) => {
     await page.goto("/?doc=/fixtures/parity-text.docx");
     await page.waitForSelector(".dxw-page span");
     await page.waitForTimeout(300);
@@ -883,6 +930,8 @@ test.describe("page break hotkey", () => {
     await page.keyboard.press(`${mod}+Enter`);
     await page.waitForTimeout(500);
     expect(await page.locator(".dxw-page").count()).toBeGreaterThan(before);
+    await page.keyboard.type("AFTERBREAK");
+    await expect(page.locator(".dxw-page").nth(before)).toContainText("AFTERBREAK");
   });
 });
 

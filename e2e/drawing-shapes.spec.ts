@@ -20,10 +20,23 @@ test("inserted DrawingML shapes have editable text, move/resize handles, undo, a
   await expect(page.locator(".dxw-pages")).toContainText("Drawn shape");
 
   const hit = page.locator("[data-dxw-drawing]").last();
-  const before = await hit.boundingBox();
+  let before = await hit.boundingBox();
   expect(before).not.toBeNull();
   await page.mouse.click(before!.x + before!.width - 12, before!.y + before!.height - 12);
   await expect(page.locator("[data-dxw-img-handle]")).toHaveCount(8);
+
+  await page.getByRole("button", { name: "Fill", exact: true }).click();
+  await page.getByRole("textbox", { name: "Color or none" }).fill("#FF0000");
+  await page.getByRole("button", { name: "Apply", exact: true }).click();
+  await page.getByRole("button", { name: "Outline", exact: true }).click();
+  await page.getByRole("textbox", { name: "Color and width in pixels" }).fill("#00FF00, 3");
+  await page.getByRole("button", { name: "Apply", exact: true }).click();
+  await page.getByRole("button", { name: "Size", exact: true }).click();
+  await page.getByRole("textbox", { name: "Width × height in pixels" }).fill("240 × 120");
+  await page.getByRole("button", { name: "Apply", exact: true }).click();
+  before = await hit.boundingBox();
+  expect(before!.width).toBeCloseTo(240, 0);
+  expect(before!.height).toBeCloseTo(120, 0);
 
   await page.mouse.move(before!.x + before!.width - 16, before!.y + before!.height - 16);
   await page.mouse.down();
@@ -55,6 +68,9 @@ test("inserted DrawingML shapes have editable text, move/resize handles, undo, a
   expect(xml).toContain("<wps:wsp");
   expect(xml).toContain('a:prstGeom prst="roundRect"');
   expect(xml).toContain("Drawn shape");
+  expect(xml).toContain('<a:srgbClr val="FF0000"');
+  expect(xml).toContain('<a:srgbClr val="00FF00"');
+  expect(xml).toContain('<a:ln w="28575"');
 });
 
 test("a floating shape stays visible when moved repeatedly onto a blank page and reopened", async ({ page }) => {
@@ -130,4 +146,41 @@ test("a floating shape stays visible when moved repeatedly onto a blank page and
   const reopenedPage = (await page.locator(".dxw-page").nth(1).boundingBox())!;
   expect(reopenedBox.x - reopenedPage.x).toBeCloseTo(savedPosition.x, 0);
   expect(reopenedBox.y - reopenedPage.y).toBeCloseTo(savedPosition.y, 0);
+});
+
+test("shape wrap and layering controls remain clickable through mode changes, delete, undo, and reopen", async ({ page }) => {
+  await page.goto("/?doc=/fixtures/benchmark.docx");
+  await page.waitForSelector(".dxw-page span");
+  await page.getByRole("button", { name: "insert", exact: true }).click();
+  const target = page.locator(".dxw-page span", { hasText: "classic." }).first();
+  await target.click();
+  await page.keyboard.press("End");
+  await tool(page, "Insert shape").click();
+  await page.getByLabel("Shape text").fill("Wrap modes");
+  await page.getByTitle("Insert Rectangle").click();
+
+  const shape = page.locator("[data-dxw-drawing]").last();
+  const box = (await shape.boundingBox())!;
+  await page.mouse.click(box.x + box.width - 12, box.y + box.height - 12);
+  for (const mode of ["Behind", "In front", "Top+Bottom", "Wrap", "Inline", "Behind"]) {
+    await page.getByRole("button", { name: mode, exact: true }).click();
+    await expect(page.getByRole("button", { name: mode, exact: true })).toHaveAttribute("aria-pressed", "true");
+  }
+
+  await page.getByRole("button", { name: "Delete", exact: true }).click();
+  await expect(page.locator(".dxw-pages")).not.toContainText("Wrap modes");
+  await page.keyboard.press(process.platform === "darwin" ? "Meta+z" : "Control+z");
+  await expect(page.locator(".dxw-pages")).toContainText("Wrap modes");
+
+  const pending = page.waitForEvent("download");
+  await page.getByText("Download", { exact: true }).click();
+  const path = await (await pending).path();
+  if (!path) throw new Error("download path unavailable");
+  const xml = strFromU8(unzipSync(new Uint8Array(readFileSync(path)))["word/document.xml"]);
+  expect(xml).toContain('behindDoc="1"');
+  expect(xml).toContain("<wp:wrapNone");
+
+  await page.locator("#docx-upload").setInputFiles(path);
+  await expect(page.locator(".dxw-pages")).toContainText("Wrap modes");
+  await expect(page.locator("[data-dxw-drawing]").last()).toBeVisible();
 });

@@ -156,4 +156,32 @@ test.describe("suggesting mode", () => {
     );
     expect(found).toBe(false);
   });
+
+  test("a table-cell suggestion accepts cleanly and survives save/reopen", async ({ page }) => {
+    const ed = await Editor.open(page, "parity-tables", "&suggest=1");
+    const status = (await ed.span("Status").boundingBox())!;
+    const descriptionBefore = (await ed.span("Description").boundingBox())!;
+    await page.mouse.click(status.x + status.width - 1, status.y + status.height / 2);
+    await page.keyboard.type("ZQXTABLE");
+    await ed.expectHasText("ZQXTABLE");
+    const style = await ed.spanStyle("ZQXTABLE");
+    expect(style?.color).toBe(INS);
+    await expect(page.locator("[data-dxw-review-bar]")).toContainText("1 suggestion");
+
+    await page.locator("[data-dxw-accept-all]").click();
+    await expect(page.locator("[data-dxw-review-bar]")).toHaveCount(0);
+    const accepted = await ed.spanStyle("ZQXTABLE");
+    expect(accepted?.color).not.toBe(INS);
+    const inserted = (await ed.span("ZQXTABLE").boundingBox())!;
+    const descriptionAfter = (await ed.span("Description").boundingBox())!;
+    expect(descriptionAfter.x).toBeGreaterThan(inserted.x + inserted.width);
+    expect(descriptionAfter.y).toBeCloseTo(descriptionBefore.y, 0);
+
+    const pending = page.waitForEvent("download");
+    await page.getByText("Download", { exact: true }).click();
+    const path = await (await pending).path();
+    if (!path) throw new Error("download path unavailable");
+    await page.locator("#docx-upload").setInputFiles(path);
+    await expect(page.locator(".dxw-pages")).toContainText("ZQXTABLE");
+  });
 });

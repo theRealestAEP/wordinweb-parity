@@ -47,11 +47,14 @@ test("Blank Page inserts two page breaks with undo, redo, and save-back", async 
   await page.getByRole("button", { name: "insert", exact: true }).click();
   await tool(page, "Insert blank page").click();
   await expect(page.locator(".dxw-page")).toHaveCount(before + 2);
+  await expect(page.locator(".page-count")).toHaveText(`${before + 2} pages`);
 
   await page.keyboard.press(`${MOD}+z`);
   await expect(page.locator(".dxw-page")).toHaveCount(before);
+  await expect(page.locator(".page-count")).toHaveText(`${before} page${before === 1 ? "" : "s"}`);
   await page.keyboard.press(process.platform === "darwin" ? "Meta+Shift+z" : "Control+y");
   await expect(page.locator(".dxw-page")).toHaveCount(before + 2);
+  await expect(page.locator(".page-count")).toHaveText(`${before + 2} pages`);
 
   const pending = page.waitForEvent("download");
   await page.getByText("Download", { exact: true }).click();

@@ -1,4 +1,6 @@
 import { test, expect, Page, Locator } from "@playwright/test";
+import { readFileSync } from "node:fs";
+import { strFromU8, unzipSync } from "fflate";
 
 /**
  * Every toolbar control, driven end-to-end with real input. Exists because
@@ -139,6 +141,32 @@ test.describe("paragraph controls", () => {
     expect(await gap()).toBeGreaterThan(single + 8);
   });
 
+  test("exact line height presets and custom points update the paragraph", async ({ page }) => {
+    await load(page, "parity-text");
+    const paragraph = exact(page, "Plain");
+    const downloadParagraphXml = async () => {
+      const pending = page.waitForEvent("download");
+      await btn(page, "Save edited .docx").click();
+      const path = await (await pending).path();
+      if (!path) throw new Error("download path unavailable");
+      const xml = strFromU8(unzipSync(new Uint8Array(readFileSync(path)))["word/document.xml"]);
+      const textAt = xml.indexOf("Plain text parity");
+      return xml.slice(xml.lastIndexOf("<w:p", textAt), xml.indexOf("</w:p>", textAt) + 6);
+    };
+    await paragraph.click();
+    const spacing = page.locator('select[title="Line & paragraph spacing"]');
+
+    await spacing.selectOption("e:24");
+    expect(await downloadParagraphXml()).toMatch(/<w:spacing\b[^>]*w:line="480"[^>]*w:lineRule="exact"/);
+
+    await spacing.selectOption("e:custom");
+    const dialog = page.getByRole("dialog", { name: "Exact line height" });
+    await expect(dialog).toBeVisible();
+    await dialog.getByRole("textbox", { name: "Line height (points)" }).fill("30");
+    await dialog.getByRole("button", { name: "Apply" }).click();
+    expect(await downloadParagraphXml()).toMatch(/<w:spacing\b[^>]*w:line="600"[^>]*w:lineRule="exact"/);
+  });
+
   test("lists toggle and Tab changes level", async ({ page }) => {
     await load(page, "parity-text");
     await exact(page, "Plain").click();
@@ -182,6 +210,33 @@ test.describe("insert controls", () => {
     const a = page.locator('.dxw-page a:text-is("veniam,")');
     await expect(a).toHaveCount(1);
     await expect(a).toHaveAttribute("href", "https://example.org/x");
+  });
+
+  test("hyperlinks require a modifier while editing and show their full URL", async ({ page, context }) => {
+    await load(page);
+    await selectWord(page, "veniam,");
+    await openTab(page, "insert");
+    await btn(page, "Insert link").click();
+    const target = new URL("/?opened=hyperlink", page.url()).href;
+    await page.fill('input[placeholder="Paste or type a link"]', target);
+    await page.keyboard.press("Enter");
+    await page.waitForTimeout(400);
+
+    const link = page.locator('.dxw-page a:text-is("veniam,")');
+    await expect(link).toHaveAttribute("title", target);
+
+    const pageCount = context.pages().length;
+    await link.click();
+    await page.waitForTimeout(200);
+    expect(context.pages()).toHaveLength(pageCount);
+    await expect(page.locator("[data-dxw-caret]")).toBeVisible();
+
+    const popupPromise = page.waitForEvent("popup");
+    await link.click({ modifiers: [MOD] });
+    const popup = await popupPromise;
+    await popup.waitForLoadState("domcontentloaded");
+    expect(new URL(popup.url()).searchParams.get("opened")).toBe("hyperlink");
+    await popup.close();
   });
 
   test("comment on a selection shows a balloon", async ({ page }) => {
