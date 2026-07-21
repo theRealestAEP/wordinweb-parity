@@ -235,6 +235,92 @@ test.describe("Word-style table movement", () => {
     await expect(page.locator(".dxw-page")).toHaveCount(7);
   });
 
+  test("a table can be dragged between existing pages and back", async ({ page }) => {
+    await page.setViewportSize({ width: 1400, height: 1800 });
+    await page.goto("/?doc=/fixtures/pleading-paper.docx");
+    await page.waitForSelector(".dxw-page span");
+    await page.getByLabel("Document zoom").selectOption("0.5");
+    await page.waitForTimeout(300);
+
+    let pages = page.locator(".dxw-page");
+    const secondPage = pages.nth(1);
+    const thirdPage = pages.nth(2);
+    await secondPage.scrollIntoViewIfNeeded();
+    await secondPage.locator("span").filter({ hasText: "MEWINE" }).first().hover();
+    let handle = secondPage.locator("[data-dxw-table-move]");
+    await expect(handle).toHaveCSS("opacity", "1");
+    const source = (await handle.boundingBox())!;
+    const third = (await thirdPage.boundingBox())!;
+    const downX = third.x + 90;
+    const downY = third.y + 70;
+
+    await page.mouse.move(source.x + source.width / 2, source.y + source.height / 2);
+    await page.mouse.down();
+    await page.mouse.move(downX, downY, { steps: 12 });
+    await page.mouse.up();
+    await page.waitForTimeout(400);
+
+    await expect(secondPage).not.toContainText("MEWINE");
+    await expect(thirdPage).toContainText("MEWINE");
+
+    await downloadAndReopen(page);
+    pages = page.locator(".dxw-page");
+    await expect(pages.nth(1)).not.toContainText("MEWINE");
+    await expect(pages.nth(2)).toContainText("MEWINE");
+
+    const reopenedThird = pages.nth(2);
+    const reopenedSecond = pages.nth(1);
+    await reopenedThird.scrollIntoViewIfNeeded();
+    await reopenedThird.locator("span").filter({ hasText: "MEWINE" }).first().hover();
+    handle = reopenedThird.locator("[data-dxw-table-move]");
+    await expect(handle).toHaveCSS("opacity", "1");
+    const moved = (await handle.boundingBox())!;
+    const second = (await reopenedSecond.boundingBox())!;
+
+    await page.mouse.move(moved.x + moved.width / 2, moved.y + moved.height / 2);
+    await page.mouse.down();
+    await page.mouse.move(second.x + 90, second.y + 70, { steps: 12 });
+    await page.mouse.up();
+    await page.waitForTimeout(400);
+
+    await expect(page.locator(".dxw-page").nth(1)).toContainText("MEWINE");
+    await expect(page.locator(".dxw-page").nth(2)).not.toContainText("MEWINE");
+  });
+
+  test("holding a table at the viewport edge scrolls it onto the next page", async ({ page }) => {
+    await page.goto("/?doc=/fixtures/pleading-paper.docx");
+    await page.waitForSelector(".dxw-page span");
+    await page.mouse.wheel(0, 900);
+    await page.waitForTimeout(200);
+
+    const pages = page.locator(".dxw-page");
+    const secondPage = pages.nth(1);
+    const thirdPage = pages.nth(2);
+    await secondPage.locator("span").filter({ hasText: "MEWINE" }).first().hover();
+    const handle = secondPage.locator("[data-dxw-table-move]");
+    await expect(handle).toHaveCSS("opacity", "1");
+    const source = (await handle.boundingBox())!;
+
+    await page.mouse.move(source.x + source.width / 2, source.y + source.height / 2);
+    await page.mouse.down();
+    await page.mouse.move(source.x + source.width / 2, 995, { steps: 10 });
+    let reachedNextPage = false;
+    for (let attempt = 0; attempt < 30; attempt++) {
+      await page.waitForTimeout(50);
+      const third = await thirdPage.boundingBox();
+      if (third && third.y < 900 && third.y + third.height > 995) {
+        reachedNextPage = true;
+        break;
+      }
+    }
+    await page.mouse.up();
+    expect(reachedNextPage).toBe(true);
+    await page.waitForTimeout(400);
+
+    await expect(page.locator(".dxw-page").nth(1)).not.toContainText("MEWINE");
+    await expect(page.locator(".dxw-page").nth(2)).toContainText("MEWINE");
+  });
+
   test("typing below a moved terminal table stays below and outside its cells", async ({ page }) => {
     await open(page);
     const lastCell = exact(page, "16");
