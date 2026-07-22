@@ -234,3 +234,55 @@ test("NIH page 50 repeated paragraph splits stay responsive", async ({ page }) =
     expect(timing.pages, `Enter ${index + 1} page count`).toBeLessThanOrEqual(421);
   }
 });
+
+test("NIH bookmark heading Enter stays incremental at the paragraph start", async ({ page }) => {
+  test.setTimeout(120_000);
+  await page.addInitScript(() => {
+    (globalThis as { __dxwPerf?: unknown }).__dxwPerf = { samples: [] };
+  });
+  await page.goto("/?doc=/fixtures/wild2-legal-nih-contract.docx");
+
+  const pages = page.locator(".dxw-page");
+  await pages.first().waitFor({ state: "attached", timeout: 60_000 });
+  await expect(pages).toHaveCount(419, { timeout: 60_000 });
+  const bookmarkPage = pages.nth(6);
+  await bookmarkPage.scrollIntoViewIfNeeded();
+  const heading = bookmarkPage.locator("span:not([data-dxw-hf])", { hasText: "LUPU" }).first();
+  await heading.waitFor({ state: "visible" });
+  await heading.click({ position: { x: 1, y: 8 } });
+  await page.keyboard.press("Home");
+  await page.evaluate(() => {
+    const perf = (globalThis as { __dxwPerf?: { samples?: unknown[] } }).__dxwPerf;
+    if (perf) perf.samples = [];
+  });
+
+  const started = performance.now();
+  await page.keyboard.press("Enter");
+  const wall = performance.now() - started;
+  await expect(page.locator("[data-dxw-caret]")).toBeVisible();
+  await expect(page.locator("[data-dxw-layout-status]")).toHaveCount(0);
+  const result = await page.evaluate(() => {
+    const perf = (globalThis as {
+      __dxwPerf?: {
+        samples?: { total: number; layout: number; pagesReused: number; totalPages: number }[];
+        incr?: { hintFastPath: boolean; blocksHashed: number; blocksLaid: number; fallbackReason: string };
+      };
+    }).__dxwPerf;
+    return {
+      sample: perf?.samples?.at(-1),
+      incremental: perf?.incr,
+      busy: !!document.querySelector("[data-dxw-layout-busy]"),
+    };
+  });
+
+  expect(wall).toBeLessThan(100);
+  expect(result.busy).toBe(false);
+  expect(result.sample?.total).toBeLessThan(80);
+  expect(result.sample?.layout).toBeLessThan(40);
+  expect(result.sample?.totalPages).toBe(419);
+  expect(result.sample?.pagesReused).toBe(418);
+  expect(result.incremental?.hintFastPath).toBe(true);
+  expect(result.incremental?.blocksHashed).toBeLessThanOrEqual(4);
+  expect(result.incremental?.blocksLaid).toBeLessThanOrEqual(16);
+  expect(result.incremental?.fallbackReason).toBe("");
+});
