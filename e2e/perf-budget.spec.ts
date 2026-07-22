@@ -1,6 +1,7 @@
 import { test, expect, Page } from "@playwright/test";
-import { existsSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
+import { strFromU8, strToU8, unzipSync, zipSync } from "fflate";
 
 const FIX_DIR = join(__dirname, "../apps/demo/public/fixtures");
 
@@ -281,6 +282,81 @@ test("NIH bookmark heading Enter stays incremental at the paragraph start", asyn
   expect(result.sample?.layout).toBeLessThan(40);
   expect(result.sample?.totalPages).toBe(419);
   expect(result.sample?.pagesReused).toBe(418);
+  expect(result.incremental?.hintFastPath).toBe(true);
+  expect(result.incremental?.blocksHashed).toBeLessThanOrEqual(4);
+  expect(result.incremental?.blocksLaid).toBeLessThanOrEqual(16);
+  expect(result.incremental?.fallbackReason).toBe("");
+});
+
+test("NIH empty list Enter exits without background repagination", async ({ page }) => {
+  test.setTimeout(120_000);
+  await page.addInitScript(() => {
+    (globalThis as { __dxwPerf?: unknown }).__dxwPerf = { samples: [] };
+  });
+  const files = unzipSync(readFileSync(join(FIX_DIR, "wild2-legal-nih-contract.docx")));
+  const documentXml = strFromU8(files["word/document.xml"]);
+  const markedDocument = documentXml
+    .replace(
+      `<w:pPr><w:jc w:val="center"/></w:pPr>`,
+      `<w:pPr><w:numPr><w:ilvl w:val="0"/><w:numId w:val="9999"/></w:numPr><w:jc w:val="center"/></w:pPr>`,
+    )
+    .replace("DOWESUWO LOQIW OF CULUGEGO", "LISTEXITPERFMARKER");
+  const emptyItem = `<w:p><w:pPr><w:numPr><w:ilvl w:val="0"/><w:numId w:val="9999"/></w:numPr></w:pPr><w:r><w:t>EMPTYLISTITEM</w:t></w:r></w:p>`;
+  const markerEnd = markedDocument.indexOf("</w:p>", markedDocument.indexOf("LISTEXITPERFMARKER")) + "</w:p>".length;
+  files["word/document.xml"] = strToU8(markedDocument.slice(0, markerEnd) + emptyItem + markedDocument.slice(markerEnd));
+  const numberingXml = strFromU8(files["word/numbering.xml"]);
+  const numbering = `<w:abstractNum w:abstractNumId="9999"><w:multiLevelType w:val="singleLevel"/><w:lvl w:ilvl="0"><w:start w:val="1"/><w:numFmt w:val="lowerLetter"/><w:lvlText w:val="%1."/><w:lvlJc w:val="left"/><w:pPr><w:tabs><w:tab w:val="num" w:pos="720"/></w:tabs><w:ind w:left="720" w:hanging="360"/></w:pPr></w:lvl></w:abstractNum><w:num w:numId="9999"><w:abstractNumId w:val="9999"/></w:num>`;
+  files["word/numbering.xml"] = strToU8(numberingXml.replace("</w:numbering>", `${numbering}</w:numbering>`));
+  await page.goto("/");
+  await page.locator("#docx-upload").setInputFiles({
+    name: "nih-list-enter.docx",
+    mimeType: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    buffer: Buffer.from(zipSync(files)),
+  });
+
+  const pages = page.locator(".dxw-page");
+  await pages.first().waitFor({ state: "attached", timeout: 60_000 });
+  await expect.poll(() => pages.count(), { timeout: 60_000 }).toBeGreaterThanOrEqual(419);
+  const listItem = pages.first().locator("span").filter({ hasText: /^EMPTYLISTITEM$/ }).first();
+  await listItem.scrollIntoViewIfNeeded();
+  await listItem.click();
+  await page.keyboard.press("End");
+  for (let index = 0; index < "EMPTYLISTITEM".length; index++) await page.keyboard.press("Backspace");
+  await expect(page.locator("[data-dxw-caret]")).toBeVisible();
+  await expect(page.locator("[data-dxw-layout-status]")).toHaveCount(0);
+  const pageCount = await pages.count();
+  await page.evaluate(() => {
+    const perf = (globalThis as { __dxwPerf?: { samples?: unknown[] } }).__dxwPerf;
+    if (perf) perf.samples = [];
+  });
+
+  const started = performance.now();
+  await page.keyboard.press("Enter");
+  const wall = performance.now() - started;
+  await expect(page.locator("[data-dxw-caret]")).toBeVisible();
+  const result = await page.evaluate(() => {
+    const perf = (globalThis as {
+      __dxwPerf?: {
+        samples?: { total: number; layout: number; pagesReused: number; totalPages: number }[];
+        incr?: { hintFastPath: boolean; blocksHashed: number; blocksLaid: number; fallbackReason: string };
+      };
+    }).__dxwPerf;
+    return {
+      sample: perf?.samples?.at(-1),
+      incremental: perf?.incr,
+      busy: !!document.querySelector("[data-dxw-layout-busy]"),
+    };
+  });
+  // eslint-disable-next-line no-console
+  console.log(`[nih-empty-list-enter] ${JSON.stringify({ wall, ...result })}`);
+
+  expect(wall).toBeLessThan(100);
+  expect(result.busy).toBe(false);
+  await expect(page.locator("[data-dxw-layout-status]")).toHaveCount(0);
+  expect(result.sample?.total).toBeLessThan(80);
+  expect(result.sample?.layout).toBeLessThan(40);
+  expect(result.sample?.totalPages).toBe(pageCount);
+  expect(result.sample?.pagesReused).toBe(pageCount - 1);
   expect(result.incremental?.hintFastPath).toBe(true);
   expect(result.incremental?.blocksHashed).toBeLessThanOrEqual(4);
   expect(result.incremental?.blocksLaid).toBeLessThanOrEqual(16);
