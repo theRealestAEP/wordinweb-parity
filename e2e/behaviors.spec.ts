@@ -1,4 +1,5 @@
 import { test, expect, Page, Locator } from "@playwright/test";
+import { resolve } from "node:path";
 
 /**
  * Behavior tests for the editing/viewing interactions, driven with real
@@ -35,6 +36,18 @@ async function caretVisible(page: Page): Promise<boolean> {
 }
 
 test.describe("rendering", () => {
+  test("File Open launches the DOCX chooser and loads the selected document", async ({ page }) => {
+    await page.goto("/");
+    await page.locator("[data-file-menu-trigger]").click();
+    const chooserPromise = page.waitForEvent("filechooser");
+    await page.getByRole("menu", { name: "File" }).locator('[data-file-action="open"]').click();
+    const chooser = await chooserPromise;
+    expect(chooser.isMultiple()).toBe(false);
+    await chooser.setFiles(resolve("apps/demo/public/fixtures/parity-text.docx"));
+    await expect(page.getByRole("textbox", { name: "Document name" })).toHaveValue("parity-text.docx");
+    await expect(page.locator(".dxw-page")).toContainText("Plain");
+  });
+
   test("File menu saves named browser documents that can be reopened later", async ({ page }) => {
     await page.goto("/?doc=/fixtures/parity-text.docx");
     await expect(page.locator(".dxw-page")).toHaveCount(1);

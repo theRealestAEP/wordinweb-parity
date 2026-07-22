@@ -410,6 +410,7 @@ function App() {
   const [savedDocuments, setSavedDocuments] = useState<SavedWorkspace[]>([]);
   const [savedDocumentsLoading, setSavedDocumentsLoading] = useState(false);
   const fileMenuRef = useRef<HTMLDivElement | null>(null);
+  const uploadInputRef = useRef<HTMLInputElement | null>(null);
   const [findOpen, setFindOpen] = useState(false);
   const [findQ, setFindQ] = useState("");
   const [replQ, setReplQ] = useState("");
@@ -662,6 +663,11 @@ function App() {
     await writeSavedWorkspace({ ...saved, id: WORKSPACE_KEY, savedDocumentId });
   };
 
+  const openDocxPicker = useCallback(() => {
+    uploadInputRef.current?.click();
+    setFileMenuOpen(false);
+  }, []);
+
   useEffect(() => {
     if (!fileMenuOpen) return;
     const close = (event: MouseEvent) => {
@@ -679,7 +685,7 @@ function App() {
         openSaveAs();
       } else if (!event.shiftKey && event.key.toLowerCase() === "o") {
         event.preventDefault();
-        document.getElementById("docx-upload")?.click();
+        openDocxPicker();
       } else if (!event.shiftKey && event.key.toLowerCase() === "n") {
         event.preventDefault();
         loadPreset("blank");
@@ -687,7 +693,7 @@ function App() {
     };
     document.addEventListener("keydown", fileShortcut);
     return () => document.removeEventListener("keydown", fileShortcut);
-  }, [fileName, api]);
+  }, [fileName, api, openDocxPicker]);
 
   return (
     <div className="app-shell">
@@ -707,6 +713,7 @@ function App() {
       </header>
       <div className="control-bar">
         <input
+          ref={uploadInputRef}
           id="docx-upload"
           className="visually-hidden"
           type="file"
@@ -733,9 +740,9 @@ function App() {
               <button type="button" role="menuitem" onClick={() => { setFileMenuOpen(false); loadPreset("blank"); }}>
                 <span>New blank document</span><kbd>Ctrl/⌘+N</kbd>
               </button>
-              <label role="menuitem" htmlFor="docx-upload" onClick={() => setFileMenuOpen(false)}>
+              <button type="button" role="menuitem" data-file-action="open" onClick={openDocxPicker}>
                 <span>Open .docx…</span><kbd>Ctrl/⌘+O</kbd>
-              </label>
+              </button>
               {(savedDocumentsLoading || savedDocuments.length > 0) && <span className="file-menu-divider" />}
               {savedDocumentsLoading && <span className="file-menu-note">Loading saved documents…</span>}
               {!savedDocumentsLoading && savedDocuments.map((saved) => (

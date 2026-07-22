@@ -362,13 +362,34 @@ test("orientation, columns, border, and line numbers round-trip through Download
     mimeType: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
     buffer: Buffer.from(zipSync(first)),
   });
-  await expect(page.locator(".file-name")).toHaveText("layout-round-trip.docx");
+  await expect(page.locator(".file-name")).toHaveValue("layout-round-trip.docx");
   await expect(page.locator("main")).toContainText("Odd page");
   const reopened = xml(await downloadParts(page), "word/document.xml");
   expect(reopened).toMatch(/<w:pgSz\b[^>]*w:w="20160"[^>]*w:h="12240"[^>]*w:orient="landscape"/);
   expect(reopened).toMatch(/<w:cols\b[^>]*w:num="2"/);
   expect(reopened).toContain("4472C4");
   expect(reopened).toMatch(/<w:lnNumType\b[^>]*w:countBy="1"[^>]*w:restart="continuous"/);
+});
+
+test("custom page border color and weight render and round-trip", async ({ page }) => {
+  await load(page);
+  await openLayout(page);
+  await pickLayout(page, "page-border", "custom");
+  const dialog = page.getByRole("dialog", { name: "Custom Page Border" });
+  await dialog.getByLabel("Page border color", { exact: true }).fill("#c62828");
+  await dialog.getByLabel("Page border width").selectOption("1.5");
+  await dialog.getByRole("button", { name: "Apply" }).click();
+
+  const edges = page.locator('.dxw-page [data-dxw-edge="1"]');
+  await expect(edges.first()).toBeVisible();
+  const colors = await edges.evaluateAll((items) =>
+    items.map((edge) => getComputedStyle(edge.firstElementChild ?? edge).backgroundColor),
+  );
+  expect(colors).toContain("rgb(198, 40, 40)");
+
+  const saved = xml(await downloadParts(page), "word/document.xml");
+  expect(saved.match(/w:color="c62828"/g)).toHaveLength(8);
+  expect(saved.match(/w:sz="12"/g)).toHaveLength(8);
 });
 
 test("section scope changes selected pgMar while mirror mode remains global", async ({ page }) => {

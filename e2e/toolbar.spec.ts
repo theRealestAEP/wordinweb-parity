@@ -162,7 +162,7 @@ test.describe("paragraph controls", () => {
     await spacing.selectOption("e:custom");
     const dialog = page.getByRole("dialog", { name: "Exact line height" });
     await expect(dialog).toBeVisible();
-    await dialog.getByRole("textbox", { name: "Line height (points)" }).fill("30");
+    await dialog.getByRole("spinbutton", { name: "Line height (points)" }).fill("30");
     await dialog.getByRole("button", { name: "Apply" }).click();
     expect(await downloadParagraphXml()).toMatch(/<w:spacing\b[^>]*w:line="600"[^>]*w:lineRule="exact"/);
   });
@@ -188,6 +188,25 @@ test.describe("paragraph controls", () => {
     await expect(lvl0).toHaveCount(0);
   });
 
+  test("a blank page inserted inside a bulleted list starts as plain text", async ({ page }) => {
+    await load(page, "parity-text");
+    await exact(page, "Plain").click();
+    await btn(page, "Bulleted list").click();
+    await openTab(page, "insert");
+    await btn(page, "Insert blank page").click();
+    await expect(page.locator(".dxw-page")).toHaveCount(3);
+
+    const pending = page.waitForEvent("download");
+    await btn(page, "Save edited .docx").click();
+    const path = await (await pending).path();
+    if (!path) throw new Error("download path unavailable");
+    const xml = strFromU8(unzipSync(new Uint8Array(readFileSync(path)))["word/document.xml"]);
+    const paragraphs = [...xml.matchAll(/<w:p\b[^>]*>[\s\S]*?<\/w:p>/g)].map((match) => match[0]);
+    const blank = paragraphs.find((paragraph) => paragraph.includes('<w:t xml:space="preserve"/>') && paragraph.includes('<w:br w:type="page"/>'));
+    expect(blank).toBeDefined();
+    expect(blank).not.toContain("<w:numPr>");
+  });
+
   test("alignment buttons move the line", async ({ page }) => {
     await load(page, "parity-text");
     await exact(page, "Plain").click();
@@ -199,6 +218,20 @@ test.describe("paragraph controls", () => {
 });
 
 test.describe("insert controls", () => {
+  test("equation popover stays inside a narrow viewport", async ({ page }) => {
+    await page.setViewportSize({ width: 1050, height: 800 });
+    await load(page);
+    await openTab(page, "insert");
+    const equation = page.getByRole("button", { name: /Equation$/ });
+    if (!(await equation.isVisible())) await btn(page, "More tools").click();
+    await equation.click();
+    const popover = page.locator("[data-dxw-equation-menu]");
+    await expect(popover).toBeVisible();
+    const box = (await popover.boundingBox())!;
+    expect(box.x).toBeGreaterThanOrEqual(8);
+    expect(box.x + box.width).toBeLessThanOrEqual(1042);
+  });
+
   test("hyperlink: apply and remove", async ({ page }) => {
     await load(page);
     await selectWord(page, "veniam,");
@@ -268,7 +301,7 @@ test.describe("insert controls", () => {
     await expect(page.locator('.dxw-page span:text-is("body")')).toHaveCount(1);
   });
 
-  test("table grid picker inserts a table; cell fill applies", async ({ page }) => {
+  test("table grid picker inserts a table and exposes contextual cell fill", async ({ page }) => {
     await load(page, "parity-text");
     await exact(page, "Plain").click();
     await openTab(page, "insert");
@@ -283,6 +316,24 @@ test.describe("insert controls", () => {
       () => document.querySelectorAll(".dxw-page [data-dxw-edge]").length,
     );
     expect(edges).toBeGreaterThan(5);
+    const tableGrip = await page.locator("[data-dxw-table-move]").last().boundingBox();
+    expect(tableGrip).not.toBeNull();
+    await page.mouse.click(tableGrip!.x + 30, tableGrip!.y + 30);
+    await expect(page.getByRole("button", { name: "Table Format", exact: true })).toBeVisible();
+    await expect(page.locator("[data-dxw-table-format]")).toBeVisible();
+    for (const title of ["Align text inside the current cell", "Edit rows and columns around the current cell"]) {
+      const label = page.getByRole("button", { name: title }).locator("span").first();
+      expect(await label.evaluate((element) => element.scrollWidth <= element.clientWidth)).toBe(true);
+    }
+    await btn(page, "Cell fill color").click();
+    await page.getByRole("button", { name: "Choose #fff2cc", exact: true }).click();
+
+    const pending = page.waitForEvent("download");
+    await btn(page, "Save edited .docx").click();
+    const path = await (await pending).path();
+    if (!path) throw new Error("download path unavailable");
+    const xml = strFromU8(unzipSync(new Uint8Array(readFileSync(path)))["word/document.xml"]);
+    expect(xml).toContain('w:fill="FFF2CC"');
   });
 
   test("image inserts from a file", async ({ page }) => {
