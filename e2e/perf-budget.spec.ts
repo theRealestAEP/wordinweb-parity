@@ -363,7 +363,7 @@ test("NIH empty list Enter exits without background repagination", async ({ page
   expect(result.incremental?.fallbackReason).toBe("");
 });
 
-test("NIH list toolbar toggles stay incremental", async ({ page }) => {
+test("NIH toolbar lists start independently and stay incremental", async ({ page }) => {
   test.setTimeout(120_000);
   await page.addInitScript(() => {
     (globalThis as { __dxwPerf?: unknown }).__dxwPerf = { samples: [] };
@@ -390,61 +390,73 @@ test("NIH list toolbar toggles stay incremental", async ({ page }) => {
   const target = pages.first().locator("span", { hasText: /^LISTTOGGLEPERFMARKER$/ }).first();
   await target.click();
   await expect(page.locator("[data-dxw-caret]")).toBeVisible();
-  const button = page.locator('[title="Bulleted list"], [data-tip="Bulleted list"]').first();
 
-  for (const action of ["apply", "remove"]) {
-    await page.evaluate(() => {
-      const state = globalThis as typeof globalThis & {
-        __dxwPerf?: { last?: unknown; lastReused?: number; incr?: unknown };
-        __dxwSawLayoutBusy?: boolean;
-        __dxwBusyTimer?: number;
-      };
-      if (state.__dxwPerf) {
-        state.__dxwPerf.last = undefined;
-        state.__dxwPerf.lastReused = 0;
-        state.__dxwPerf.incr = undefined;
-      }
-      state.__dxwSawLayoutBusy = false;
-      state.__dxwBusyTimer = window.setInterval(() => {
-        state.__dxwSawLayoutBusy ||= !!document.querySelector("[data-dxw-layout-busy]");
-      }, 1);
-    });
-    const started = performance.now();
-    await button.click();
-    const wall = performance.now() - started;
-    await expect(page.locator("[data-dxw-caret]")).toBeVisible();
-    await page.waitForTimeout(100);
-    const result = await page.evaluate(() => {
-      const state = globalThis as typeof globalThis & {
-        __dxwPerf?: {
-          last?: { layout?: number; totalPages?: number };
-          lastReused?: number;
-          incr?: { hintFastPath?: boolean; blocksHashed?: number; blocksLaid?: number; fallbackReason?: string };
+  for (const list of [
+    { kind: "bullet", title: "Bulleted list" },
+    { kind: "number", title: "Numbered list" },
+  ] as const) {
+    const button = page.locator(`[title="${list.title}"], [data-tip="${list.title}"]`).first();
+    for (const action of ["apply", "remove"] as const) {
+      await page.evaluate(() => {
+        const state = globalThis as typeof globalThis & {
+          __dxwPerf?: { last?: unknown; lastReused?: number; incr?: unknown };
+          __dxwSawLayoutBusy?: boolean;
+          __dxwBusyTimer?: number;
         };
-        __dxwSawLayoutBusy?: boolean;
-        __dxwBusyTimer?: number;
-      };
-      clearInterval(state.__dxwBusyTimer);
-      return {
-        last: state.__dxwPerf?.last,
-        pagesReused: state.__dxwPerf?.lastReused,
-        incremental: state.__dxwPerf?.incr,
-        sawBusy: state.__dxwSawLayoutBusy ?? false,
-      };
-    });
-    // eslint-disable-next-line no-console
-    console.log(`[nih-list-toggle-${action}] ${JSON.stringify({ wall, ...result })}`);
+        if (state.__dxwPerf) {
+          state.__dxwPerf.last = undefined;
+          state.__dxwPerf.lastReused = 0;
+          state.__dxwPerf.incr = undefined;
+        }
+        state.__dxwSawLayoutBusy = false;
+        state.__dxwBusyTimer = window.setInterval(() => {
+          state.__dxwSawLayoutBusy ||= !!document.querySelector("[data-dxw-layout-busy]");
+        }, 1);
+      });
+      const started = performance.now();
+      await button.click();
+      const wall = performance.now() - started;
+      await expect(page.locator("[data-dxw-caret]")).toBeVisible();
+      await page.waitForTimeout(100);
+      const result = await page.evaluate(() => {
+        const state = globalThis as typeof globalThis & {
+          __dxwPerf?: {
+            last?: { layout?: number; totalPages?: number };
+            lastReused?: number;
+            incr?: { hintFastPath?: boolean; blocksHashed?: number; blocksLaid?: number; fallbackReason?: string };
+          };
+          __dxwSawLayoutBusy?: boolean;
+          __dxwBusyTimer?: number;
+        };
+        clearInterval(state.__dxwBusyTimer);
+        return {
+          last: state.__dxwPerf?.last,
+          pagesReused: state.__dxwPerf?.lastReused,
+          incremental: state.__dxwPerf?.incr,
+          sawBusy: state.__dxwSawLayoutBusy ?? false,
+        };
+      });
+      // eslint-disable-next-line no-console
+      console.log(`[nih-${list.kind}-toggle-${action}] ${JSON.stringify({ wall, ...result })}`);
 
-    expect(wall).toBeLessThan(150);
-    expect(result.sawBusy).toBe(false);
-    expect(await pages.count()).toBe(pageCount);
-    expect(result.last?.layout).toBeLessThan(40);
-    expect(result.last?.totalPages).toBe(pageCount);
-    expect(result.pagesReused).toBeGreaterThanOrEqual(pageCount - 2);
-    expect(result.incremental?.hintFastPath).toBe(true);
-    expect(result.incremental?.blocksHashed).toBeLessThanOrEqual(4);
-    expect(result.incremental?.blocksLaid).toBeLessThanOrEqual(64);
-    expect(result.incremental?.fallbackReason).toBe("");
+      expect(wall).toBeLessThan(150);
+      expect(result.sawBusy).toBe(false);
+      expect(await pages.count()).toBe(pageCount);
+      expect(result.last?.layout).toBeLessThan(40);
+      expect(result.last?.totalPages).toBe(pageCount);
+      expect(result.pagesReused).toBeGreaterThanOrEqual(pageCount - 2);
+      expect(result.incremental?.hintFastPath).toBe(true);
+      expect(result.incremental?.blocksHashed).toBeLessThanOrEqual(4);
+      expect(result.incremental?.blocksLaid).toBeLessThanOrEqual(64);
+      expect(result.incremental?.fallbackReason).toBe("");
+      if (list.kind === "number" && action === "apply") {
+        const targetBox = (await target.boundingBox())!;
+        const labels = await pages.first().locator("span").filter({ hasText: /^1\.$/ }).evaluateAll((spans) =>
+          spans.map((span) => span.getBoundingClientRect().y),
+        );
+        expect(labels.some((y) => Math.abs(y - targetBox.y) < 2)).toBe(true);
+      }
+    }
   }
 });
 
