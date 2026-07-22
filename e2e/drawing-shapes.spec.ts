@@ -25,18 +25,32 @@ test("inserted DrawingML shapes have editable text, move/resize handles, undo, a
   await page.mouse.click(before!.x + before!.width - 12, before!.y + before!.height - 12);
   await expect(page.locator("[data-dxw-img-handle]")).toHaveCount(8);
 
-  await page.getByRole("button", { name: "Fill", exact: true }).click();
-  await page.getByRole("textbox", { name: "Color or none" }).fill("#FF0000");
+  await expect(page.getByRole("button", { name: "Shape Format", exact: true })).toBeVisible();
+  const format = page.locator("[data-dxw-object-format]");
+  await expect(format.getByRole("button", { name: "Edit text", exact: true })).toBeVisible();
+  await format.getByRole("button", { name: "Fill", exact: true }).click();
+  await expect(page.getByLabel("Fill color picker")).toHaveAttribute("type", "color");
+  await page.getByRole("textbox", { name: "Fill color", exact: true }).fill("#FF0000");
   await page.getByRole("button", { name: "Apply", exact: true }).click();
-  await page.getByRole("button", { name: "Outline", exact: true }).click();
-  await page.getByRole("textbox", { name: "Color and width in pixels" }).fill("#00FF00, 3");
+  await format.getByRole("button", { name: "Outline", exact: true }).click();
+  await page.getByRole("textbox", { name: "Outline color", exact: true }).fill("#00FF00");
+  await page.getByRole("spinbutton", { name: "Outline width in pixels" }).fill("3");
   await page.getByRole("button", { name: "Apply", exact: true }).click();
-  await page.getByRole("button", { name: "Size", exact: true }).click();
-  await page.getByRole("textbox", { name: "Width × height in pixels" }).fill("240 × 120");
+  await format.getByRole("button", { name: "Size", exact: true }).click();
+  await page.getByRole("spinbutton", { name: "Width (pixels)" }).fill("240");
+  await page.getByRole("spinbutton", { name: "Height (pixels)" }).fill("120");
   await page.getByRole("button", { name: "Apply", exact: true }).click();
   before = await hit.boundingBox();
   expect(before!.width).toBeCloseTo(240, 0);
   expect(before!.height).toBeCloseTo(120, 0);
+
+  await page.getByRole("button", { name: "home", exact: true }).click();
+  await page.getByRole("button", { name: "Shape Format", exact: true }).click();
+  await page.keyboard.press("Escape");
+  await expect(page.getByRole("button", { name: "Shape Format", exact: true })).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "home", exact: true })).toHaveAttribute("aria-pressed", "true");
+  const shapeAfterDeselect = await hit.boundingBox();
+  await page.mouse.click(shapeAfterDeselect!.x + shapeAfterDeselect!.width - 12, shapeAfterDeselect!.y + shapeAfterDeselect!.height - 12);
 
   await page.mouse.move(before!.x + before!.width - 16, before!.y + before!.height - 16);
   await page.mouse.down();
@@ -71,6 +85,45 @@ test("inserted DrawingML shapes have editable text, move/resize handles, undo, a
   expect(xml).toContain('<a:srgbClr val="FF0000"');
   expect(xml).toContain('<a:srgbClr val="00FF00"');
   expect(xml).toContain('<a:ln w="28575"');
+});
+
+test("line selection exposes only line formatting and preserves position when wrapping", async ({ page }) => {
+  await page.goto("/?doc=/fixtures/benchmark.docx");
+  await page.waitForSelector(".dxw-page span");
+  await page.getByRole("button", { name: "insert", exact: true }).click();
+  const target = page.locator(".dxw-page span", { hasText: "classic." }).first();
+  await target.click();
+  await page.keyboard.press("End");
+  await tool(page, "Insert shape").click();
+  await page.getByTitle("Insert Line").click();
+
+  await expect(page.getByRole("button", { name: "Line Format", exact: true })).toBeVisible();
+  const format = page.locator("[data-dxw-object-format]");
+  await expect(format.getByRole("button", { name: "Line style", exact: true })).toBeVisible();
+  await expect(format.getByRole("button", { name: "Fill", exact: true })).toHaveCount(0);
+  await expect(format.getByRole("button", { name: "Outline", exact: true })).toHaveCount(0);
+  await expect(format.getByRole("button", { name: "Edit text", exact: true })).toHaveCount(0);
+
+  await format.getByRole("button", { name: "Line style", exact: true }).click();
+  const lineDialog = page.getByRole("dialog", { name: "Line style" });
+  await lineDialog.getByLabel("Line style").selectOption("dotted");
+  await lineDialog.getByRole("button", { name: "Apply", exact: true }).click();
+  await expect(lineDialog).toHaveCount(0);
+  const before = await page.locator("[data-dxw-drawing]").last().boundingBox();
+  expect(before).not.toBeNull();
+  await format.getByRole("button", { name: "Wrap", exact: true }).click();
+  await page.getByRole("option", { name: "Square", exact: true }).click();
+  const after = await page.locator("[data-dxw-drawing]").last().boundingBox();
+  expect(after).not.toBeNull();
+  expect(after!.x).toBeCloseTo(before!.x, 0);
+  await expect(page.getByRole("button", { name: "Line Format", exact: true })).toBeVisible();
+
+  const pending = page.waitForEvent("download");
+  await page.getByText("Download", { exact: true }).click();
+  const path = await (await pending).path();
+  if (!path) throw new Error("download path unavailable");
+  const xml = strFromU8(unzipSync(new Uint8Array(readFileSync(path)))["word/document.xml"]);
+  expect(xml).toContain('<a:prstDash val="dot"');
 });
 
 test("a floating shape stays visible when moved repeatedly onto a blank page and reopened", async ({ page }) => {
@@ -162,12 +215,13 @@ test("shape wrap and layering controls remain clickable through mode changes, de
   const shape = page.locator("[data-dxw-drawing]").last();
   const box = (await shape.boundingBox())!;
   await page.mouse.click(box.x + box.width - 12, box.y + box.height - 12);
+  const objectBar = page.getByRole("main");
   for (const mode of ["Behind", "In front", "Top+Bottom", "Wrap", "Inline", "Behind"]) {
-    await page.getByRole("button", { name: mode, exact: true }).click();
-    await expect(page.getByRole("button", { name: mode, exact: true })).toHaveAttribute("aria-pressed", "true");
+    await objectBar.getByRole("button", { name: mode, exact: true }).click();
+    await expect(objectBar.getByRole("button", { name: mode, exact: true })).toHaveAttribute("aria-pressed", "true");
   }
 
-  await page.getByRole("button", { name: "Delete", exact: true }).click();
+  await page.locator("[data-dxw-object-format]").getByRole("button", { name: "Delete", exact: true }).click();
   await expect(page.locator(".dxw-pages")).not.toContainText("Wrap modes");
   await page.keyboard.press(process.platform === "darwin" ? "Meta+z" : "Control+z");
   await expect(page.locator(".dxw-pages")).toContainText("Wrap modes");

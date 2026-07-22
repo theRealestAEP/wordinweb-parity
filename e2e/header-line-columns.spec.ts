@@ -6,10 +6,19 @@ function tool(page: Page, title: string) {
   return page.locator(`[title=${JSON.stringify(title)}], [data-tip=${JSON.stringify(title)}]`).first();
 }
 
+function objectTool(page: Page, name: string) {
+  return page.getByRole("button", { name, exact: true }).first();
+}
+
 async function load(page: Page, fixture = "parity-text"): Promise<void> {
   await page.setViewportSize({ width: 1400, height: 900 });
   await page.goto(`/?doc=/fixtures/${fixture}.docx`);
   await expect(page.locator(".dxw-page").first()).toBeVisible();
+}
+
+async function openHeaderFooter(page: Page, target: "Header" | "Footer"): Promise<void> {
+  await page.getByRole("button", { name: "Edit the repeating header or footer", exact: true }).click();
+  await page.getByRole("option", { name: target, exact: true }).click();
 }
 
 async function insertLineFromToolbar(page: Page): Promise<void> {
@@ -21,12 +30,12 @@ async function insertLineFromToolbar(page: Page): Promise<void> {
 
 async function insertRotatedHeaderLine(page: Page): Promise<void> {
   await page.getByRole("button", { name: "insert", exact: true }).click();
-  await tool(page, "Edit header").click();
+  await openHeaderFooter(page, "Header");
   const hotbar = page.locator("[data-dxw-hf-hotbar]");
   await expect(hotbar).toBeVisible();
   await insertLineFromToolbar(page);
-  await page.getByRole("button", { name: "Rotate", exact: true }).click();
-  await page.getByRole("textbox", { name: "Degrees clockwise" }).fill("90");
+  await objectTool(page, "Rotate").click();
+  await page.getByRole("spinbutton", { name: "Degrees clockwise" }).fill("90");
   await page.getByRole("button", { name: "Apply", exact: true }).click();
   await expect(page.locator('[data-dxw-drawing][data-dxw-hf="1"]')).toHaveCount(1);
 }
@@ -50,10 +59,77 @@ test("a rotated header line repeats after a page split while its hotbar stays ab
   await expect(page.locator('[data-dxw-drawing][data-dxw-hf="1"]')).toHaveCount(3);
 });
 
+test("a native vertical header line can be sized, positioned, and styled directly", async ({ page }) => {
+  await load(page, "pleading-anon");
+  await page.getByRole("button", { name: "insert", exact: true }).click();
+  await openHeaderFooter(page, "Header");
+  await tool(page, "Insert shape").click();
+  await page.getByTitle("Line color").click();
+  const colorDialog = page.getByRole("dialog", { name: "Line color" });
+  await colorDialog.getByRole("textbox", { name: "Custom hex color" }).fill("#c62828");
+  await colorDialog.getByRole("button", { name: "Apply" }).click();
+  await page.getByRole("spinbutton", { name: "Line width in pixels" }).fill("2.5");
+  await page.getByRole("combobox", { name: "Line style" }).selectOption("dashed");
+  await page.getByTitle("Insert Vertical line").click();
+
+  const selected = page.locator("[data-dxw-object-selection]");
+  await expect(selected).toBeVisible();
+  const initial = (await selected.boundingBox())!;
+  expect(initial.height).toBeGreaterThan(initial.width * 20);
+  await objectTool(page, "Line style").click();
+  let styleDialog = page.getByRole("dialog", { name: "Line style" });
+  await expect(styleDialog.locator('input[aria-label="Line color"]')).toHaveValue("#C62828");
+  await expect(styleDialog.locator('input[aria-label="Line width in pixels"]')).toHaveValue("2.5");
+  await expect(styleDialog.getByRole("combobox", { name: "Line style" })).toHaveValue("dashed");
+  await styleDialog.getByRole("button", { name: "Cancel", exact: true }).click();
+  await expect(styleDialog).toBeHidden();
+
+  await objectTool(page, "Size").click();
+  let pairDialog = page.getByRole("dialog", { name: "Exact size" });
+  await pairDialog.locator('input[aria-label="Width (pixels)"]').fill("4");
+  await pairDialog.locator('input[aria-label="Height (pixels)"]').fill("500");
+  await expect(pairDialog.locator('input[aria-label="Width (pixels)"]')).toHaveValue("4");
+  await expect(pairDialog.locator('input[aria-label="Height (pixels)"]')).toHaveValue("500");
+  await pairDialog.getByRole("button", { name: "Apply", exact: true }).click();
+  await expect(pairDialog).toBeHidden();
+  await expect(selected).toBeVisible();
+  await expect.poll(async () => (await selected.boundingBox())!.height).toBeGreaterThan(480);
+
+  await objectTool(page, "Position").click();
+  pairDialog = page.getByRole("dialog", { name: "Page position" });
+  await pairDialog.locator('input[aria-label="X (pixels)"]').fill("220");
+  await pairDialog.locator('input[aria-label="Y (pixels)"]').fill("120");
+  await pairDialog.getByRole("button", { name: "Apply", exact: true }).click();
+  await expect(pairDialog).toBeHidden();
+  await objectTool(page, "Line style").click();
+  styleDialog = page.getByRole("dialog", { name: "Line style" });
+  const colorInput = styleDialog.locator('input[type="text"]');
+  const widthInput = styleDialog.locator('input[type="number"]');
+  await colorInput.fill("#2E74B5");
+  await widthInput.fill("3");
+  await expect(colorInput).toHaveValue("#2E74B5");
+  await expect(widthInput).toHaveValue("3");
+  await styleDialog.getByRole("combobox", { name: "Line style" }).selectOption("dotted");
+  await styleDialog.getByRole("button", { name: "Apply", exact: true }).click();
+  await expect(styleDialog).toBeHidden();
+
+  const pending = page.waitForEvent("download");
+  await page.getByText("Download", { exact: true }).click();
+  const path = await (await pending).path();
+  const xml = Object.entries(unzipSync(new Uint8Array(readFileSync(path!))))
+    .filter(([name]) => /^word\/header\d+\.xml$/.test(name))
+    .map(([, bytes]) => strFromU8(bytes))
+    .join("\n");
+  expect(xml).toContain('<wp:extent cx="38100" cy="4762500"/>');
+  expect(xml).toContain('<a:ext cx="0" cy="4762500"/>');
+  expect(xml).toContain('<a:srgbClr val="2E74B5"/>');
+  expect(xml).toContain('<a:prstDash val="dot"/>');
+});
+
 test("a pleading-paper header line can be dragged horizontally and rotated without covering the page", async ({ page }) => {
   await load(page, "pleading-anon");
   await page.getByRole("button", { name: "insert", exact: true }).click();
-  await tool(page, "Edit header").click();
+  await openHeaderFooter(page, "Header");
 
   const contextRow = page.locator("[data-dxw-editor-context-row]");
   const hotbar = page.locator("[data-dxw-hf-hotbar]");
@@ -64,7 +140,7 @@ test("a pleading-paper header line can be dragged horizontally and rotated witho
   expect(hotbarBox.y + hotbarBox.height).toBeLessThanOrEqual(firstPageBox.y);
 
   await insertLineFromToolbar(page);
-  await expect(page.getByRole("button", { name: "Rotate", exact: true })).toBeVisible();
+  await expect(objectTool(page, "Rotate")).toBeVisible();
   const line = page.locator("[data-dxw-object-selection]");
   const before = (await line.boundingBox())!;
   const move = page.locator("[data-dxw-object-move]");
@@ -77,11 +153,13 @@ test("a pleading-paper header line can be dragged horizontally and rotated witho
   const moved = (await line.boundingBox())!;
   expect(moved.x).toBeGreaterThan(before.x + 60);
 
-  await page.getByRole("button", { name: "Outline", exact: true }).click();
-  await page.getByRole("textbox", { name: "Color and width in pixels" }).fill("#FF0000, 4");
+  await objectTool(page, "Line style").click();
+  await page.getByRole("textbox", { name: "Line color", exact: true }).fill("#FF0000");
+  await page.getByRole("spinbutton", { name: "Line width in pixels" }).fill("4");
+  await page.getByRole("combobox", { name: "Line style" }).selectOption("dashed");
   await page.getByRole("button", { name: "Apply", exact: true }).click();
-  await page.getByRole("button", { name: "Rotate", exact: true }).click();
-  await page.getByRole("textbox", { name: "Degrees clockwise" }).fill("90");
+  await objectTool(page, "Rotate").click();
+  await page.getByRole("spinbutton", { name: "Degrees clockwise" }).fill("90");
   await page.getByRole("button", { name: "Apply", exact: true }).click();
   const rotated = (await line.boundingBox())!;
   expect(rotated.height).toBeGreaterThan(rotated.width);
@@ -97,6 +175,7 @@ test("a pleading-paper header line can be dragged horizontally and rotated witho
     .join("\n");
   expect(headerXml).toContain('<a:ln w="38100"');
   expect(headerXml).toContain('<a:srgbClr val="FF0000"');
+  expect(headerXml).toContain('<a:prstDash val="dash"/>');
 });
 
 test("page two pleading-paper whitespace accepts a clicked caret and typed text", async ({ page }) => {
@@ -124,11 +203,11 @@ test("a footer line repeats, stays isolated from body typing, and survives reope
   await load(page);
   await page.getByText("Plain", { exact: true }).click();
   await page.getByRole("button", { name: "insert", exact: true }).click();
-  await tool(page, "Edit footer").click();
+  await openHeaderFooter(page, "Footer");
   const hotbar = page.locator("[data-dxw-hf-hotbar]");
   await insertLineFromToolbar(page);
-  await page.getByRole("button", { name: "Rotate", exact: true }).click();
-  await page.getByRole("textbox", { name: "Degrees clockwise" }).fill("90");
+  await objectTool(page, "Rotate").click();
+  await page.getByRole("spinbutton", { name: "Degrees clockwise" }).fill("90");
   await page.getByRole("button", { name: "Apply", exact: true }).click();
   await hotbar.getByRole("button", { name: "Close", exact: true }).click();
 

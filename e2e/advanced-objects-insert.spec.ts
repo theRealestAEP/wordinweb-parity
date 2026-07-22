@@ -57,6 +57,9 @@ test("advanced Insert creates editable native 3D, media, and embedded objects", 
   expect(before).not.toBeNull();
   await model.click();
   await expect(page.locator("[data-dxw-img-handle]")).toHaveCount(8);
+  await expect(page.getByRole("button", { name: "3D Format", exact: true })).toBeVisible();
+  await expect(page.locator("[data-dxw-object-format]").getByRole("button", { name: "Reset 3D", exact: true })).toBeVisible();
+  await expect(page.locator("[data-dxw-object-format]").getByRole("button", { name: "Fill", exact: true })).toHaveCount(0);
   const corner = await page.locator('[data-dxw-img-handle="se"]').boundingBox();
   expect(corner).not.toBeNull();
   await page.mouse.move(corner!.x + corner!.width / 2, corner!.y + corner!.height / 2);
@@ -84,7 +87,7 @@ test("advanced Insert creates editable native 3D, media, and embedded objects", 
   const movedBox = (await model.boundingBox())!;
   expect(movedBox.x).toBeGreaterThan(rotatedBox.x + 35);
 
-  await page.getByRole("button", { name: "Reset 3D", exact: true }).click();
+  await page.locator("[data-dxw-object-format]").getByRole("button", { name: "Reset 3D", exact: true }).click();
   await expect(viewer).toHaveAttribute("orientation", "0deg 0deg 0deg");
   await page.keyboard.press(process.platform === "darwin" ? "Meta+z" : "Control+z");
   await expect(viewer).toHaveAttribute("orientation", /0deg 10deg 20deg/);

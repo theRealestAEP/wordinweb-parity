@@ -24,6 +24,11 @@ test("advanced Insert adds a native SVG icon with undo and save", async ({ page 
   await expect(icon).toBeVisible();
   await icon.click();
   await expect(page.locator("[data-dxw-img-handle]")).toHaveCount(8);
+  await expect(page.getByRole("button", { name: "Picture Format", exact: true })).toBeVisible();
+  const format = page.locator("[data-dxw-object-format]");
+  await expect(format.getByRole("button", { name: "Alt text", exact: true })).toBeVisible();
+  await expect(format.getByRole("button", { name: "Fill", exact: true })).toHaveCount(0);
+  await expect(format.getByRole("button", { name: "Outline", exact: true })).toHaveCount(0);
   await page.keyboard.press(`${MOD}+z`);
   await expect(icon).toHaveCount(0);
   await page.keyboard.press(`${MOD}+Shift+z`);

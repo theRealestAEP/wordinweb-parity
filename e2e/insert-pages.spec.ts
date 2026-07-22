@@ -109,14 +109,16 @@ test("Insert Header and Footer enter editing directly, Escape closes, and both s
   await editor.clickText("Plain");
   await page.getByRole("button", { name: "insert", exact: true }).click();
 
-  await tool(page, "Edit header").click();
+  await page.getByRole("button", { name: "Edit the repeating header or footer", exact: true }).click();
+  await page.getByRole("option", { name: "Header", exact: true }).click();
   await expect(page.locator("[data-dxw-hf-hotbar]")).toBeVisible();
   await page.keyboard.type("DIRECT HEADER");
   await expect(page.locator(".dxw-pages")).toContainText("DIRECT HEADER");
   await page.keyboard.press("Escape");
   await expect(page.locator("[data-dxw-hf-hotbar]")).toHaveCount(0);
 
-  await tool(page, "Edit footer").click();
+  await page.getByRole("button", { name: "Edit the repeating header or footer", exact: true }).click();
+  await page.getByRole("option", { name: "Footer", exact: true }).click();
   await expect(page.locator("[data-dxw-hf-hotbar]")).toBeVisible();
   await page.keyboard.type("DIRECT FOOTER");
   await expect(page.locator(".dxw-pages")).toContainText("DIRECT FOOTER");

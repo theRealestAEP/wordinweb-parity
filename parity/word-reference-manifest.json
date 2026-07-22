@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "generatedAt": "2026-07-17T20:12:44.000Z",
+  "generatedAt": "2026-07-22T07:19:50.000Z",
   "fixtures": {
     "benchmark": {
       "sourcePackageSha256": "fcce177e72a4e214276fe588643c8e39ac11340d424937c31d5bc54507d46e82",
@@ -693,6 +693,13 @@
       "referenceDocx": "apps/demo/public/fixtures/word-interop-embedded-only.docx",
       "referenceDocxPackageSha256": "2a40106455a26cbf20c1266c38b0ffe66527929474db7c4dd74ced77512cdfc6",
       "referencePdfSha256": "f3d634aea25aee54437f6ec581d144d9f0b354e25d5b92a06f40e2fe76bb8c59",
+      "pages": 1
+    },
+    "word-interop-smartart-only": {
+      "sourcePackageSha256": "f1ff4b0a8d69bf2ac544bd7c7f0bf4c375ca728706f9e4aa1eab1ff3b5d7907e",
+      "referenceDocx": "apps/demo/public/fixtures/word-interop-smartart-only.docx",
+      "referenceDocxPackageSha256": "f1ff4b0a8d69bf2ac544bd7c7f0bf4c375ca728706f9e4aa1eab1ff3b5d7907e",
+      "referencePdfSha256": "cbc6fc25c49e21644f34f9f525cc51d5fa3f210f8f995bf498efcfe01d05f2fb",
       "pages": 1
     }
   }

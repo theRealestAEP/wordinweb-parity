@@ -25,6 +25,32 @@ test.describe("editing behaviors", () => {
     await ed.expectHasText("WS");
   });
 
+  test("clicking below a bulleted list creates plain whitespace lines", async ({ page }) => {
+    const ed = await Editor.open(page, "parity-text");
+    const before = await page.locator(".dxw-page span").filter({ hasText: /^[•●]$/ }).count();
+    await ed.clickText("Plain");
+    await page.locator('[title="Bulleted list"], [data-tip="Bulleted list"]').first().click();
+    await ed.clickPageFraction(0.5, 0.72);
+    await ed.type("AFTERLIST");
+    await ed.expectHasText("AFTERLIST");
+    const bulletCount = await page.locator(".dxw-page span").filter({ hasText: /^[•●]$/ }).count();
+    expect(bulletCount).toBe(before + 1);
+  });
+
+  test("Enter on an empty bullet exits the list", async ({ page }) => {
+    const ed = await Editor.open(page, "parity-text");
+    const before = await page.locator(".dxw-page span").filter({ hasText: /^[•●]$/ }).count();
+    await ed.clickText("Plain");
+    await page.locator('[title="Bulleted list"], [data-tip="Bulleted list"]').first().click();
+    await ed.press("End");
+    await ed.press("Enter");
+    await ed.press("Enter");
+    await ed.type("PLAINAFTERBULLET");
+    await ed.expectHasText("PLAINAFTERBULLET");
+    const bulletCount = await page.locator(".dxw-page span").filter({ hasText: /^[•●]$/ }).count();
+    expect(bulletCount).toBe(before + 1);
+  });
+
   test("Backspace at a heading after a page break bumps it onto the previous page", async ({ page }) => {
     const ed = await Editor.open(page, "sample");
     // "Page" heading is the first line on page 2.
