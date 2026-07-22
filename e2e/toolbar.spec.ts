@@ -483,6 +483,25 @@ test.describe("math controls", () => {
     const andX = (await exact(page, "and").boundingBox())!.x;
     expect(mathX).toBeGreaterThan(andX);
   });
+
+  test("the equation editor deletes the complete equation", async ({ page }) => {
+    await load(page, "parity-math");
+    const equations = page.locator("[data-dxw-math]");
+    const initial = await equations.count();
+
+    await equations.first().click();
+    await page.getByRole("button", { name: "Delete equation" }).click();
+    await expect.poll(() => equations.count()).toBeLessThan(initial);
+
+    await page.keyboard.press(`${MOD}+z`);
+    await expect(equations).toHaveCount(initial);
+
+    await equations.first().click();
+    const input = page.locator("input").last();
+    await input.fill("");
+    await input.press("Enter");
+    await expect.poll(() => equations.count()).toBeLessThan(initial);
+  });
 });
 
 test.describe("header/footer entry", () => {
