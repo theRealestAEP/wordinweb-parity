@@ -272,6 +272,47 @@ test.describe("insert controls", () => {
     await popup.close();
   });
 
+  test("internal NIH references jump to their bookmark without opening a tab", async ({ page, context }) => {
+    test.setTimeout(60_000);
+    await load(page, "wild2-legal-nih-contract");
+
+    const candidate = await page.evaluate(() => {
+      const pages = Array.from(document.querySelectorAll<HTMLElement>(".dxw-page"));
+      const targets = new Map<string, { pageIndex: number; top: number }>();
+      for (let pageIndex = 0; pageIndex < pages.length; pageIndex++) {
+        const raw = pages[pageIndex].dataset.bookmarks;
+        if (!raw) continue;
+        const bookmarks = JSON.parse(raw) as Record<string, number>;
+        const root = pages[pageIndex].closest<HTMLElement>(".dxw-pages");
+        const container = root?.parentElement;
+        if (!container) continue;
+        const pageTop =
+          pages[pageIndex].getBoundingClientRect().top -
+          container.getBoundingClientRect().top +
+          container.scrollTop;
+        for (const [name, y] of Object.entries(bookmarks)) {
+          targets.set(name, { pageIndex, top: Math.max(0, pageTop + y - 24) });
+        }
+      }
+
+      return Array.from(document.querySelectorAll<HTMLAnchorElement>('.dxw-page a[href^="#"]'))
+        .map((link, linkIndex) => {
+          const target = targets.get(link.getAttribute("href")!.slice(1));
+          return target ? { linkIndex, ...target } : null;
+        })
+        .filter((value): value is { linkIndex: number; pageIndex: number; top: number } => value !== null)
+        .sort((a, b) => b.pageIndex - a.pageIndex)[0];
+    });
+
+    expect(candidate).toBeDefined();
+    const pagesBefore = context.pages().length;
+    const link = page.locator('.dxw-page a[href^="#"]').nth(candidate!.linkIndex);
+    await link.click({ modifiers: [MOD] });
+
+    await expect.poll(() => page.locator(".dxw-pages").evaluate((root) => root.parentElement!.scrollTop)).toBeCloseTo(candidate!.top, -1);
+    expect(context.pages()).toHaveLength(pagesBefore);
+  });
+
   test("comment on a selection shows a balloon", async ({ page }) => {
     await load(page);
     await selectWord(page, "nostrud");
