@@ -15,7 +15,7 @@
     "fflate": "^0.8.3",
     "react": "^18.3.0",
     "react-dom": "^18.3.0",
-    "wordinweb": "^0.1.20"
+    "wordinweb": "0.1.21"
   },
   "devDependencies": {
     "@fontsource/caladea": "^5.2.8",
