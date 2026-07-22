@@ -115,6 +115,8 @@ test("real NIH numId 7 blank d/e items remain clickable and editable", async ({ 
     return !!gaBox && labels.some((y) => Math.abs(y - gaBox.y) < 2);
   }, { timeout: 30_000 }).toBe(true);
   await expect(page.locator('[aria-busy="true"]')).toHaveCount(0);
+  const nextGa = (await ga.boundingBox())!;
+  await page.mouse.click(nextGa.x + 1, nextGa.y + nextGa.height / 2);
   await page.keyboard.press("Enter");
   await expect.poll(async () => {
     const gaBox = await ga.boundingBox();

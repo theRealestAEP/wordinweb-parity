@@ -447,3 +447,78 @@ test("NIH list toolbar toggles stay incremental", async ({ page }) => {
     expect(result.incremental?.fallbackReason).toBe("");
   }
 });
+
+test("NIH real numbered-list create and exit stay incremental", async ({ page }) => {
+  test.setTimeout(120_000);
+  await page.addInitScript(() => {
+    (globalThis as { __dxwPerf?: unknown }).__dxwPerf = { samples: [] };
+  });
+  await page.goto("/?doc=/fixtures/wild2-legal-nih-contract.docx");
+  const pages = page.locator(".dxw-page");
+  await expect(pages).toHaveCount(419, { timeout: 60_000 });
+  const contractPage = pages.nth(10);
+  await contractPage.scrollIntoViewIfNeeded();
+  const ga = contractPage.locator("span").filter({ hasText: /^Ga$/ }).first();
+  const gaBox = (await ga.boundingBox())!;
+  await page.mouse.click(gaBox.x + 1, gaBox.y + gaBox.height / 2);
+
+  for (const action of ["create", "exit"] as const) {
+    await page.evaluate(() => {
+      const state = globalThis as typeof globalThis & {
+        __dxwPerf?: { samples?: unknown[] };
+        __dxwSawLayoutBusy?: boolean;
+        __dxwBusyTimer?: number;
+      };
+      if (state.__dxwPerf) state.__dxwPerf.samples = [];
+      state.__dxwSawLayoutBusy = false;
+      state.__dxwBusyTimer = window.setInterval(() => {
+        state.__dxwSawLayoutBusy ||= !!document.querySelector("[data-dxw-layout-busy]");
+      }, 1);
+    });
+    const started = performance.now();
+    await page.keyboard.press("Enter");
+    const wall = performance.now() - started;
+    await expect(page.locator("[data-dxw-caret]")).toBeVisible();
+    await page.waitForTimeout(100);
+    const result = await page.evaluate(() => {
+      const state = globalThis as typeof globalThis & {
+        __dxwPerf?: {
+          samples?: { total?: number; layout?: number; pagesReused?: number; totalPages?: number }[];
+          incr?: { hintFastPath?: boolean; blocksHashed?: number; blocksLaid?: number; fallbackReason?: string };
+        };
+        __dxwSawLayoutBusy?: boolean;
+        __dxwBusyTimer?: number;
+      };
+      clearInterval(state.__dxwBusyTimer);
+      return {
+        sample: state.__dxwPerf?.samples?.at(-1),
+        incremental: state.__dxwPerf?.incr,
+        sawBusy: state.__dxwSawLayoutBusy ?? false,
+      };
+    });
+    // eslint-disable-next-line no-console
+    console.log(`[nih-real-list-${action}] ${JSON.stringify({ wall, ...result })}`);
+    expect(result.sample?.totalPages).toBe(419);
+    expect(result.sawBusy).toBe(false);
+    expect(result.sample?.layout).toBeLessThan(150);
+    expect(result.incremental?.hintFastPath).toBe(true);
+    expect(result.incremental?.blocksLaid).toBeLessThan(600);
+    expect(result.incremental?.fallbackReason).toBe("");
+    if (action === "exit") {
+      expect(result.sample?.total).toBeLessThan(80);
+      expect(result.sample?.layout).toBeLessThan(40);
+      expect(result.sample?.pagesReused).toBeGreaterThanOrEqual(416);
+      expect(result.incremental?.blocksLaid).toBeLessThanOrEqual(16);
+    }
+  }
+
+  await page.keyboard.type("PLAINAFTERLIST");
+  const pending = page.waitForEvent("download");
+  await page.getByText("Download", { exact: true }).click();
+  const path = await (await pending).path();
+  if (!path) throw new Error("download path unavailable");
+  const xml = strFromU8(unzipSync(new Uint8Array(readFileSync(path)))["word/document.xml"]);
+  const paragraph = xml.match(/<w:p\b[^>]*>(?:(?!<\/w:p>)[\s\S])*PLAINAFTERLIST(?:(?!<\/w:p>)[\s\S])*<\/w:p>/)?.[0] ?? "";
+  expect(paragraph).toContain("PLAINAFTERLIST");
+  expect(paragraph).not.toContain("<w:numPr>");
+});
