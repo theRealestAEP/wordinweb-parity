@@ -362,3 +362,88 @@ test("NIH empty list Enter exits without background repagination", async ({ page
   expect(result.incremental?.blocksLaid).toBeLessThanOrEqual(16);
   expect(result.incremental?.fallbackReason).toBe("");
 });
+
+test("NIH list toolbar toggles stay incremental", async ({ page }) => {
+  test.setTimeout(120_000);
+  await page.addInitScript(() => {
+    (globalThis as { __dxwPerf?: unknown }).__dxwPerf = { samples: [] };
+  });
+  const files = unzipSync(readFileSync(join(FIX_DIR, "wild2-legal-nih-contract.docx")));
+  const documentXml = strFromU8(files["word/document.xml"]);
+  const marker = `<w:p><w:r><w:t>LISTTOGGLEPERFMARKER</w:t></w:r></w:p>`;
+  const insertAt = documentXml.indexOf("</w:p>") + "</w:p>".length;
+  files["word/document.xml"] = strToU8(documentXml.slice(0, insertAt) + marker + documentXml.slice(insertAt));
+  const numberingXml = strFromU8(files["word/numbering.xml"]);
+  const bullet = `<w:abstractNum w:abstractNumId="9998"><w:multiLevelType w:val="singleLevel"/><w:lvl w:ilvl="0"><w:start w:val="1"/><w:numFmt w:val="bullet"/><w:lvlText w:val="•"/><w:lvlJc w:val="left"/><w:pPr><w:ind w:left="720" w:hanging="360"/></w:pPr></w:lvl></w:abstractNum><w:num w:numId="9998"><w:abstractNumId w:val="9998"/></w:num>`;
+  files["word/numbering.xml"] = strToU8(numberingXml.replace("</w:numbering>", `${bullet}</w:numbering>`));
+  await page.goto("/");
+  await page.locator("#docx-upload").setInputFiles({
+    name: "nih-list-toggle.docx",
+    mimeType: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    buffer: Buffer.from(zipSync(files)),
+  });
+
+  const pages = page.locator(".dxw-page");
+  await pages.first().waitFor({ state: "attached", timeout: 60_000 });
+  await expect.poll(() => pages.count(), { timeout: 60_000 }).toBeGreaterThanOrEqual(419);
+  const pageCount = await pages.count();
+  const target = pages.first().locator("span", { hasText: /^LISTTOGGLEPERFMARKER$/ }).first();
+  await target.click();
+  await expect(page.locator("[data-dxw-caret]")).toBeVisible();
+  const button = page.locator('[title="Bulleted list"], [data-tip="Bulleted list"]').first();
+
+  for (const action of ["apply", "remove"]) {
+    await page.evaluate(() => {
+      const state = globalThis as typeof globalThis & {
+        __dxwPerf?: { last?: unknown; lastReused?: number; incr?: unknown };
+        __dxwSawLayoutBusy?: boolean;
+        __dxwBusyTimer?: number;
+      };
+      if (state.__dxwPerf) {
+        state.__dxwPerf.last = undefined;
+        state.__dxwPerf.lastReused = 0;
+        state.__dxwPerf.incr = undefined;
+      }
+      state.__dxwSawLayoutBusy = false;
+      state.__dxwBusyTimer = window.setInterval(() => {
+        state.__dxwSawLayoutBusy ||= !!document.querySelector("[data-dxw-layout-busy]");
+      }, 1);
+    });
+    const started = performance.now();
+    await button.click();
+    const wall = performance.now() - started;
+    await expect(page.locator("[data-dxw-caret]")).toBeVisible();
+    await page.waitForTimeout(100);
+    const result = await page.evaluate(() => {
+      const state = globalThis as typeof globalThis & {
+        __dxwPerf?: {
+          last?: { layout?: number; totalPages?: number };
+          lastReused?: number;
+          incr?: { hintFastPath?: boolean; blocksHashed?: number; blocksLaid?: number; fallbackReason?: string };
+        };
+        __dxwSawLayoutBusy?: boolean;
+        __dxwBusyTimer?: number;
+      };
+      clearInterval(state.__dxwBusyTimer);
+      return {
+        last: state.__dxwPerf?.last,
+        pagesReused: state.__dxwPerf?.lastReused,
+        incremental: state.__dxwPerf?.incr,
+        sawBusy: state.__dxwSawLayoutBusy ?? false,
+      };
+    });
+    // eslint-disable-next-line no-console
+    console.log(`[nih-list-toggle-${action}] ${JSON.stringify({ wall, ...result })}`);
+
+    expect(wall).toBeLessThan(150);
+    expect(result.sawBusy).toBe(false);
+    expect(await pages.count()).toBe(pageCount);
+    expect(result.last?.layout).toBeLessThan(40);
+    expect(result.last?.totalPages).toBe(pageCount);
+    expect(result.pagesReused).toBeGreaterThanOrEqual(pageCount - 2);
+    expect(result.incremental?.hintFastPath).toBe(true);
+    expect(result.incremental?.blocksHashed).toBeLessThanOrEqual(4);
+    expect(result.incremental?.blocksLaid).toBeLessThanOrEqual(64);
+    expect(result.incremental?.fallbackReason).toBe("");
+  }
+});
