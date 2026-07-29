@@ -706,6 +706,12 @@ function App() {
           </span>
         </div>
         <nav className="app-links" aria-label="Project links">
+          {/* The collaborative build lives in the wordinweb repo and deploys
+              separately. Linked rather than merged: this demo consumes the
+              PUBLISHED npm package and is measured against a Word reference
+              corpus, so folding the two together would have the parity
+              harness testing a repo against itself. */}
+          <a className="collab-link" href="https://collab.word-in-web.com" target="_blank" rel="noreferrer">Collaborative</a>
           <a href="https://github.com/theRealestAEP/wordinweb" target="_blank" rel="noreferrer">GitHub</a>
           <a href="https://www.aepick.me/blog" target="_blank" rel="noreferrer">Blog</a>
           <a href="/report" target="_blank" rel="noreferrer">Parity report</a>
