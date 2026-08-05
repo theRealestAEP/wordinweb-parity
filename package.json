@@ -15,6 +15,7 @@
     "test:interop": "node scripts/interop-smoke.mjs",
     "test:interop:google": "node scripts/interop-smoke.mjs --google",
     "parity": "node scripts/parity-compare.mjs",
+    "parity:edit-roundtrip": "node scripts/edit-roundtrip-parity.mjs",
     "report:snapshot": "node scripts/snapshot-report.mjs"
   },
   "devDependencies": {

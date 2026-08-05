@@ -35,6 +35,12 @@ previews consumed by the Google Docs and LibreOffice tabs on `/report/`.
   Microsoft Word, rasterizes both Word PDFs at 192 DPI, and compares against
   the cached `parity/<fixture>-word.pdf` reference. A complete run refreshes the
   dashboard served at `/report/` from these exact results.
+- `edit-roundtrip-parity.mjs` is the edit round-trip gate. It applies a scripted
+  edit sequence in the demo, downloads the edited DOCX, and holds desktop Word's
+  rendering of that file against the web renderer's.
+- `edit-roundtrip-scenarios.mjs` holds the scenario library that gate runs.
+- `word-export.mjs` holds the Word automation and raster helpers both DOCX gates
+  share.
 - `word-parity.sh` exports one source DOCX to a Word reference PDF. Use it only
   when intentionally updating source-of-truth references.
 - `word-parity-all.sh` intentionally updates the standard reference set.
@@ -66,6 +72,39 @@ does not cause an unchanged document to be exported by Word again while XML
 byte changes still require a new Word export. Candidate rasters and reference
 rasters are cached by the exact Word-PDF SHA-256. Browser screenshots, browser
 PDFs, report PNGs, and off-page comment UI are excluded from this gate.
+
+## Edit round-trip
+
+The saved-DOCX gate proves the website re-serializes a document Word already
+agreed with. The edit round-trip gate proves the harder half: that a document
+the website EDITED still means the same thing to Word. Run it while the demo is
+available at port 5299:
+
+```bash
+npm run parity:edit-roundtrip                                # every scenario
+node scripts/edit-roundtrip-parity.mjs --scenario typing     # one, repeatable
+```
+
+Each scenario loads a fixture in the demo, applies a scripted edit sequence
+through the editor api (published on `window.__dxwApi` only under `?apihook=1`),
+and clicks the built-in Download. The gate then requires all of:
+
+- desktop Word opens and exports the edited DOCX — its repair prompt is modal
+  and never answers AppleScript, so a damaged package surfaces as a failed open;
+- re-opening and re-saving the edited DOCX produces byte-identical output;
+- Word and the web renderer agree on the page count;
+- the two 192 DPI rasters agree within the configured thresholds.
+
+Word PDFs and rasters cache under the same Word container directory the
+saved-DOCX gate uses, keyed by the DOCX package hash, so re-running a scenario
+whose edit produced identical content costs no Word round trip. Every run
+appends one JSON line to `parity/edit-roundtrip-history.jsonl` recording the
+thresholds, this repo's git SHA, and which wordinweb build was measured.
+
+Add a scenario by appending one entry to `edit-roundtrip-scenarios.mjs`. Address
+text by content rather than by pixel coordinate, assert that the edit landed,
+and leave no pending tracked changes — the web half renders the saved bytes in
+viewing mode, which shows the final document.
 
 `parity/word-reference-manifest.json` pins the source package-content hash,
 cached reference DOCX, Word-PDF hash, and page count for every fixture. If a

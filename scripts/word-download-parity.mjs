@@ -22,24 +22,28 @@
  */
 
 import { execFileSync } from "node:child_process";
-import { createHash } from "node:crypto";
 import {
-  copyFileSync,
   existsSync,
   mkdirSync,
   readFileSync,
   readdirSync,
-  renameSync,
-  rmSync,
-  statSync,
   writeFileSync,
 } from "node:fs";
-import { homedir, tmpdir } from "node:os";
+import { tmpdir } from "node:os";
 import { basename, dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { chromium } from "@playwright/test";
-import { unzipSync } from "fflate";
 import { writeWordDownloadParityReport } from "./word-download-parity-report.mjs";
+import {
+  comparePngs,
+  ensureRasters,
+  exportWithWord,
+  packageSha256,
+  pdfInfo,
+  pngs,
+  sha256,
+  wordIoDir,
+} from "./word-export.mjs";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 const parityDir = join(root, "parity");
@@ -102,161 +106,10 @@ const downloadsDir = join(outDir, "downloads");
 const candidatePdfDir = join(outDir, "candidate-pdf");
 const candidatePngDir = join(outDir, "candidate-png");
 const rasterCacheRoot = join(parityDir, ".raster-cache");
-const wordIoDir = join(homedir(), "Library/Containers/com.microsoft.Word/Data/Documents/WordInWebParity");
 const candidatePdfCacheDir = join(wordIoDir, "candidate-pdf-cache");
 const candidateRasterCacheRoot = join(wordIoDir, "candidate-raster-cache");
 for (const dir of [outDir, downloadsDir, candidatePdfDir, candidatePngDir, rasterCacheRoot, wordIoDir, candidatePdfCacheDir, candidateRasterCacheRoot]) {
   mkdirSync(dir, { recursive: true });
-}
-
-function sha256(path) {
-  return execFileSync("shasum", ["-a", "256", path], { encoding: "utf8" }).trim().split(/\s+/)[0];
-}
-
-function packageSha256(path) {
-  const hash = createHash("sha256");
-  const files = unzipSync(readFileSync(path));
-  for (const name of Object.keys(files).sort()) {
-    const bytes = files[name];
-    hash.update(name);
-    hash.update("\0");
-    hash.update(String(bytes.length));
-    hash.update("\0");
-    hash.update(bytes);
-  }
-  return hash.digest("hex");
-}
-
-function pdfInfo(path) {
-  const text = execFileSync("pdfinfo", [path], { encoding: "utf8" });
-  const creator = text.match(/^Creator:\s*(.*)$/m)?.[1]?.trim() ?? "";
-  const pages = Number(text.match(/^Pages:\s*(\d+)$/m)?.[1] ?? 0);
-  // Word occasionally preserves an empty Creator field from the source
-  // document. The AppleScript export in this process establishes candidate
-  // provenance; reject any non-empty metadata that names another producer.
-  if (creator && creator !== "Microsoft Word") {
-    throw new Error(`${path} is not a Microsoft Word PDF (Creator=${creator})`);
-  }
-  if (!Number.isInteger(pages) || pages < 1) throw new Error(`Could not read page count from ${path}`);
-  return { creator, pages };
-}
-
-function pngs(dir, prefix) {
-  return readdirSync(dir)
-    .filter((name) => name.startsWith(`${prefix}-`) && name.endsWith(".png"))
-    .sort((a, b) => Number(a.match(/-(\d+)\.png$/)?.[1]) - Number(b.match(/-(\d+)\.png$/)?.[1]))
-    .map((name) => join(dir, name));
-}
-
-function referenceRasterDir(pdf) {
-  return join(rasterCacheRoot, `${basename(pdf, ".pdf")}-${sha256(pdf)}-r192`);
-}
-
-function ensureReferenceRasters(pdf, expectedPages) {
-  const cacheDir = referenceRasterDir(pdf);
-  const complete = join(cacheDir, ".complete");
-  if (!existsSync(complete) || pngs(cacheDir, "word").length !== expectedPages) {
-    const temp = `${cacheDir}.tmp-${process.pid}`;
-    rmSync(temp, { recursive: true, force: true });
-    mkdirSync(temp, { recursive: true });
-    execFileSync("pdftoppm", ["-r", "192", "-png", pdf, join(temp, "word")], { stdio: "inherit" });
-    writeFileSync(join(temp, ".complete"), "");
-    rmSync(cacheDir, { recursive: true, force: true });
-    renameSync(temp, cacheDir);
-  }
-  return cacheDir;
-}
-
-function ensureCandidateRasters(pdf, expectedPages) {
-  const cacheDir = join(candidateRasterCacheRoot, `${sha256(pdf)}-r192`);
-  const complete = join(cacheDir, ".complete");
-  if (!existsSync(complete) || pngs(cacheDir, "candidate").length !== expectedPages) {
-    const temp = `${cacheDir}.tmp-${process.pid}`;
-    rmSync(temp, { recursive: true, force: true });
-    mkdirSync(temp, { recursive: true });
-    execFileSync("pdftoppm", ["-r", "192", "-png", pdf, join(temp, "candidate")], { stdio: "inherit" });
-    writeFileSync(join(temp, ".complete"), "");
-    rmSync(cacheDir, { recursive: true, force: true });
-    renameSync(temp, cacheDir);
-  }
-  return cacheDir;
-}
-
-function exportCandidateWithWord(name, docx, destination, packageHash) {
-  const cachedPdf = join(candidatePdfCacheDir, `${packageHash}.pdf`);
-  if (existsSync(cachedPdf) && statSync(cachedPdf).size > 0) {
-    pdfInfo(cachedPdf);
-    copyFileSync(cachedPdf, destination);
-    console.log(`Reused ${cachedPdf}`);
-    return;
-  }
-  const stagedDocx = join(wordIoDir, `${name}-website.docx`);
-  const stagedPdf = join(wordIoDir, `${name}-website-word.pdf`);
-  rmSync(stagedDocx, { force: true });
-  rmSync(stagedPdf, { force: true });
-  copyFileSync(docx, stagedDocx);
-  const escapeAppleScript = (value) => value.replaceAll("\\", "\\\\").replaceAll('"', '\\"');
-  const script = `with timeout of 600 seconds\n` +
-    `tell application "Microsoft Word"\n` +
-    `  try\n` +
-    `    close document "${escapeAppleScript(basename(stagedDocx))}" saving no\n` +
-    `  end try\n` +
-    `  open file name "${escapeAppleScript(stagedDocx)}"\n` +
-    `  repeat with attempt from 1 to 120\n` +
-    `    if exists document "${escapeAppleScript(basename(stagedDocx))}" then exit repeat\n` +
-    `    delay 1\n` +
-    `  end repeat\n` +
-    `  if not (exists document "${escapeAppleScript(basename(stagedDocx))}") then error "Word did not finish opening ${escapeAppleScript(basename(stagedDocx))}"\n` +
-    `  set candidateDocument to document "${escapeAppleScript(basename(stagedDocx))}"\n` +
-    `  delay 5\n` +
-    `  save as candidateDocument file name "${escapeAppleScript(stagedPdf)}" file format format PDF\n` +
-    `  close candidateDocument saving no\n` +
-    `end tell\n` +
-    `end timeout`;
-  execFileSync("osascript", ["-e", script], { timeout: 610_000, stdio: "inherit" });
-  if (!existsSync(stagedPdf) || statSync(stagedPdf).size === 0) throw new Error(`Word export failed for ${name}`);
-  pdfInfo(stagedPdf);
-  copyFileSync(stagedPdf, destination);
-  copyFileSync(stagedPdf, cachedPdf);
-  console.log(`Wrote ${stagedPdf}`);
-}
-
-async function comparePngs(page, reference, candidate) {
-  const [referenceBytes, candidateBytes] = [readFileSync(reference), readFileSync(candidate)];
-  return page.evaluate(async ({ referenceData, candidateData }) => {
-    const load = (data) => new Promise((resolve, reject) => {
-      const image = new Image();
-      image.onload = () => resolve(image);
-      image.onerror = () => reject(new Error("PNG decode failed"));
-      image.src = `data:image/png;base64,${data}`;
-    });
-    const [a, b] = await Promise.all([load(referenceData), load(candidateData)]);
-    const width = Math.max(a.width, b.width);
-    const height = Math.max(a.height, b.height);
-    const pixels = (image) => {
-      const canvas = document.createElement("canvas");
-      canvas.width = width;
-      canvas.height = height;
-      const context = canvas.getContext("2d", { willReadFrequently: true });
-      context.fillStyle = "white";
-      context.fillRect(0, 0, width, height);
-      context.drawImage(image, 0, 0);
-      return context.getImageData(0, 0, width, height).data;
-    };
-    const aa = pixels(a);
-    const bb = pixels(b);
-    let mismatchedPixels = 0;
-    for (let offset = 0; offset < aa.length; offset += 4) {
-      const delta = Math.abs(aa[offset] - bb[offset])
-        + Math.abs(aa[offset + 1] - bb[offset + 1])
-        + Math.abs(aa[offset + 2] - bb[offset + 2]);
-      if (delta > 90) mismatchedPixels++;
-    }
-    return { width, height, pixels: width * height, mismatchedPixels };
-  }, {
-    referenceData: referenceBytes.toString("base64"),
-    candidateData: candidateBytes.toString("base64"),
-  });
 }
 
 const manifest = {
@@ -296,7 +149,13 @@ try {
     const downloadedPackageSha256 = packageSha256(downloadedDocx);
     console.log(`[${index + 1}/${references.length}] ${name}: Microsoft Word candidate PDF`);
     const candidatePdf = join(candidatePdfDir, `${name}-website-word.pdf`);
-    exportCandidateWithWord(name, downloadedDocx, candidatePdf, downloadedPackageSha256);
+    exportWithWord({
+      name,
+      docx: downloadedDocx,
+      destination: candidatePdf,
+      packageHash: downloadedPackageSha256,
+      cacheDir: candidatePdfCacheDir,
+    });
     const referencePdf = join(parityDir, `${name}-word.pdf`);
     const referenceInfo = pdfInfo(referencePdf);
     const candidateInfo = pdfInfo(candidatePdf);
@@ -307,8 +166,18 @@ try {
       throw new Error(`${name}: page-count mismatch ${referenceInfo.pages} reference vs ${candidateInfo.pages} candidate`);
     }
 
-    const referenceRasterDir = ensureReferenceRasters(referencePdf, referenceInfo.pages);
-    const fixtureCandidatePngDir = ensureCandidateRasters(candidatePdf, candidateInfo.pages);
+    const referenceRasterDir = ensureRasters(
+      referencePdf,
+      join(rasterCacheRoot, `${basename(referencePdf, ".pdf")}-${sha256(referencePdf)}-r192`),
+      "word",
+      referenceInfo.pages,
+    );
+    const fixtureCandidatePngDir = ensureRasters(
+      candidatePdf,
+      join(candidateRasterCacheRoot, `${sha256(candidatePdf)}-r192`),
+      "candidate",
+      candidateInfo.pages,
+    );
     const referencePngs = pngs(referenceRasterDir, "word");
     const candidatePngs = pngs(fixtureCandidatePngDir, "candidate");
     if (referencePngs.length !== referenceInfo.pages || candidatePngs.length !== candidateInfo.pages) {

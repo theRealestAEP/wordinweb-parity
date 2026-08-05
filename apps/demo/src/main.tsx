@@ -377,6 +377,11 @@ function App() {
   const toolbarMode = query.get("toolbar") === "simple" ? "simple" : "advanced";
   const toolbarFeatures = query.get("layout") === "off" ? { layout: false } : undefined;
   const initial = query.get("doc");
+  // Test hook for scripted edit sequences (scripts/edit-roundtrip-parity.mjs):
+  // publish the editor api on window so a harness can apply edits through the
+  // same calls the toolbar makes, instead of synthesizing clicks for every
+  // command. Off unless ?apihook=1, so normal sessions expose nothing.
+  const apiHook = query.get("apihook") === "1";
   const persistenceEnabled = !query.has("doc");
   const [source, setSource] = useState<ArrayBuffer | string | null>(persistenceEnabled ? null : initial);
   const [preset, setPreset] = useState(initial ? PRESETS.find((item) => item.path === initial)?.id ?? "" : "blank");
@@ -598,8 +603,9 @@ function App() {
   const onEditorReady = useCallback((nextApi: DocxViewApi) => {
     apiRef.current = nextApi;
     setApi(nextApi);
+    if (apiHook) (window as unknown as { __dxwApi?: DocxViewApi }).__dxwApi = nextApi;
     void saveLocally(nextApi);
-  }, [saveLocally]);
+  }, [saveLocally, apiHook]);
 
   const savedTime = lastSaved
     ? new Date(lastSaved).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })
