@@ -82,7 +82,16 @@ export const scenarios = [
       await ed.press("ArrowRight");
       await ed.press("Enter");
       await ed.call("insertTable", 2, 2);
-      await ed.expectRendered("Tables parity");
+      // Fill the new table. A user who inserts a table types in it, so leaving
+      // it empty under-tests the round trip; an empty table is also nothing but
+      // evenly spaced rules, where every rule matches its neighbour and the
+      // comparison metric reports a line shift that is not there.
+      await ed.press("ArrowDown"); // insertTable leaves the caret above the table
+      ed.assert(await ed.inTable(), "caret did not reach the inserted table");
+      await ed.type("New A1");
+      await ed.press("Tab");
+      await ed.type("New B1");
+      await ed.expectRendered("New A1");
     },
   },
   {

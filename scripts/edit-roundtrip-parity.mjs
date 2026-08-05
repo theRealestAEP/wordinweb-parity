@@ -13,8 +13,8 @@
  *   2. exports that edited DOCX to PDF with desktop Microsoft Word, and treats
  *      a failed open (Word's repair prompt never answers AppleScript) as a
  *      scenario failure;
- *   3. renders the same edited DOCX in the web demo and compares the two
- *      rasters page by page at 192 DPI;
+ *   3. renders the same edited DOCX in the web demo and scores the two 192 DPI
+ *      rasters page by page on the corpus's structural-severity metric;
  *   4. re-opens the edited DOCX in the demo and saves it again, requiring
  *      byte-identical output.
  *
@@ -37,7 +37,6 @@ import { fileURLToPath } from "node:url";
 import { chromium } from "@playwright/test";
 import {
   SCALE,
-  comparePngs,
   ensureRasters,
   exportWithWord,
   packageSha256,
@@ -46,6 +45,8 @@ import {
   sha256,
   wordIoDir,
 } from "./word-export.mjs";
+import { pageMetric } from "./parity-metric.mjs";
+import { METRIC_VERSION } from "./parity-report.mjs";
 import { scenarios } from "./edit-roundtrip-scenarios.mjs";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
@@ -53,7 +54,27 @@ const parityDir = join(root, "parity");
 const fixtureDir = join(root, "apps/demo/public/fixtures");
 const historyPath = join(parityDir, "edit-roundtrip-history.jsonl");
 
-const THRESHOLDS = { pageMeanPct: 0.05, worstPct: 2 };
+/**
+ * Pages are scored on the corpus's structural-severity metric, not on raw
+ * mismatched-pixel percentage.
+ *
+ * Raw mismatch cannot grade a web-vs-Word page. Word-PDF and Chrome disagree on
+ * sub-pixel glyph placement across every line of text, which puts a clean page
+ * around 1% and the whole tracked corpus at a 5.29% mean (1188 pages in
+ * parity/history.jsonl) — there is no raw threshold that separates a correct
+ * round trip from a broken one. `severityPct` ignores ink that has a
+ * counterpart within a small spatial tolerance and counts only unmatched ink
+ * and corroborated line reflow, so the same clean page reads 0.00%.
+ *
+ * Calibration, from the last full corpus run in parity/history.jsonl (1188
+ * pages, metric ink-dilate-line-v5): severity mean 0.358%, median 0.00%, p95
+ * 0.55%. The unedited parity-text fixture scores 0.00% severity against 1.28%
+ * raw. So a 1% mean sits about 3x the corpus mean and above its p95, and a 5%
+ * worst page is exceeded by only 1.26% of corpus pages while staying below the
+ * metric's own structural-classification floor (STRUCT_LO = 10) — a page the
+ * corpus would call structurally broken fails this gate with margin to spare.
+ */
+const THRESHOLDS = { meanSeverityPct: 1, worstSeverityPct: 5 };
 
 const args = process.argv.slice(2);
 if (args.includes("--help")) {
@@ -83,9 +104,10 @@ const selected = requested.length === 0 ? scenarios : scenarios.filter((s) => re
 const editedDir = join(outDir, "edited-docx");
 const wordPdfDir = join(outDir, "word-pdf");
 const webPngDir = join(outDir, "web-png");
+const diffPngDir = join(outDir, "diff-png");
 const wordPdfCacheDir = join(wordIoDir, "edit-roundtrip-pdf-cache");
 const wordRasterCacheDir = join(wordIoDir, "edit-roundtrip-raster-cache");
-for (const dir of [outDir, editedDir, wordPdfDir, webPngDir, wordIoDir, wordPdfCacheDir, wordRasterCacheDir]) {
+for (const dir of [outDir, editedDir, wordPdfDir, webPngDir, diffPngDir, wordIoDir, wordPdfCacheDir, wordRasterCacheDir]) {
   mkdirSync(dir, { recursive: true });
 }
 
@@ -288,8 +310,9 @@ async function runScenario(browser, metricPage, scenario) {
     wordPdfSha256: null,
     wordPages: null,
     webPages: null,
-    pageMeanPct: null,
-    worstPct: null,
+    meanSeverityPct: null,
+    worstSeverityPct: null,
+    meanMismatchPct: null,
     pages: [],
   };
   if (!existsSync(join(fixtureDir, `${scenario.fixture}.docx`))) {
@@ -365,27 +388,50 @@ async function runScenario(browser, metricPage, scenario) {
     ensureRasters(wordPdf, join(wordRasterCacheDir, `${result.wordPdfSha256}-r192`), "word", info.pages),
     "word",
   );
+  const scenarioDiffDir = join(diffPngDir, scenario.name);
+  mkdirSync(scenarioDiffDir, { recursive: true });
   for (let index = 0; index < Math.min(wordPngs.length, webPngs.length); index++) {
-    const metric = await comparePngs(metricPage, wordPngs[index], webPngs[index]);
+    // The four semantic-layer arguments drive the appearance metrics only; this
+    // gate scores structure, so it passes null and reads severityPct.
+    const metric = await metricPage.evaluate(pageMetric, [
+      readFileSync(wordPngs[index]).toString("base64"),
+      readFileSync(webPngs[index]).toString("base64"),
+      null,
+      null,
+      null,
+      null,
+      "matched",
+      { text: [], images: [], fills: [], rules: [], width: 0, height: 0 },
+    ]);
+    // The Word | web | diff triptych is the only thing that makes a failing
+    // page diagnosable without re-running the scenario.
+    const diffPng = join(scenarioDiffDir, `p${index + 1}.png`);
+    writeFileSync(diffPng, Buffer.from(metric.png, "base64"));
     result.pages.push({
       page: index + 1,
-      ...metric,
-      mismatchPct: metric.mismatchedPixels * 100 / metric.pixels,
+      severityPct: Number(metric.severityPct),
+      mismatchPct: Number(metric.mismatchPct),
+      lineShiftPct: Number(metric.lineShiftPct),
+      misalignedPct: Number(metric.misalignedPct),
+      driftClass: metric.driftClass,
+      pageStatus: metric.pageStatus,
       wordPng: wordPngs[index],
       webPng: webPngs[index],
+      diffPng,
     });
   }
   if (result.pages.length === 0) {
     result.failures.push("No comparable pages");
     return { ...result, passed: false, durationMs: Date.now() - startedAt };
   }
-  result.pageMeanPct = result.pages.reduce((sum, page) => sum + page.mismatchPct, 0) / result.pages.length;
-  result.worstPct = result.pages.reduce((worst, page) => Math.max(worst, page.mismatchPct), 0);
-  if (result.pageMeanPct >= THRESHOLDS.pageMeanPct) {
-    result.failures.push(`Mean mismatch ${result.pageMeanPct.toFixed(4)}% >= ${THRESHOLDS.pageMeanPct}%`);
+  result.meanSeverityPct = result.pages.reduce((sum, page) => sum + page.severityPct, 0) / result.pages.length;
+  result.worstSeverityPct = result.pages.reduce((worst, page) => Math.max(worst, page.severityPct), 0);
+  result.meanMismatchPct = result.pages.reduce((sum, page) => sum + page.mismatchPct, 0) / result.pages.length;
+  if (result.meanSeverityPct > THRESHOLDS.meanSeverityPct) {
+    result.failures.push(`Mean severity ${result.meanSeverityPct.toFixed(4)}% > ${THRESHOLDS.meanSeverityPct}%`);
   }
-  if (result.worstPct >= THRESHOLDS.worstPct) {
-    result.failures.push(`Worst page ${result.worstPct.toFixed(4)}% >= ${THRESHOLDS.worstPct}%`);
+  if (result.worstSeverityPct > THRESHOLDS.worstSeverityPct) {
+    result.failures.push(`Worst page severity ${result.worstSeverityPct.toFixed(4)}% > ${THRESHOLDS.worstSeverityPct}%`);
   }
   return { ...result, passed: result.failures.length === 0, durationMs: Date.now() - startedAt };
 }
@@ -410,7 +456,8 @@ try {
     const result = await runScenario(browser, metricPage, scenario);
     results.push(result);
     const detail = result.pages.length
-      ? `mean ${result.pageMeanPct.toFixed(4)}%, worst ${result.worstPct.toFixed(4)}%, ${result.pages.length} page(s)`
+      ? `severity mean ${result.meanSeverityPct.toFixed(3)}%, worst ${result.worstSeverityPct.toFixed(3)}%`
+        + ` (raw mean ${result.meanMismatchPct.toFixed(2)}%), ${result.pages.length} page(s)`
       : "no pages compared";
     console.log(`  ${result.passed ? "PASS" : "FAIL"} — ${detail}`);
     for (const failure of result.failures) console.log(`    - ${failure}`);
@@ -425,6 +472,7 @@ const record = {
   base,
   outDir,
   thresholds: THRESHOLDS,
+  metricVersion: METRIC_VERSION,
   repo: {
     gitSha: git(root, "rev-parse", "HEAD"),
     gitBranch: git(root, "rev-parse", "--abbrev-ref", "HEAD"),
@@ -435,7 +483,13 @@ const record = {
     edited: "fixture -> demo editor api edit sequence -> built-in Download -> DOCX",
     word: "edited DOCX -> desktop Microsoft Word PDF -> pdftoppm -r 192 PNG",
     web: "edited DOCX -> demo viewing mode -> .dxw-page screenshot at deviceScaleFactor 2 (192 DPI)",
-    mismatchRule: "abs(Rdiff)+abs(Gdiff)+abs(Bdiff) > 90",
+    metric: `scripts/parity-metric.mjs severityPct (${METRIC_VERSION}); raw mismatchPct kept as context only`,
+    hardFailures: [
+      "downloaded DOCX is not a readable package",
+      "desktop Word could not open or export it",
+      "re-opening and re-saving changed the bytes",
+      "Word and web disagree on the page count",
+    ],
   },
   scenarios: results,
   summary: {

@@ -30,6 +30,9 @@ previews consumed by the Google Docs and LibreOffice tabs on `/report/`.
   launched by `parity-parallel.mjs`.
 - `parity-render-report.mjs` rebuilds the HTML report from saved results.
 - `parity-report.mjs` contains the shared report generator.
+- `parity-metric.mjs` holds the canonical per-page metric (`severityPct` and the
+  appearance channels) that `parity-compare.mjs` and `edit-roundtrip-parity.mjs`
+  both evaluate in the browser.
 - `word-download-parity.mjs` is the saved-DOCX release gate. It clicks the
   demo's built-in Download button, exports only that candidate with desktop
   Microsoft Word, rasterizes both Word PDFs at 192 DPI, and compares against
@@ -87,19 +90,54 @@ node scripts/edit-roundtrip-parity.mjs --scenario typing     # one, repeatable
 
 Each scenario loads a fixture in the demo, applies a scripted edit sequence
 through the editor api (published on `window.__dxwApi` only under `?apihook=1`),
-and clicks the built-in Download. The gate then requires all of:
+and clicks the built-in Download. Four structural checks are unconditional hard
+failures:
 
-- desktop Word opens and exports the edited DOCX — its repair prompt is modal
-  and never answers AppleScript, so a damaged package surfaces as a failed open;
+- the downloaded DOCX is a readable package;
+- desktop Word opens and exports it — Word's repair prompt is modal and never
+  answers AppleScript, so a damaged package surfaces as a failed open;
 - re-opening and re-saving the edited DOCX produces byte-identical output;
-- Word and the web renderer agree on the page count;
-- the two 192 DPI rasters agree within the configured thresholds.
+- Word and the web renderer agree on the page count.
+
+Pages are then scored, and both the mean and the worst page must stay within
+the thresholds.
+
+### Which metric, and why
+
+Pages are graded on `severityPct` from `parity-metric.mjs` — the same
+`ink-dilate-line-v5` measurement the corpus gate uses — and **not** on raw
+mismatched-pixel percentage.
+
+Raw mismatch cannot grade a web-vs-Word page. Word-PDF and Chrome disagree on
+sub-pixel glyph placement across every line of text, so a perfectly correct page
+still lands around 1%, and the tracked corpus averages 5.29% raw over 1188
+pages. No raw threshold separates a correct round trip from a broken one. The
+`typing` scenario makes the point: 1.34% raw, 0.00% severity. So does
+`header-footer`: 6.72% raw, 0.40% severity — rasterization noise, not a defect.
+
+`severityPct` registers one global page offset, then counts only ink with no
+counterpart within a small spatial tolerance, plus line reflow corroborated by
+independent misalignment. Different-looking glyphs at the same place score
+zero; missing, extra, reflowed or displaced content scores in full.
+
+Calibration, from the last full corpus run in `parity/history.jsonl` (1188
+pages, same metric version): severity mean 0.358%, median 0.00%, p95 0.55%.
+Thresholds are **mean ≤ 1%** and **worst page ≤ 5%**. The mean sits near 3x the
+corpus mean and above its p95. Only 1.26% of corpus pages exceed 5%, and 5%
+stays below the metric's own structural-classification floor (`STRUCT_LO` = 10),
+so a page the corpus metric would call structurally broken fails this gate with
+margin. Raw `mismatchPct` is still recorded per page as context.
+
+Each compared page also writes the Word | web | diff triptych under
+`diff-png/<scenario>/`, so a failure is diagnosable without re-running.
 
 Word PDFs and rasters cache under the same Word container directory the
 saved-DOCX gate uses, keyed by the DOCX package hash, so re-running a scenario
 whose edit produced identical content costs no Word round trip. Every run
-appends one JSON line to `parity/edit-roundtrip-history.jsonl` recording the
-thresholds, this repo's git SHA, and which wordinweb build was measured.
+appends one JSON line to the tracked `parity/edit-roundtrip-history.jsonl`
+recording the thresholds, the metric version, this repo's git SHA, and which
+wordinweb build was measured. Changing the metric maths means bumping
+`METRIC_VERSION` — older lines stop being comparable.
 
 Add a scenario by appending one entry to `edit-roundtrip-scenarios.mjs`. Address
 text by content rather than by pixel coordinate, assert that the edit landed,

@@ -5,6 +5,7 @@ dist/
 parity/*
 !parity/*-word.pdf
 !parity/*-word-lines.json
+!parity/edit-roundtrip-history.jsonl
 !parity/word-reference-manifest.json
 !parity/word-reference-docx/
 !parity/word-reference-docx/*.docx
