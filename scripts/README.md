@@ -2,6 +2,41 @@
 
 The public scripts support three workflows.
 
+## Selecting the engine under measurement
+
+Every gate here measures whatever wordinweb the demo loads, so that choice has
+to be explicit:
+
+```bash
+node scripts/use-engine.mjs ../wordinweb-likeoffice/packages/react   # a local build
+node scripts/use-engine.mjs npm:0.1.22                              # a published version
+node scripts/use-engine.mjs --help                                  # print what is selected now
+```
+
+The demo imports wordinweb from `apps/demo/src/main.tsx`, so Node and vite
+resolve `apps/demo/node_modules/wordinweb` **before** the root one. Setting only
+the root link therefore leaves the demo loading something else entirely, and
+nothing says so: vite serves a pre-bundled copy and only re-reads the package
+when it re-optimizes, so a dev-server restart can swap the engine mid-campaign.
+That happened here — a stale published 0.1.22 sat in `apps/demo/node_modules`
+while the root link named a local build, and a restart silently moved the suite
+from 10/10 to 5/10.
+
+`use-engine.mjs` sets **both** locations to the same engine, clears vite's dep
+cache (`apps/demo/node_modules/.vite`, otherwise the next server keeps serving
+the old pre-bundle), and prints the resolved version, realpath and git SHA. A
+local path must already be built; linking a package whose `dist/` predates its
+source measures the old code. Restart the dev server afterwards.
+
+`apps/demo/package.json` declares a published `wordinweb`, so a plain
+`npm install` resets the selection back to that version. Re-run `use-engine.mjs`
+after any install, and check `--help` if you are unsure what is selected.
+
+`engine-provenance.mjs` holds the resolution logic, shared so the selector and
+the gates cannot disagree about what "the engine" is.
+`edit-roundtrip-parity.mjs` refuses to run at all when the two locations
+disagree, rather than producing results that describe an engine nobody chose.
+
 ## Cross-editor compatibility
 
 `interop-smoke.mjs` is the structural cross-editor compatibility gate. It saves
@@ -33,6 +68,8 @@ previews consumed by the Google Docs and LibreOffice tabs on `/report/`.
 - `parity-metric.mjs` holds the canonical per-page metric (`severityPct` and the
   appearance channels) that `parity-compare.mjs` and `edit-roundtrip-parity.mjs`
   both evaluate in the browser.
+- `use-engine.mjs` selects the wordinweb build every gate measures, and
+  `engine-provenance.mjs` resolves and describes it.
 - `word-download-parity.mjs` is the saved-DOCX release gate. It clicks the
   demo's built-in Download button, exports only that candidate with desktop
   Microsoft Word, rasterizes both Word PDFs at 192 DPI, and compares against

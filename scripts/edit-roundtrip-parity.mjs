@@ -30,7 +30,7 @@
  */
 
 import { execFileSync } from "node:child_process";
-import { appendFileSync, existsSync, lstatSync, mkdirSync, readFileSync, realpathSync, writeFileSync } from "node:fs";
+import { appendFileSync, existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -47,6 +47,7 @@ import {
 } from "./word-export.mjs";
 import { pageMetric } from "./parity-metric.mjs";
 import { METRIC_VERSION } from "./parity-report.mjs";
+import { describeBuild, git, wordinwebBuild } from "./engine-provenance.mjs";
 import { scenarios } from "./edit-roundtrip-scenarios.mjs";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
@@ -109,75 +110,6 @@ const wordPdfCacheDir = join(wordIoDir, "edit-roundtrip-pdf-cache");
 const wordRasterCacheDir = join(wordIoDir, "edit-roundtrip-raster-cache");
 for (const dir of [outDir, editedDir, wordPdfDir, webPngDir, diffPngDir, wordIoDir, wordPdfCacheDir, wordRasterCacheDir]) {
   mkdirSync(dir, { recursive: true });
-}
-
-function git(cwd, ...gitArgs) {
-  try {
-    return execFileSync("git", ["-C", cwd, ...gitArgs], { encoding: "utf8" }).trim();
-  } catch {
-    return null;
-  }
-}
-
-/**
- * First `node_modules/<name>` walking up from `startDir`, which is how Node and
- * vite resolve a bare specifier. The demo imports wordinweb from
- * apps/demo/src/main.tsx, so a real package installed at
- * apps/demo/node_modules/wordinweb shadows the root symlink and is the copy
- * that actually runs.
- */
-function resolvePackageDir(name, startDir) {
-  let dir = startDir;
-  for (;;) {
-    const candidate = join(dir, "node_modules", name);
-    if (existsSync(candidate)) return candidate;
-    const parent = dirname(dir);
-    if (parent === dir) return null;
-    dir = parent;
-  }
-}
-
-function packageProvenance(packageDir) {
-  if (!packageDir || !existsSync(join(packageDir, "package.json"))) return null;
-  const symlink = lstatSync(packageDir).isSymbolicLink();
-  const target = realpathSync(packageDir);
-  const manifest = JSON.parse(readFileSync(join(packageDir, "package.json"), "utf8"));
-  // Git provenance only means something when the target is a checkout OF THE
-  // ENGINE. A published tarball unpacked under this repo answers git with THIS
-  // repo's SHA, which would name a commit that has nothing to do with the
-  // engine — the same class of mistake as reading the shadowed root link.
-  const toplevel = git(target, "rev-parse", "--show-toplevel");
-  const ownCheckout = toplevel !== null && toplevel !== realpathSync(root);
-  const status = ownCheckout ? git(target, "status", "--porcelain") : null;
-  return {
-    packageDir,
-    version: manifest.version,
-    symlink,
-    target,
-    installedCopy: !ownCheckout,
-    targetGitSha: ownCheckout ? git(target, "rev-parse", "HEAD") : null,
-    targetGitBranch: ownCheckout ? git(target, "rev-parse", "--abbrev-ref", "HEAD") : null,
-    targetGitDirty: status === null ? null : status !== "",
-  };
-}
-
-/**
- * Which wordinweb build this run measured. The link setup is never touched,
- * only recorded, so a result can be traced back to the engine that produced it.
- *
- * Record the copy the DEMO resolves, not the root link. Those differ whenever
- * apps/demo/node_modules holds a real install: the root link can point at a
- * local worktree build while the demo quietly loads a published tarball, and
- * reading the root link then attributes the run to an engine that never ran.
- * When they diverge, both are recorded with `shadowed: true`.
- */
-function wordinwebBuild() {
-  const resolved = packageProvenance(resolvePackageDir("wordinweb", join(root, "apps/demo")));
-  const rootLink = packageProvenance(join(root, "node_modules/wordinweb"));
-  const effective = resolved ?? rootLink;
-  if (!effective) return { version: null, shadowed: false, resolutionFailed: true };
-  const shadowed = Boolean(resolved && rootLink && resolved.target !== rootLink.target);
-  return { ...effective, shadowed, shadowedRootLink: shadowed ? rootLink : null };
 }
 
 // ---------------------------------------------------------------------------
@@ -489,17 +421,21 @@ try {
 }
 
 const wordinweb = wordinwebBuild();
-console.log(`wordinweb ${wordinweb.version} from ${wordinweb.packageDir}`);
+console.log(describeBuild(wordinweb));
 if (wordinweb.shadowed) {
-  // Loud, because the failure it describes is silent: vite re-optimizes deps on
-  // some restarts, and the results then describe a different engine than the
-  // one anybody thinks is under test.
-  console.warn(
-    `\nWARNING: a real install shadows the root link, so the demo does NOT load the linked build.\n` +
-    `  demo loads : ${wordinweb.version} at ${wordinweb.packageDir}\n` +
-    `  root link  : ${wordinweb.shadowedRootLink.version} -> ${wordinweb.shadowedRootLink.target}\n` +
-    `  These results measure ${wordinweb.version}. Remove the nested install to test the link.\n`,
+  // Refuse rather than warn. A shadowed checkout produces results that describe
+  // an engine nobody selected, and scripts/use-engine.mjs sets both locations
+  // together — so there is no configuration where continuing is the right call.
+  console.error(
+    `\nERROR: apps/demo/node_modules/wordinweb shadows the root link, so the demo does NOT\n` +
+    `load the engine the root link names. Results would describe an engine nobody chose.\n\n` +
+    `  demo loads : ${wordinweb.version} at ${wordinweb.target}\n` +
+    `  root link  : ${wordinweb.shadowedRootLink.version} at ${wordinweb.shadowedRootLink.target}\n\n` +
+    `Select one engine for both, then restart the dev server:\n` +
+    `  node scripts/use-engine.mjs <path-to-engine-react-pkg>\n` +
+    `  node scripts/use-engine.mjs npm:${wordinweb.version}\n`,
   );
+  process.exit(1);
 }
 
 const browser = await chromium.launch();
