@@ -119,22 +119,65 @@ function git(cwd, ...gitArgs) {
   }
 }
 
-/** Which wordinweb build this run measured — the link setup is never touched,
- * only recorded, so a result can be traced back to the engine that produced it. */
-function wordinwebBuild() {
-  const packageDir = join(root, "node_modules/wordinweb");
-  const link = lstatSync(packageDir);
-  const symlink = link.isSymbolicLink();
-  const target = symlink ? realpathSync(packageDir) : null;
+/**
+ * First `node_modules/<name>` walking up from `startDir`, which is how Node and
+ * vite resolve a bare specifier. The demo imports wordinweb from
+ * apps/demo/src/main.tsx, so a real package installed at
+ * apps/demo/node_modules/wordinweb shadows the root symlink and is the copy
+ * that actually runs.
+ */
+function resolvePackageDir(name, startDir) {
+  let dir = startDir;
+  for (;;) {
+    const candidate = join(dir, "node_modules", name);
+    if (existsSync(candidate)) return candidate;
+    const parent = dirname(dir);
+    if (parent === dir) return null;
+    dir = parent;
+  }
+}
+
+function packageProvenance(packageDir) {
+  if (!packageDir || !existsSync(join(packageDir, "package.json"))) return null;
+  const symlink = lstatSync(packageDir).isSymbolicLink();
+  const target = realpathSync(packageDir);
   const manifest = JSON.parse(readFileSync(join(packageDir, "package.json"), "utf8"));
+  // Git provenance only means something when the target is a checkout OF THE
+  // ENGINE. A published tarball unpacked under this repo answers git with THIS
+  // repo's SHA, which would name a commit that has nothing to do with the
+  // engine — the same class of mistake as reading the shadowed root link.
+  const toplevel = git(target, "rev-parse", "--show-toplevel");
+  const ownCheckout = toplevel !== null && toplevel !== realpathSync(root);
+  const status = ownCheckout ? git(target, "status", "--porcelain") : null;
   return {
+    packageDir,
     version: manifest.version,
     symlink,
     target,
-    targetGitSha: target ? git(target, "rev-parse", "HEAD") : null,
-    targetGitBranch: target ? git(target, "rev-parse", "--abbrev-ref", "HEAD") : null,
-    targetGitDirty: target ? git(target, "status", "--porcelain") !== "" : null,
+    installedCopy: !ownCheckout,
+    targetGitSha: ownCheckout ? git(target, "rev-parse", "HEAD") : null,
+    targetGitBranch: ownCheckout ? git(target, "rev-parse", "--abbrev-ref", "HEAD") : null,
+    targetGitDirty: status === null ? null : status !== "",
   };
+}
+
+/**
+ * Which wordinweb build this run measured. The link setup is never touched,
+ * only recorded, so a result can be traced back to the engine that produced it.
+ *
+ * Record the copy the DEMO resolves, not the root link. Those differ whenever
+ * apps/demo/node_modules holds a real install: the root link can point at a
+ * local worktree build while the demo quietly loads a published tarball, and
+ * reading the root link then attributes the run to an engine that never ran.
+ * When they diverge, both are recorded with `shadowed: true`.
+ */
+function wordinwebBuild() {
+  const resolved = packageProvenance(resolvePackageDir("wordinweb", join(root, "apps/demo")));
+  const rootLink = packageProvenance(join(root, "node_modules/wordinweb"));
+  const effective = resolved ?? rootLink;
+  if (!effective) return { version: null, shadowed: false, resolutionFailed: true };
+  const shadowed = Boolean(resolved && rootLink && resolved.target !== rootLink.target);
+  return { ...effective, shadowed, shadowedRootLink: shadowed ? rootLink : null };
 }
 
 // ---------------------------------------------------------------------------
@@ -445,6 +488,20 @@ try {
   process.exit(1);
 }
 
+const wordinweb = wordinwebBuild();
+console.log(`wordinweb ${wordinweb.version} from ${wordinweb.packageDir}`);
+if (wordinweb.shadowed) {
+  // Loud, because the failure it describes is silent: vite re-optimizes deps on
+  // some restarts, and the results then describe a different engine than the
+  // one anybody thinks is under test.
+  console.warn(
+    `\nWARNING: a real install shadows the root link, so the demo does NOT load the linked build.\n` +
+    `  demo loads : ${wordinweb.version} at ${wordinweb.packageDir}\n` +
+    `  root link  : ${wordinweb.shadowedRootLink.version} -> ${wordinweb.shadowedRootLink.target}\n` +
+    `  These results measure ${wordinweb.version}. Remove the nested install to test the link.\n`,
+  );
+}
+
 const browser = await chromium.launch();
 const metricPage = await browser.newPage();
 await metricPage.setContent("<!doctype html><title>Edit round-trip pixel metric</title>");
@@ -467,7 +524,10 @@ try {
 }
 
 const record = {
-  schemaVersion: 1,
+  // 2: `wordinweb` records the copy the demo resolves (with `shadowed` and
+  // `shadowedRootLink`) rather than the root symlink, which could name an
+  // engine that never ran.
+  schemaVersion: 2,
   ts: new Date().toISOString(),
   base,
   outDir,
@@ -478,7 +538,7 @@ const record = {
     gitBranch: git(root, "rev-parse", "--abbrev-ref", "HEAD"),
     gitDirty: git(root, "status", "--porcelain") !== "",
   },
-  wordinweb: wordinwebBuild(),
+  wordinweb,
   pipeline: {
     edited: "fixture -> demo editor api edit sequence -> built-in Download -> DOCX",
     word: "edited DOCX -> desktop Microsoft Word PDF -> pdftoppm -r 192 PNG",
