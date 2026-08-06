@@ -178,14 +178,21 @@ far WORD's moved from its. Failures are then classified automatically:
 - `present-in-baseline` — the page already differed before the edit, so this is
   a renderer issue and not the scenario's;
 - `edit-introduced` — our render changed and now disagrees;
-- `word-reacted` — our render held still and Word's moved, i.e. the edit changed
-  what Word does with the file rather than what we draw.
+- `word-reacted` — our render held still and Word's moved.
 
-That last case is not hypothetical. Both current failures are `word-reacted`:
-on toc-insert we keep the fixture's own blank page and Word absorbs it, and on
-field-update our page 4 never moves while Word raises it 34 CSS px. Both were
-originally filed as our bugs, and establishing otherwise took a manual
-investigation each time; the classification now falls out of the run.
+`word-reacted` says WHICH side moved. It does NOT say which side is right, and
+reading it as "our render is fine" is a mistake this gate has already made. On
+field-update the label is accurate and the conclusion drawn from it was wrong:
+Word raises page 4 by 34 CSS px and we do not, and Word reaches that same
+position on its own — open the unedited document, press F9, re-save, render —
+with nothing of ours involved. So 34 CSS px up is the CORRECT post-update
+position, Word reflows to it, and our layout fails to. The label pointed at the
+right asymmetry and the wrong culprit.
+
+Settling that needs one more export than the gate performs, and it is worth
+performing by hand on any `word-reacted` failure: have Word do the equivalent
+edit itself, end to end, and see where it lands. If Word agrees with itself,
+the movement is correct and ours is the side to fix.
 
 Baselines are close to free. The corpus already holds a Word export of every
 unedited fixture as `parity/<fixture>-word.pdf`, so no scenario needs a second
