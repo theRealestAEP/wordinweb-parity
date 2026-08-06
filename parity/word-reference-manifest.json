@@ -599,10 +599,10 @@
     },
     "wild2-legal-ca-agreement": {
       "sourcePackageSha256": "ac9319e04c4d2a646bd00cc6ca0b5e86994d75d766d0484947dfa0b8a47f25fe",
-      "referenceDocx": "apps/demo/public/fixtures/wild2-legal-ca-agreement.docx",
-      "referenceDocxPackageSha256": "ac9319e04c4d2a646bd00cc6ca0b5e86994d75d766d0484947dfa0b8a47f25fe",
-      "referencePdfSha256": "76e59926bfbc2402ab4edde99d32795e6c2d9236bb1045993f3735f9ae093461",
-      "pages": 23
+      "referenceDocx": "parity/word-reference-docx/wild2-legal-ca-agreement.docx",
+      "referenceDocxPackageSha256": "75ce71aa7d156a95e7358ffdefd2087fc825fda2f5a6510ac6afb977e759648a",
+      "referencePdfSha256": "8d86474c7c98d12c261a879ac7a8c2ba4287df558da5d3013c35382556c91c1a",
+      "pages": 22
     },
     "wild2-legal-nih-contract": {
       "sourcePackageSha256": "0fa8ada77596ef5593ea0df72ff73fe9a14859eacc0a68a94fc56ea160398c1a",

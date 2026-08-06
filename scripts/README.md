@@ -196,7 +196,8 @@ The differences that were NOT harmless:
   lower. Reference replaced; severity 0.000% → 36.810%.
 - **wild2-legal-ca-agreement** — the corpus's only page-count change, 23 → 22,
   already known from #38 and #48 as replayed pagination rather than a computed
-  layout. Now it will not reproduce even WITH its hints intact.
+  layout. Now it will not reproduce even WITH its hints intact. Reference
+  replaced; see "ca-agreement's 23rd page was never Word's" below.
 - **parity2-fields** and **probe3-field-switches** — these embed their own export
   date, so they differ on every re-export by construction and are not drift.
 
@@ -374,14 +375,44 @@ which for a SANITIZED fixture is the pagination of the text that was there
 before sanitizing. 17 of the 101 corpus fixtures with a cached reference carry
 hints and are exposed to this; see the `#43` survey.
 
-`wild2-legal-ca-agreement` is the same story and its reference is stale too. It
-carries 17 hints; strip them — 442 bytes, nothing else — and Word exports 22
-pages where the cached reference has 23. The extra one is a blank verso at
-page 2 that only the stored pagination contains. Word's computed layout of the
-untouched fixture is page-for-page identical to Word's layout of the
-TOC-inserted save, so the toc-insert edit changes Word's pagination not at all;
-it only disturbs the file enough to make Word recompute. Our 23rd page is ours,
-and it is there before any edit.
+### ca-agreement's 23rd page was never Word's
+
+`wild2-legal-ca-agreement` is the same story, and it is now settled with the
+control the drift screen demands. Its reference is re-exported and the corpus
+baseline moves from **23 pages to 22**.
+
+`parity/word-reference-docx/wild2-legal-ca-agreement.docx` is the corpus fixture
+with its 17 `w:lastRenderedPageBreak` hints stripped — 442 bytes, nothing else —
+and `parity/wild2-legal-ca-agreement-word.pdf` is what current Word exports from
+it. Four measurements, all on the build installed now:
+
+| package | exports | pages | agreement |
+| --- | --- | --- | --- |
+| hint-stripped | 3 | 22 | byte identical on all 22 pages |
+| hints intact | 2 | 22 | byte identical on all 22 pages |
+| stripped vs hinted | — | 22 | byte identical on all 22 pages |
+
+So this document is **stable**, not bistable like wild-doerfp, and its stored
+pagination is now completely **inert**: current Word computes the same 22 pages
+whether the hints are there or not. Both halves matter. The first licences
+calling the cached 23-page reference stale on a re-export; the second says the
+staleness is not a hint-replay Word still performs, it is a layout the July
+build produced and this one does not.
+
+The extra page in the old reference is a blank verso at page 2 — footer band
+only, no body ink. Under current Word `KACUCUJI A` follows the title page
+directly. Word's computed layout of the untouched fixture is page-for-page
+identical to Word's layout of the TOC-inserted save, so the toc-insert edit
+changes Word's pagination not at all; it only disturbs the file enough to make
+Word recompute. Our 23rd page is ours, and it is there before any edit.
+
+**What that costs the rule tuned against it.** The `sectPr`-gated break-only
+rule was calibrated so that the unedited document paginated to 23 and the
+TOC-inserted one to 22. Under current-build truth Word says 22 for BOTH, so the
+"unedited" row of the two-way table below is a dead target and the room-
+conditional reading it forced is unsupported. The rule is re-derived under
+"One break, one advance" further down; the table is kept because the retraction
+is the point.
 
 Its cause is worth recording because it is not a page-break rule. Pages 3 and 4
 of the same render fill to within 17.1 and 12.8 px of the body bottom, so there
