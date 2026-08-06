@@ -280,6 +280,28 @@ Measure that kind of question in the BROWSER. Through `ApproxMeasurer` the same
 page looks catastrophic — different line breaking and 15.6 px of drift — and all
 of it is the approximate measurer rather than the renderer.
 
+The +2.4 px step is **adjacent paragraphs carrying identical borders**. Of the
+415 paragraphs in that document exactly five carry a `w:pBdr`, and exactly one
+ADJACENT pair does — "Diluqofa H" followed by "Diluqofa F", both with
+`<w:bottom w:val="single" w:sz="6" w:space="1"/>`. Their three unbordered
+siblings above sit 15.3 px apart in both renders; the one bordered pair sits
+15.3 px apart in Word's and 17.7 px in ours. The arithmetic is exact: `w:sz="6"`
+is 0.75 pt, `w:space="1"` is 1 pt, and 1.75 pt is 2.4 CSS px. **Word treats a run
+of identically bordered paragraphs as one bordered block, with no rule and no
+space between them; we charge each paragraph its own border and space.**
+
+The +1.7 px step is narrowed but NOT confirmed. The only unusual construct in
+that stretch is two empty paragraphs carrying
+`<w:spacing w:line="60" w:lineRule="auto"/>` — a quarter-line multiple — at
+13 pt. Two of them at ~0.85 px each would account for it, and the document holds
+exactly two, but neither has been measured on its own: they are empty, so there
+is no text to measure between.
+
+`wild2-med-phase23-protocol`, whose re-exported reference shows the same
+one-extra-page shape, has **zero** bordered paragraphs and **zero** quarter-line
+paragraphs. Its extra page is a different cause, and closing #38 will not close
+it.
+
 Baselines are close to free. The corpus already holds a Word export of every
 unedited fixture as `parity/<fixture>-word.pdf`, so no scenario needs a second
 Word round trip, and the web baseline is rendered once per FIXTURE rather than
