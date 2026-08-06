@@ -1544,3 +1544,66 @@ no `wrap`, which makes `anchors.every((s) => s.wrap === undefined || ...)` — a
 so `hasOnlyUnwrappedAnchors` — vacuously true. If that is a parse gap rather than
 a decision, a document whose shapes DO carry a parsed wrap could still hit the
 clearance, so confirm it before assuming the anchor path is inert.
+
+### Verification at likeoffice-finalcal (#80 landed, #62 closed, footer clamp refuted)
+
+Measured in the browser against the worktree build, engine
+`likeoffice-finalcal @ 4cdcba9`.
+
+**#80 landed and both header probes now agree with Word.** The 22.5 pt clearance
+is gone from `measureHeaderFooter`. `TB` moves 94.59 -> 64.59, and all ten cases
+across the two probes sit -0.05 to -0.06 px from Word — the same constant every
+case shares:
+
+    probe-headerheight   P1 -0.05  P2 -0.05  P3 -0.05  S2 -0.05  S4 -0.06  TB -0.05
+    probe-headeranchor   PB -0.05  AN -0.05  AS -0.05  AT -0.05
+
+The anchor cases did not move, as predicted: `layoutFrame` consumes the header's
+anchors before `collectAnchors` runs, so that half of the term was unreachable
+and only the table disjunct ever fired. Full edit-roundtrip gate 17/17 with every
+number identical to the pre-change run — no gate scenario has a table header.
+`wild3-template-caed-pleading` cannot move (its `w:top` is -1325, and the header
+height reaches `bodyTop` only inside `if (sp.marginTop >= 0)`); measured after at
+30.90%, which is #67's known ~12.6 px leftover.
+
+**#62 is closed.** The grid-snap demand fix returns the whole paragraph to
+page 7, and our two lines land within ~1 px of Word's:
+
+    line              Word              ours
+    guseqotu 1    959.99 .. 980.66   959.36 .. 980.03
+    guseqotu 2   1001.67 ..1022.33  1000.69 ..1021.36
+
+Page 8 now opens on `B pohaladuh` in both renders. math-eq is 8 pages, Word's own
+count. (The earlier reading that our page 7 held only the first line was a
+measurement artefact: the scan filtered to `bottom <= 1010` and the second line
+ends at 1021.36.)
+
+**ca-agreement is still 23 against Word's 22, and the footer-clamp suspect is
+REFUTED.** `engine.ts` names the `bodyBottom` footer clamp as the leading
+suspect, needing a footer of ~62 px to put the bottom at 945.8. Measured per page
+in the browser — `w:titlePg` means page 1 uses a different footer from the rest,
+so this has to be read per page, not once:
+
+    page   footer painted   implied footerH   implied bodyBottom
+       1   996.22..1008.03            11.78              960.00
+       2   990.34..1008.06            17.66              960.00
+       3   990.34..1008.06            17.66              960.00
+       4   990.34..1008.06            17.66              960.00
+      20   971.94..1007.98            36.06              960.00
+
+**Every page clamps to 960.00, and page 1 — the page that matters — has the
+SHORTEST footer of all at 11.78 px.** The clamp `min(960, 1008 - footerH)` needs
+`footerH > 48` to bite and the tallest anywhere is 36.06. So the browser has no
+footer deficit either, and the browser/headless asymmetry the suspect rested on
+does not exist.
+
+That leaves ca-agreement's remaining page where eq-as-images' half turned out to
+be: **in the DEMAND, not the bottom.** Its break-only paragraph sits at 930.49
+with a 14.77 px line and a 960 bottom — 29.51 px of room for a bare-line demand
+of 14.77 — and still spills, which no bottom in the table above can explain. The
+paragraph is a textbook instance of the shape (`w:pPr` carrying only `w:rPr` and
+the section's `w:sectPr`, one run whose only content is `<w:br w:type="page"/>`),
+so it should take `pageBreakOnlyDemand`. Whether it does is the next thing to
+measure, and it wants engine instrumentation rather than another browser probe:
+if it is taking the ordinary demand instead, space-before plus line is 34.17 px
+against 29.51 and the spill is explained exactly.
