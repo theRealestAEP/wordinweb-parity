@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "generatedAt": "2026-08-06T07:55:38.414Z",
+  "generatedAt": "2026-08-06T08:02:37.028Z",
   "fixtures": {
     "benchmark": {
       "sourcePackageSha256": "fcce177e72a4e214276fe588643c8e39ac11340d424937c31d5bc54507d46e82",
@@ -627,10 +627,10 @@
     },
     "wild2-med-phase23-protocol": {
       "sourcePackageSha256": "57eb2c057a829ec2c2bf7291446c790ce2b62a7359f121b5efcdbb38a4eda39c",
-      "referenceDocx": "apps/demo/public/fixtures/wild2-med-phase23-protocol.docx",
-      "referenceDocxPackageSha256": "57eb2c057a829ec2c2bf7291446c790ce2b62a7359f121b5efcdbb38a4eda39c",
-      "referencePdfSha256": "82e745387c019838d565fe1a76797a673bb021906c10807bb9813feab7495ab4",
-      "pages": 70
+      "referenceDocx": "parity/word-reference-docx/wild2-med-phase23-protocol.docx",
+      "referenceDocxPackageSha256": "aff43804cca421e635f32c697d19eabec8e089d6ffd891a284e93dc07aa80e8b",
+      "referencePdfSha256": "5407596f329c7945f427fa1ea3a4b9cf8ab4f8fe06f177b002286107546603e2",
+      "pages": 69
     },
     "wild2-sci-chem-omml": {
       "sourcePackageSha256": "96bb5cf997a606db44418556be916e74a7bcc1c1e986be72d88ebc93ca29eba2",
