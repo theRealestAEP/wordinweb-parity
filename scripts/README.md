@@ -194,6 +194,23 @@ performing by hand on any `word-reacted` failure: have Word do the equivalent
 edit itself, end to end, and see where it lands. If Word agrees with itself,
 the movement is correct and ours is the side to fix.
 
+The 34 CSS px is now isolated to two layout rules, measured by
+`scripts/generate-sectcontinuous-probe.mjs` and its two Word references. Both
+apply to the first paragraph of a page that a SECTION break created, and the
+field update is incidental to both:
+
+- a following section marked `<w:type w:val="continuous"/>` makes us restart the
+  new page at the flow offset the previous section left, re-adding the
+  terminating paragraph's line and its space-after — 19.80 pt. Word treats
+  `continuous` and `nextPage` alike once a page break has already moved on;
+- we then apply the paragraph's whole `w:spacing w:before`, where Word applies
+  `max(0, before - the previous paragraph's space-after)` — a further 6.00 pt
+  here.
+
+A page created by a plain `<w:br w:type="page"/>` with no section break is
+already right on both counts: Word and we both put the paragraph at the body
+top.
+
 Baselines are close to free. The corpus already holds a Word export of every
 unedited fixture as `parity/<fixture>-word.pdf`, so no scenario needs a second
 Word round trip, and the web baseline is rendered once per FIXTURE rather than
