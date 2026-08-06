@@ -979,3 +979,59 @@ The first full gate run after this change should confirm that doerfp page 35
 reads under 1%. The 0.274111% above is reference-against-a-fresh-Word-export;
 the gate's number for that page also carries our own serialization's parity
 error on top of it.
+
+### An exact row clips nothing; it just stops at the paper edge (#56)
+
+Two observations looked incompatible. `generate-exactrow-probe.mjs` put 8 plain
+paragraphs in an `hRule="exact"` row and was read as showing BOTH engines
+clipping them identically. Then a 14-paragraph TOC in a 260 tw row vanished
+entirely from our render while Word painted about 90 lines out of it. #56 was
+filed asking what separates the cases — field content, `cantSplit`, the row's
+position on the page.
+
+**Nothing separates them.** `scripts/generate-exactoverflow-probe.mjs` moves all
+four candidates one at a time over 16 cases, and the two observations turn out
+to be two different channels of one behaviour:
+
+    case  authored   Word paints   ours paints   Word MARK-TOP   ours MARK-TOP
+     A1          1             1             1          34.33           34.34
+     A8          8             8             1          34.33           34.34
+    A32         32            32             1          34.33           34.34
+    A64         64            59             1          34.33           34.34
+    A90         90            59             1          34.33           34.34
+   A160        160            59             1          34.33           34.34
+    F90    90 (TOC)           58             0          34.33           34.34
+    C90  90 cantSplit         59             1          34.33           34.34
+    P90   90 at foot          12             1         786.33          786.34
+
+**The layout channel is already correct in both engines.** MARK sits 34.33 px
+below TOP in Word and 34.34 in ours, in every case, whether the row holds one
+paragraph or 160. The row contributes exactly its authored 260 tw to the flow
+and nothing else, and that is what the earlier exact-row probe measured — it
+read `top(row 2 mark) - top(row 0 mark)`, so it never looked at what was
+painted, and "both engines clip identically" was never something it established.
+
+**The paint channel is where we differ, and Word does not clip at all.** Word
+lays the cell's content out from the row's top and paints it straight through
+the bottom of the row box, over whatever follows, stopping only at the bottom
+edge of the PAPER. The counts prove it arithmetically: at the top of a page the
+row's content starts at 112 px and the sheet ends at 1056, which is 59 lines of
+16 px, and Word paints exactly 59 for every authored amount from 64 up. Pushed
+to the foot of the page the same 90 paragraphs start at 856 px and Word paints
+exactly 12. The row never continues onto a second page — MARK is always on the
+same page as TOP — so the rest is simply lost.
+
+We paint one line: the number that fits inside the 17.33 px row box.
+
+The other three candidates are inert. `cantSplit` changes nothing (C90 equals
+A90 in both engines). Position changes only how much paper is left below.
+And the TOC field is not special either — `F90` gets 58 where `A90` gets 59
+purely because the field's begin paragraph consumes a line, and OUR F cases
+paint zero for the same reason: the one line we allow is spent on the invisible
+field-begin paragraph. That is the whole mechanism by which the inserted TOC
+"rendered as nothing".
+
+So the fix is one-sided and small: **keep the row's layout height at the exact
+value, which is already right, and stop clipping the cell's painted content to
+it.** The content should overflow the row box and be cut off by the page edge,
+not by the row.
