@@ -102,6 +102,24 @@ for (const name of references) {
   }
 }
 
+/**
+ * Pages where desktop Word does not compute the same layout every time.
+ *
+ * wild-doerfp page 35 is the known case (#71): four exports of one package on
+ * one build produce two different page 35s, and one of them is byte-identical
+ * to the cached reference. Whichever side a run lands on is Word's coin flip,
+ * not the document's and not the engine's, so letting it into the aggregate
+ * makes the gate's headline number move for no reason anybody can act on.
+ *
+ * A declared page is still measured, still recorded, and still shown on the
+ * report. What changes is that it is kept out of the mean and the worst-page
+ * statistic, and held instead to `bistableCeilingPct` — a ceiling set from the
+ * measured amplitude of the flip, so a real regression on that page still
+ * fails. Tolerating the known wobble is not the same as not looking.
+ */
+const bistablePagesOf = (name) => new Set(referenceManifest.fixtures?.[name]?.bistablePages ?? []);
+const bistableCeilingOf = (name) => referenceManifest.fixtures?.[name]?.bistableCeilingPct ?? 0;
+
 const downloadsDir = join(outDir, "downloads");
 const candidatePdfDir = join(outDir, "candidate-pdf");
 const candidatePngDir = join(outDir, "candidate-png");
@@ -184,6 +202,7 @@ try {
       throw new Error(`${name}: incomplete raster set`);
     }
 
+    const bistable = bistablePagesOf(name);
     const pages = [];
     for (let pageIndex = 0; pageIndex < referencePngs.length; pageIndex++) {
       const metric = await comparePngs(metricPage, referencePngs[pageIndex], candidatePngs[pageIndex]);
@@ -191,6 +210,7 @@ try {
         page: pageIndex + 1,
         ...metric,
         mismatchPct: metric.mismatchedPixels * 100 / metric.pixels,
+        bistable: bistable.has(pageIndex + 1),
         referencePng: referencePngs[pageIndex],
         candidatePng: candidatePngs[pageIndex],
       });
@@ -216,12 +236,19 @@ try {
   await browser.close();
 }
 
-const pages = manifest.fixtures.flatMap((fixture) => fixture.pages);
+const allPages = manifest.fixtures.flatMap((fixture) =>
+  fixture.pages.map((page) => ({ ...page, fixture: fixture.fixture })),
+);
+const bistablePages = allPages.filter((page) => page.bistable);
+const pages = allPages.filter((page) => !page.bistable);
 const pageMeanPct = pages.reduce((sum, page) => sum + page.mismatchPct, 0) / pages.length;
 const totalPixels = pages.reduce((sum, page) => sum + page.pixels, 0);
 const mismatchedPixels = pages.reduce((sum, page) => sum + page.mismatchedPixels, 0);
 const pixelWeightedMeanPct = mismatchedPixels * 100 / totalPixels;
 const worst = pages.reduce((current, page) => page.mismatchPct > current.mismatchPct ? page : current, pages[0]);
+// A declared-bistable page is still held to a ceiling, so a real regression on
+// it still fails; only the known wobble is tolerated.
+const overCeiling = bistablePages.filter((page) => page.mismatchPct >= bistableCeilingOf(page.fixture));
 manifest.summary = {
   fixtures: manifest.fixtures.length,
   pages: pages.length,
@@ -230,9 +257,21 @@ manifest.summary = {
   pageMeanPct,
   pixelWeightedMeanPct,
   worstPct: worst.mismatchPct,
+  bistable: bistablePages.map((page) => ({
+    fixture: page.fixture,
+    page: page.page,
+    mismatchPct: page.mismatchPct,
+    ceilingPct: bistableCeilingOf(page.fixture),
+  })),
   thresholds: { pageMeanPct: 0.05, worstPct: 2 },
-  passed: pageMeanPct < 0.05 && worst.mismatchPct < 2,
+  passed: pageMeanPct < 0.05 && worst.mismatchPct < 2 && overCeiling.length === 0,
 };
+for (const page of overCeiling) {
+  console.error(
+    `${page.fixture} page ${page.page} is declared bistable but reads ${page.mismatchPct.toFixed(6)}%, ` +
+      `at or above its ${bistableCeilingOf(page.fixture)}% ceiling — that is more than the flip`,
+  );
+}
 writeFileSync(manifestPath, `${JSON.stringify(manifest, null, 2)}\n`);
 if (requested.length === 0) {
   writeWordDownloadParityReport(manifest, join(parityDir, "out"));

@@ -933,3 +933,49 @@ is what makes the two sides describe the same document.
 
 The corpus fixtures themselves are untouched, so the web side still exercises an
 unlocked `DATE` field reading its cached result.
+
+### Word's bistable page, and what the gate does about it (#71)
+
+`wild-doerfp` page 35 is the one place in this corpus where desktop Word does
+not compute the same layout every time. Four exports of the one package on one
+build produced two different page 35s, pages 1-34 and 36-38 byte-identical in
+all four, and one of the two is byte-identical to the July reference.
+
+**It is not per-export random.** Four fresh exports taken in one sitting are
+byte-identical to each other on all 38 pages, and all four land on the side that
+DIFFERS from the cached reference. So whatever decides it persists across
+consecutive exports; it is some state Word carries, not a coin flipped per
+document. That is worth knowing before anyone tries to reproduce it: a run of
+identical exports does not clear this fixture.
+
+The amplitude, by the saved-DOCX gate's own metric
+(`abs(Rdiff)+abs(Gdiff)+abs(Bdiff) > 90` at 192 DPI), is **0.274111%** of page
+35 — 9,448 pixels of 3,446,784, all of it 22 words moving horizontally by up to
+0.554 pt with no vertical movement and no reflow.
+
+`word-download-parity.mjs` now reads two optional keys per fixture from
+`parity/word-reference-manifest.json`:
+
+    "bistablePages": [35],
+    "bistableCeilingPct": 1
+
+A declared page is still rasterized, still measured, still written to
+`results.json` with `"bistable": true`, and still shown on the report. What
+changes is that it is kept out of the mean and the worst-page statistic, and
+held instead to its own ceiling. The ceiling is 1%: 3.6x the measured flip, and
+half the gate's own 2% worst-page threshold, so a genuine regression on page 35
+fails — and fails sooner than the ordinary threshold would have. Tolerating a
+known wobble is not the same as not looking at it.
+
+**The edit round-trip gate is deliberately not changed.** `wild-doerfp` is not
+in its scenario library, and that gate does not read the reference manifest at
+all, so adding the same handling there would be machinery for a case that does
+not exist yet. If a doerfp-class fixture is ever added to
+`edit-roundtrip-scenarios.mjs`, its Word baseline comes from the same
+`parity/<fixture>-word.pdf` and will inherit the same flip; the fix is to load
+the manifest and reuse these two keys.
+
+The first full gate run after this change should confirm that doerfp page 35
+reads under 1%. The 0.274111% above is reference-against-a-fresh-Word-export;
+the gate's number for that page also carries our own serialization's parity
+error on top of it.

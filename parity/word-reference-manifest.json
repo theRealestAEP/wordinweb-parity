@@ -567,7 +567,10 @@
       "referenceDocx": "apps/demo/public/fixtures/wild-doerfp.docx",
       "referenceDocxPackageSha256": "2d7313b6e95bc4a9c48677643312a1d59175adc09ce37de49d9406022c5e3152",
       "referencePdfSha256": "c4adb95e443b124a2238519bd35129ae9e9b9d112b69680022d16964cec2e208",
-      "pages": 38
+      "pages": 38,
+      "bistablePages": [35],
+      "bistableCeilingPct": 1,
+      "bistableNote": "#71: desktop Word computes two different page 35s for this package on one build. Measured amplitude 0.274111% by this gate's metric; the ceiling is 3.6x that and half the gate's own 2% worst-page threshold."
     },
     "wild-gatech": {
       "sourcePackageSha256": "97ffbb7ffa10e43e7cf4b386e60f0b4a6ce7da2a515e19b4b9654ac14ba53b1c",
