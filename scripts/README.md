@@ -386,6 +386,33 @@ costs the page.
 Both this and the two #38 rules are the same shape of defect: a quantity Word
 declines to charge at a boundary, charged in full by us.
 
+**Sweep S under-determines the rule, and toc-insert is what separates it.** The
+swept target carries no `w:sectPr`, so only ONE page advance is ever available
+and "the paragraph always fits" and "the break is absorbed" put the marker on
+the same page at every room. `wild2-legal-ca-agreement` carries the same
+break-only paragraph WITH the section's first `w:sectPr` on it (document.xml
+offset 58394), which makes two advances available and a blank page possible.
+Measured in both directions against Word, on the same document and the same
+paragraph:
+
+    case                          room at P   Word   ordinary test   always fits
+    unedited   (P carries sectPr)   plenty      23     23 correct      22 WRONG
+    toc-insert (P carries sectPr)   none        22     23 WRONG        22 correct
+    probe sweep S (no sectPr)       18..45    no blank  spills <33     correct
+
+Word's unedited page 2 really is blank (header and footer only) and its
+toc-insert page 2 really is `KACUCUJI A`; inserting the TOC fills the title page
+and takes the room away. So neither rule alone is Word's. The rule consistent
+with all three rows: a break-only paragraph never spills, AND its page break is
+honoured only when its line fitted the room that was left — when the page was
+already full the break coincides with the page end that is happening anyway and
+is absorbed. With no `sectPr` both readings collapse to one advance, which is
+exactly why the probe could not see the difference.
+
+Read a sweep that pins a rule only as far as the advances the probe makes
+available. Two settings of the room is one variable; a second construct that
+adds an advance is another, and this rule needed both.
+
 Baselines are close to free. The corpus already holds a Word export of every
 unedited fixture as `parity/<fixture>-word.pdf`, so no scenario needs a second
 Word round trip, and the web baseline is rendered once per FIXTURE rather than
