@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "generatedAt": "2026-08-06T11:42:37.995Z",
+  "generatedAt": "2026-08-06T12:13:29.685Z",
   "fixtures": {
     "benchmark": {
       "sourcePackageSha256": "fcce177e72a4e214276fe588643c8e39ac11340d424937c31d5bc54507d46e82",
@@ -260,6 +260,13 @@
       "referenceDocxPackageSha256": "64a8898d404461ee0d782f32d205f0ef966703cfcf61ec69b2e4a78308822890",
       "referencePdfSha256": "5ffa1a94b09e5f7cb212b463f7ef16750a2c9de246dae8c0641ff719c92f0d16",
       "pages": 12
+    },
+    "probe-wrapclear": {
+      "sourcePackageSha256": "ab05235c955e394824b2f4d79b57d5b0ace942772c7287650b4b3fbc0b8c7afd",
+      "referenceDocx": "apps/demo/public/fixtures/probe-wrapclear.docx",
+      "referenceDocxPackageSha256": "ab05235c955e394824b2f4d79b57d5b0ace942772c7287650b4b3fbc0b8c7afd",
+      "referencePdfSha256": "82f913ab8adf1c53bc3be2db144f4b0f0a13ebe63004842952edee8779fcc083",
+      "pages": 20
     },
     "probe2-arabic-rtl": {
       "sourcePackageSha256": "10f06f5cf71aa408256c00415954eed9fac2133a1ec68bfe8f13846c3a92c0cb",

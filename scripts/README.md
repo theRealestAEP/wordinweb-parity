@@ -161,10 +161,24 @@ of their 680 pages. Two thirds of the corpus by page count, the two hardest
 documents in it, and not one pixel moved. Only 32 of 1036 pages differ at all.
 
 The drift itself is bounded. Every difference except the ones named below is one
-of three harmless shapes: a few words nudged horizontally within a line (maximum
-0.554pt, on wild-doerfp), a whole block nudged vertically (maximum 0.260pt), or
-an embedded JPEG re-encoded in the same box at the same resolution. None reflows
-and none changes a page count.
+of three harmless shapes: a few words nudged horizontally within a line, a whole
+block nudged vertically (maximum 0.260pt), or an embedded JPEG re-encoded in the
+same box at the same resolution. None reflows and none changes a page count.
+
+**A difference is not drift until the same build reproduces itself.** Export one
+package twice on the build installed now and compare the two exports with each
+other; only a fixture that is stable under that control can have its difference
+against the cached reference attributed to the older build. Eight fixtures were
+controlled this way and seven are perfectly stable, which is what licences
+reading their differences as build drift. The confirmed ceiling is **0.378pt**,
+on wild-gatech.
+
+wild-doerfp is the exception and the reason the control exists. Four exports of
+the same package on the current build produce TWO different page 35s, and one of
+them is byte-identical to the July reference. Current Word can produce the cached
+layout and simply does not do so every time, so wild-doerfp's 0.554pt is
+bistability, not drift — and a single re-export is never enough to call a
+reference stale.
 
 Beware the raw pixel percentage on dense pages: wild2-sci-ieee-2col reads 1.39%
 from a single 0.26pt block shift, because two-column text has enormous edge
