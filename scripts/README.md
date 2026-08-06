@@ -1501,3 +1501,46 @@ top edge bears on this measurement.
 **Our engine already implements it, matching Word to 0.00 px on all four cases.**
 No change is needed, and the earlier "half-share vs own-top vs own-bottom all
 agree on current evidence" is now resolved rather than merely still-ambiguous.
+
+### Word reserves nothing above ANY header, anchored shape included (#80 scope)
+
+`scripts/generate-headeranchor-probe.mjs` exercises the branch the header-height
+probe could not. That probe's table header has `anchors.length === 0`, so it
+reaches the 22.5 pt clearance through `complexHeader`'s SECOND disjunct with
+`hasOnlyUnwrappedAnchors` false by vacuity — the anchored-shape path was never
+touched, and the `hasOnlyUnwrappedAnchors` carve-out exists because of #67's
+pleading-paper rails, so 22.5 pt might have been right there.
+
+Same geometry as the header-height probe, so the numbers compare directly. The
+shape is 1 inch by 8 pt anchored at the paragraph's own top, ending ABOVE the
+12 pt line's bottom so it cannot raise `contentBottom` — the only quantity in
+play is the flat clearance itself.
+
+    case  header                            Word     ours
+    PB    plain paragraph, no anchor       64.64    64.59
+    AN    anchor, wrapNone                 64.64    64.59
+    AS    anchor, wrapSquare               64.64    64.59
+    AT    anchor, wrapTopAndBottom         64.64    64.59
+
+**Word reserves nothing above any of them.** Table (from #72), and all three wrap
+settings here — every header composition measured gives the identical body top.
+The flat 22.5 pt has no case left among those tested that justifies it.
+
+**The probe genuinely exercised our anchor path**, which matters because a null
+result is otherwise indistinguishable from a probe that missed. Our render paints
+the shape on pages 2-4 and not on page 1: a 96.0 x 10.7 px black box at y=48,
+exactly the authored 1 inch by 8 pt. So the shape is parsed, and we still apply
+no clearance.
+
+**That confirms #80's scope rather than widening it: the only OBSERVABLE defect
+is the table disjunct.** Our anchor cases already agree with Word at all three
+wrap settings, so removing the term changes the table case and nothing else in
+practice.
+
+**One sub-question left for whoever makes the change.** It is not established WHY
+our wrapped-anchor cases decline the clearance, since the code as written should
+add it for `wrapSquare`. The likely explanation is that the parsed shape carries
+no `wrap`, which makes `anchors.every((s) => s.wrap === undefined || ...)` — and
+so `hasOnlyUnwrappedAnchors` — vacuously true. If that is a parse gap rather than
+a decision, a document whose shapes DO carry a parsed wrap could still hit the
+clearance, so confirm it before assuming the anchor path is inert.
