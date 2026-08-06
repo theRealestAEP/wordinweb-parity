@@ -208,6 +208,32 @@ export const scenarios = [
       const added = await ed.call("addComment", "Round-trip comment on this line.");
       ed.assert(added === true, "addComment refused the selection");
     },
+    // Neither render shows this edit: the comparison runs in viewing mode, where
+    // a comment paints nothing, so the edited PNGs come out byte-identical to
+    // the baseline on every page. Without the checks below the scenario would
+    // pass on addComment returning true even if the comment reached no part of
+    // the saved package.
+    async verify({ editedDocx, fail, note }) {
+      const comments = part(editedDocx, "word/comments.xml");
+      if (!comments) return fail("The saved package has no word/comments.xml");
+      if (!comments.includes("Round-trip comment on this line.")) {
+        return fail("word/comments.xml does not carry the comment text");
+      }
+      const ids = [...comments.matchAll(/<w:comment[^>]*\sw:id="(\d+)"/g)].map((m) => m[1]);
+      note("commentsInPackage", ids.length);
+
+      // A comment Word will show is anchored: the id must appear as a reference
+      // AND as a range in the body, or Word drops it silently on open.
+      const document = part(editedDocx, "word/document.xml");
+      const anchored = ids.filter((id) =>
+        new RegExp(`<w:commentReference[^>]*\\sw:id="${id}"`).test(document) &&
+        new RegExp(`<w:commentRangeStart[^>]*\\sw:id="${id}"`).test(document) &&
+        new RegExp(`<w:commentRangeEnd[^>]*\\sw:id="${id}"`).test(document));
+      note("commentsAnchored", anchored.length);
+      if (anchored.length !== ids.length) {
+        fail(`${ids.length - anchored.length} comment(s) carry no range/reference pair in document.xml`);
+      }
+    },
   },
   {
     name: "footnote",
