@@ -16,12 +16,16 @@
  *              tableRuleWeightRatio, tableRuleWeightErrorPct,
  *              tableRuleWeightMass, tableRuleCount,
  *              categoryMetricMs }]                              this run
- *   history  [{ ts, gitSha, metricVersion, appearanceMetricVersion,
+ *   history  [{ ts, gitSha, wordinweb, metricVersion, appearanceMetricVersion,
  *               isFullRun, outcome, refreshed,
  *               results:[{...same subset...}] }]
  *            all persisted runs, INCLUDING this run.
- *   meta     { generatedAt, gitSha, base, isFullRun, outcome, label, refreshed,
- *              appearanceMetricVersion }
+ *   meta     { generatedAt, gitSha, wordinweb, base, isFullRun, outcome, label,
+ *              refreshed, appearanceMetricVersion }
+ *
+ * `wordinweb` is the engine-provenance stamp (version, realpath, engine git SHA,
+ * dirty, shadowed) from scripts/engine-provenance.mjs. Runs recorded before it
+ * was stamped have none, and the header says so rather than guessing.
  *
  * severityPct is the PRIMARY metric everywhere - sorting, bars, KPIs, deltas,
  * trend. It is the STRUCTURAL residual: after registering a single global page
@@ -1151,11 +1155,28 @@ function buildIntro() {
   );
 }
 
+/**
+ * The engine these numbers describe, from the stamp engine-provenance.mjs
+ * writes into results.json. `meta.gitSha` is this repository; a corpus number
+ * means nothing without the engine's identity beside it.
+ */
+function engineLabel(build) {
+  if (!build) return "engine unrecorded";
+  if (build.resolutionFailed) return "engine NOT RESOLVED";
+  const where = build.installedCopy
+    ? "installed copy"
+    : `${build.targetGitBranch ?? "?"} @ ${(build.targetGitSha ?? "?").slice(0, 12)}`;
+  return `engine ${build.version ?? "?"} ${where}`
+    + (build.targetGitDirty ? " (dirty)" : "")
+    + (build.shadowed ? " SHADOWED" : "");
+}
+
 function buildReportSingle(results, history, meta) {
   const prev = previousRun(history, meta.isFullRun);
   const appearancePrev = previousAppearanceRun(history, meta.isFullRun);
   const subtitle = [
     meta.gitSha ? `sha ${escapeHtml(meta.gitSha)}` : "sha unknown",
+    escapeHtml(engineLabel(meta.wordinweb)),
     escapeHtml(meta.generatedAt),
     `${results.length} pages`,
     `base ${escapeHtml(meta.base)}`,

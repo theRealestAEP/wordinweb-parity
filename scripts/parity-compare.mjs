@@ -28,6 +28,7 @@ import {
   METRIC_VERSION,
 } from "./parity-report.mjs";
 import { pageMetric } from "./parity-metric.mjs";
+import { describeBuild, wordinwebBuild } from "./engine-provenance.mjs";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 const parityDir = join(root, "parity");
@@ -89,6 +90,27 @@ try {
   await fetch(base);
 } catch {
   console.error(`Demo server not reachable at ${base} — start it with \`npm run dev\` first.`);
+  process.exit(1);
+}
+
+// Which engine these numbers describe. Recorded into results.json and every
+// history entry, so a corpus number can always be traced back to the build that
+// produced it — the same stamp scripts/edit-roundtrip-parity.mjs carries.
+const wordinweb = wordinwebBuild();
+console.log(describeBuild(wordinweb));
+if (wordinweb.shadowed) {
+  // Refuse rather than warn, for the same reason the edit round-trip gate does:
+  // a shadowed checkout measures an engine nobody selected, and use-engine.mjs
+  // sets both locations together, so there is no case where continuing is right.
+  console.error(
+    `\nERROR: apps/demo/node_modules/wordinweb shadows the root link, so the demo does NOT\n` +
+    `load the engine the root link names. Results would describe an engine nobody chose.\n\n` +
+    `  demo loads : ${wordinweb.version} at ${wordinweb.target}\n` +
+    `  root link  : ${wordinweb.shadowedRootLink.version} at ${wordinweb.shadowedRootLink.target}\n\n` +
+    `Select one engine for both, then restart the dev server:\n` +
+    `  node scripts/use-engine.mjs <path-to-engine-react-pkg>\n` +
+    `  node scripts/use-engine.mjs npm:${wordinweb.version}\n`,
+  );
   process.exit(1);
 }
 
@@ -520,6 +542,7 @@ const resultMeta = {
   generatedAt,
   gitSha,
   base,
+  wordinweb,
   metricVersion: METRIC_VERSION,
   appearanceMetricVersion: APPEARANCE_METRIC_VERSION,
   isFullRun,
@@ -555,6 +578,7 @@ try {
   const entry = {
     ts: generatedAt,
     gitSha,
+    wordinweb,
     metricVersion: METRIC_VERSION,
     appearanceMetricVersion: APPEARANCE_METRIC_VERSION,
     isFullRun,
@@ -614,6 +638,7 @@ try {
         generatedAt,
         gitSha,
         base,
+        wordinweb,
         isFullRun,
         outcome,
         label: runLabel,
@@ -685,6 +710,7 @@ try {
       generatedAt,
       gitSha,
       base,
+      wordinweb,
       isFullRun,
       outcome,
       label: runLabel,

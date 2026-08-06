@@ -51,6 +51,7 @@ const html = buildReport(results, history, {
   generatedAt: doc.generatedAt ?? new Date().toISOString(),
   gitSha: doc.gitSha ?? null,
   base: doc.base ?? null,
+  wordinweb: doc.wordinweb ?? null,
   isFullRun: doc.isFullRun ?? true,
   outcome: doc.outcome ?? "accepted",
   label: doc.label ?? null,

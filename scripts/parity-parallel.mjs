@@ -144,6 +144,9 @@ const resultMeta = {
   generatedAt: new Date().toISOString(),
   gitSha: meta.gitSha,
   base: meta.base,
+  // Every shard resolves the engine itself and refuses to run on a shadowed
+  // one, so shard 0's stamp describes the build all of them measured.
+  wordinweb: meta.wordinweb ?? null,
   metricVersion: meta.metricVersion,
   appearanceMetricVersion: meta.appearanceMetricVersion,
   isFullRun: requested.length === 0,
@@ -173,6 +176,7 @@ appendFileSync(
   JSON.stringify({
     ts: resultMeta.generatedAt,
     gitSha: resultMeta.gitSha,
+    wordinweb: resultMeta.wordinweb,
     metricVersion: resultMeta.metricVersion,
     appearanceMetricVersion: resultMeta.appearanceMetricVersion,
     isFullRun: resultMeta.isFullRun,
