@@ -186,9 +186,9 @@
     },
     "parity2-fields": {
       "sourcePackageSha256": "aa0ff633f113ef1570f524a84313eccc219f81be55423bb52b6ddeeaef732bbb",
-      "referenceDocx": "apps/demo/public/fixtures/parity2-fields.docx",
-      "referenceDocxPackageSha256": "aa0ff633f113ef1570f524a84313eccc219f81be55423bb52b6ddeeaef732bbb",
-      "referencePdfSha256": "bba618d288ad8d8ad3408c581b7a28fe7e4d3fd7b7295046d1b127afe30c287a",
+      "referenceDocx": "parity/word-reference-docx/parity2-fields.docx",
+      "referenceDocxPackageSha256": "fcccad27b4b9db85701dc333a6f767155ab1c65723a2b1a4c047b8bbcd7d199c",
+      "referencePdfSha256": "c5abb28873c9b16f71d4dcb41dc70f3a29300a2d5150ea8f2a4c75c8b4591780",
       "pages": 2
     },
     "parity2-lists": {
@@ -375,9 +375,9 @@
     },
     "probe3-field-switches": {
       "sourcePackageSha256": "aa1bcf8c04c1ea4417bd01a617b6bed13b936d5b2dead45374772127208c6c3e",
-      "referenceDocx": "apps/demo/public/fixtures/probe3-field-switches.docx",
-      "referenceDocxPackageSha256": "aa1bcf8c04c1ea4417bd01a617b6bed13b936d5b2dead45374772127208c6c3e",
-      "referencePdfSha256": "0bc20a97cbf74b65784e10bcc804fa39f373906c11b7bd1b0aefcef79912bea3",
+      "referenceDocx": "parity/word-reference-docx/probe3-field-switches.docx",
+      "referenceDocxPackageSha256": "89183c96a7a5c880de4d91f72a71479470cc14ba914290477490d05d92e20bc9",
+      "referencePdfSha256": "5dc2a078a102a24469c52b8822c793969dae05c870424914a19998d3973a9872",
       "pages": 2
     },
     "probe3-index-xrefs": {

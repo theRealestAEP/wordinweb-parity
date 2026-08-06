@@ -897,3 +897,39 @@ What changes is only the numbering — **every cited page from 3 up drops by one
 A citation that names a page number is only as durable as the reference's page
 count. Write the fixture's full name and expect to re-check the number whenever
 a reference is re-exported.
+
+### The two date-volatile references, frozen (#69)
+
+`parity2-fields` and `probe3-field-switches` carry `DATE` and `TIME` fields, and
+Word recomputes those when it opens a document. Their reference PDFs therefore
+recorded the day they were exported — `7/8/2026` and `Saturday, July 11, 2026` —
+so nobody could ever reproduce them, and the drift screen reported both as
+differences every time it ran. A screen that always cries wolf twice teaches
+people to stop reading it, which is the real cost; the mis-scoring was tiny
+(0.0081% and 0.1769% of a page).
+
+Both are now frozen with `w:fldLock`, which is the mechanism OOXML provides for
+exactly this (ECMA-376 17.16.18, "Field Shall Not Be Recalculated").
+`scripts/lock-volatile-fields.py <source> <destination>` sets it on every begin
+`fldChar` whose own field code is `DATE` or `TIME`, byte for byte and nothing
+else, so the copy stays a checkable function of its source. `CREATEDATE`,
+`PAGE`, `NUMPAGES`, `SEQ`, `STYLEREF`, `REF`, `QUOTE` and `AUTHOR` are left
+alone: they are either stable across exports or are meant to recompute.
+
+Word honours it. The locked `parity2-fields` exports `1/15/2026` — the result
+already cached in the package, which is what our renderer draws and what the old
+reference never showed — and `probe3-field-switches` exports its cached
+`Friday, July 10, 2026`, `2026-07-10`, `3:07 pm` and `15:07:42`. Two exports of
+each reproduced byte for byte on both pages.
+
+`parity/word-reference-docx/` now holds a third kind of derived package, and it
+is worth being explicit that it is not like the other two. The content-type
+repair and the pagination-hint strip are **glyph-neutral** — they change what
+Word is willing to do, never what it paints. This one changes what Word paints,
+deliberately. Its justification is different: our renderer never recomputes these
+fields, so an unlocked reference was comparing Word's export-day layout against
+our cached-result layout and calling the difference parity. Locking the fields
+is what makes the two sides describe the same document.
+
+The corpus fixtures themselves are untouched, so the web side still exercises an
+unlocked `DATE` field reading its cached result.
