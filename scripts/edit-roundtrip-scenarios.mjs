@@ -76,6 +76,34 @@ function propertiesWithChange(document, kind) {
   return blocks;
 }
 
+/**
+ * Left edge of the rendered line holding `text`, relative to its page, in px.
+ *
+ * Paragraph alignment is baked into the x the renderer places a line at rather
+ * than carried as a CSS property, so this is the only way to ask "did the
+ * alignment actually reach THIS paragraph" from outside. A scenario that
+ * asserts an alignment was RESTORED without first proving it was APPLIED
+ * passes happily on a paragraph nothing ever touched — which is exactly what
+ * this one did while setAlignment was aligning the wrong paragraph.
+ */
+function lineLeft(ed, text) {
+  return ed.evaluate((needle) => {
+    const spans = [...document.querySelectorAll(".dxw-page span")].filter((s) => s.childElementCount === 0);
+    const starts = [];
+    let flat = "";
+    for (const span of spans) {
+      starts.push(flat.length);
+      flat += span.textContent ?? "";
+    }
+    const at = flat.indexOf(needle);
+    if (at < 0) return null;
+    let index = 0;
+    while (index + 1 < starts.length && starts[index + 1] <= at) index++;
+    const page = spans[index].closest(".dxw-page");
+    return Math.round((spans[index].getBoundingClientRect().x - page.getBoundingClientRect().x) * 10) / 10;
+  }, text);
+}
+
 /** 48x48 checkerboard, small enough to inline and obvious enough to see. */
 const TILE_PNG_BASE64 =
   "iVBORw0KGgoAAAANSUhEUgAAADAAAAAwCAIAAADYYG7QAAAATUlEQVR42u3XsQ0AIAgEQOZwTZdmCx1BSIw2R6if64AYM4+9C" +
@@ -474,18 +502,30 @@ export const scenarios = [
       await ed.clickText("italic");
       ed.assert(await ed.call("acceptRevisionAtCaret") === true, "could not accept the suggested run format at the caret");
 
-      // The PARAGRAPH format still has to go through the bulk call. Its
-      // w:pPrChange resolves from a w:t in core — revisionForText returns it and
-      // rejectRevision undoes it — but rejectRevisionAtCaret returns false in the
-      // browser for every way of placing the caret in the paragraph: click, find
-      // plus ArrowRight, click plus ArrowRight, and click with suggesting off. So
-      // the caret cannot reach a paragraph-format revision in this build even
-      // though it reaches a run-format one. With exactly one suggestion
-      // outstanding, rejecting "all" of them rejects precisely that one.
+      // The PARAGRAPH format, measured on the line itself at every step rather
+      // than trusted. setAlignment used to read window.getSelection(), which the
+      // editor leaves empty, so it aligned whatever paragraph the previous
+      // gesture left the caret in; the pPrChange landed on a paragraph this
+      // scenario never named, the centered one was never touched, and the
+      // "restored" check below passed without testing anything.
+      const centered = await lineLeft(ed, "Centered single line of text");
       await ed.select("Centered single line of text");
       await ed.call("setAlignment", "right");
+      const aligned = await lineLeft(ed, "Centered single line of text");
+      ed.assert(
+        aligned !== null && centered !== null && aligned > centered + 5,
+        `the alignment did not reach the selected paragraph: left edge ${centered} -> ${aligned}`,
+      );
       ed.assert(await ed.call("revisionCount") === 1, "alignment did not record a suggestion");
-      ed.assert(await ed.call("rejectAllRevisions") === 1, "could not reject the suggested alignment");
+      // Now the caret can resolve it: the revision is on the paragraph the click
+      // lands in, which it was not before.
+      await ed.clickText("Centered single line of text");
+      ed.assert(await ed.call("rejectRevisionAtCaret") === true, "could not reject the suggested alignment at the caret");
+      const restored = await lineLeft(ed, "Centered single line of text");
+      ed.assert(
+        restored !== null && Math.abs(restored - centered) < 1,
+        `rejecting did not put the line back where it started: ${centered} -> ${aligned} -> ${restored}`,
+      );
 
       await ed.select("Right-aligned single line");
       await ed.press("ArrowRight");
@@ -526,16 +566,134 @@ export const scenarios = [
       }
       if (!/w:author="Reviewer A"/.test(pending)) fail("Pending change is not attributed to Reviewer A");
 
-      // Rejected alignment fully restored: the centered paragraph is centered.
+      // Corroboration only: the centering survived into the saved bytes. On its
+      // own this proves nothing, because a paragraph the edit never reached is
+      // still centered — the load-bearing check is the measured left edge in
+      // edit(), which fails unless the alignment moved that line and the
+      // rejection put it back.
       const centered = document.includes('<w:jc w:val="center"/>');
-      note("centerRestored", centered);
-      if (!centered) fail("Rejecting the alignment suggestion did not restore the centered paragraph");
+      note("centerInSavedBytes", centered);
+      if (!centered) fail("The centered paragraph is not centered in the saved package");
 
       // Word's own reading of the same markup. The corpus has never carried a
       // non-empty *PrChange, so this is where a schema mistake shows up.
       const count = wordRevisionCount({ name: "tracked-format", docx: editedDocx });
       note("wordRevisions", count);
       if (count !== 1) fail(`Word counts ${count} tracked changes where the engine left 1 pending`);
+    },
+  },
+  {
+    name: "tracked-table-format",
+    fixture: "parity-tables",
+    description:
+      "Suggest a cell shading, a table border and a column width as Reviewer A; accept the shading, " +
+      "reject the border, and leave the column width pending as real w:tblPrChange / w:tcPrChange / w:tblGridChange.",
+    async edit(ed) {
+      await ed.clickText("Tables parity");
+
+      await ed.select("Status");
+      await ed.press("ArrowRight"); // find() leaves a selection; table ops need a caret
+      ed.assert(await ed.inTable(), "caret did not land inside the fixture table");
+
+      // Freeze the layout BEFORE suggesting, as an ordinary edit. On an autofit
+      // table a numeric column width is only a hint, and Word's autofit
+      // overrides it while we apply it literally — so without this the pending
+      // width below would be compared against a table Word laid out its own way,
+      // and the scenario would report a tracked-changes defect that is really
+      // the autofit interaction table-widths already documents.
+      await ed.call("setTableLayout", "fixed");
+
+      await ed.call("setSuggesting", true, "Reviewer A");
+
+      // Accepted: a cell shading, one w:tcPrChange on the cell holding the caret.
+      await ed.call("tableOp", { kind: "cellShading", fill: "#FFF2CC" });
+      const shadingRevisions = await ed.call("revisionCount");
+      ed.assert(shadingRevisions === 1, `cell shading recorded ${shadingRevisions} suggestions, expected 1`);
+      ed.assert(await ed.call("acceptAllRevisions") === 1, "could not accept the suggested cell shading");
+
+      // Rejected: a table border, one w:tblPrChange on the table.
+      await ed.call("setTableBorders", "table", ["top", "bottom"], { style: "single", sz: 8, color: "#C00000" });
+      const borderRevisions = await ed.call("revisionCount");
+      ed.assert(borderRevisions === 1, `table border recorded ${borderRevisions} suggestions, expected 1`);
+      ed.assert(await ed.call("rejectAllRevisions") === 1, "could not reject the suggested table border");
+
+      // Left pending: a column width. Narrowing a column restamps every cell's
+      // width from the grid, so one gesture records the table, its grid and all
+      // six cells of this 2x3 table.
+      await ed.call("setTableColumnWidth", 0, 108);
+
+      await ed.call("setSuggesting", false);
+      await ed.settle();
+      const pending = await ed.call("revisionCount");
+      // A pending FORMAT change is safe to leave for the pixel comparison in a
+      // way a pending insertion is not: the renderer reads only direct property
+      // children and never descends into a change record, so viewing mode and
+      // markup mode draw the same table.
+      ed.assert(pending === 7, `expected the column width to leave 7 suggestions (table + 6 cells), got ${pending}`);
+    },
+    async verify({ editedDocx, fail, note }) {
+      const document = part(editedDocx, "word/document.xml");
+      const tableChanges = propertiesWithChange(document, "tbl");
+      const rowChanges = propertiesWithChange(document, "tr");
+      const cellChanges = propertiesWithChange(document, "tc");
+      note("tblPrChangeCount", tableChanges.length);
+      note("trPrChangeCount", rowChanges.length);
+      note("tcPrChangeCount", cellChanges.length);
+
+      if (rowChanges.length !== 0) fail(`Nothing suggested a row format, yet ${rowChanges.length} w:trPrChange survived`);
+      if (tableChanges.length !== 1) {
+        return fail(`Expected exactly one pending w:tblPrChange, found ${tableChanges.length}`);
+      }
+      // The column width restamps every cell, so all six carry a record. Zero
+      // here would mean the shading's record was never written rather than that
+      // accepting removed it — the accepted-shading check below is what proves
+      // the accept, and this counts what the pending width left.
+      if (cellChanges.length !== 6) fail(`Expected the pending column width to record all 6 cells, found ${cellChanges.length}`);
+
+      const pending = tableChanges[0];
+      note("pendingTableChange", pending.slice(0, 220));
+      const payload = pending.match(/<w:tblPrChange\b[^>]*>([\s\S]*)<\/w:tblPrChange>/)?.[1] ?? "";
+      // A change element that records no previous properties cannot be rejected.
+      if (!/<w:tblPr>[\s\S]*<\/w:tblPr>/.test(payload) || /^<w:tblPr\s*\/>$/.test(payload.trim())) {
+        fail(`Pending w:tblPrChange carries no previous properties: ${payload.slice(0, 160)}`);
+      }
+      // Schema order: the change element closes the properties element.
+      if (!pending.trimEnd().endsWith("</w:tblPrChange></w:tblPr>")) {
+        fail(`w:tblPrChange is not the last child of its w:tblPr: ...${pending.slice(-120)}`);
+      }
+      if (!/w:author="Reviewer A"/.test(pending)) fail("Pending table change is not attributed to Reviewer A");
+
+      for (const cell of cellChanges) {
+        if (!cell.trimEnd().endsWith("</w:tcPrChange></w:tcPr>")) {
+          return fail(`w:tcPrChange is not the last child of its w:tcPr: ...${cell.slice(-120)}`);
+        }
+      }
+
+      // The grid record rides with the table's, inside w:tblGrid.
+      const grid = document.match(/<w:tblGrid>[\s\S]*?<\/w:tblGrid>\s*(?=<)/)?.[0] ?? "";
+      const gridChanges = (document.match(/<w:tblGridChange\b/g) ?? []).length;
+      note("tblGridChangeCount", gridChanges);
+      if (gridChanges !== 1) fail(`Expected exactly one w:tblGridChange, found ${gridChanges}`);
+      if (!/<w:tblGridChange\b[^>]*><w:tblGrid>[\s\S]*?<\/w:tblGrid><\/w:tblGridChange>/.test(document)) {
+        fail(`w:tblGridChange does not carry the previous grid: ${grid.slice(0, 200)}`);
+      }
+
+      // Accepted: the shading is applied and no longer under review.
+      const shaded = /<w:shd w:val="clear" w:fill="FFF2CC"\/>/.test(document);
+      note("shadingApplied", shaded);
+      if (!shaded) fail("Accepting the suggested cell shading did not leave the fill behind");
+
+      // Rejected: the border is gone entirely, colour and all.
+      const borderColor = (document.match(/w:color="C00000"/g) ?? []).length;
+      note("rejectedBorderColor", borderColor);
+      if (borderColor !== 0) fail(`Rejecting the table border left ${borderColor} of its edges behind`);
+
+      // Word's own reading of markup no corpus fixture carries. A schema mistake
+      // in any of the four elements surfaces as a repair prompt, which the gate
+      // sees as a failed open before this runs.
+      const count = wordRevisionCount({ name: "tracked-table-format", docx: editedDocx });
+      note("wordRevisions", count);
+      if (count === 0) fail("Word counts no tracked changes where the engine left 7 pending");
     },
   },
 ];
