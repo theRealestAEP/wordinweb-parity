@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "generatedAt": "2026-07-22T07:19:50.000Z",
+  "generatedAt": "2026-08-06T07:15:21.938Z",
   "fixtures": {
     "benchmark": {
       "sourcePackageSha256": "fcce177e72a4e214276fe588643c8e39ac11340d424937c31d5bc54507d46e82",
@@ -621,8 +621,8 @@
     "wild2-med-nccih-protocol": {
       "sourcePackageSha256": "55a5d6ecb6bb669d186fd338faba55726896e759b09aba30c15c4259fa738ae3",
       "referenceDocx": "parity/word-reference-docx/wild2-med-nccih-protocol.docx",
-      "referenceDocxPackageSha256": "33b0261a629ed8a2dde2a1bed159f66021a3dd4d5cbcc56f1ffa5ba7d1266086",
-      "referencePdfSha256": "3fa36f426e9172d7db507249ec96785dd277a38d03f6760343102e27c1d9470b",
+      "referenceDocxPackageSha256": "4b5c88bff220a42ca1385d5a9ea5da737714f49a4af208ea8773ba0bc05022c1",
+      "referencePdfSha256": "48899bd603dc3b867b2ca0357fee9a7c479d0f1e13f96883a2b009ccf6b8651b",
       "pages": 23
     },
     "wild2-med-phase23-protocol": {

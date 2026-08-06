@@ -240,12 +240,24 @@ nextPage one, 0.00 after a plain page break. field-update goes to severity mean
 divergence is the reference's, not ours. `parity/wild2-med-nccih-protocol-word.pdf`
 was exported from a file still carrying its stored `lastRenderedPageBreak`
 hints, so Word replayed the stored pagination instead of computing one, and
-page 4 sits 34 CSS px below where Word's own layout puts it. We used to match
-that stale position and now correctly do not, so the unedited page-4 baseline
-reads 39.100% and the gate labels it `present-in-baseline`. Nothing there is a
-renderer defect. Re-exporting that reference from a disturbed copy is the open
-item; until then the label on this fixture means "the reference is stale", which
-is the third distinct thing these three labels have been misread as saying.
+page 4 sat 34 CSS px below where Word's own layout puts it. We used to match
+that stale position and correctly stopped, so the page-4 baseline read 39.100%
+and the gate labelled it `present-in-baseline` — the third distinct thing these
+three labels have been misread as saying, and no renderer defect at all.
+
+That reference is now re-exported from a hint-stripped copy of the same
+document, and the fixture reads **mean 0.000%, worst 0.000% over all 23 pages**,
+down from mean 1.700% / worst 39.100%. `parity/word-reference-docx/` holds the
+DOCX it was exported from; that file now carries two deliberate transforms
+against the corpus fixture — the content-type repair that lets Word open it at
+all, and the `w:lastRenderedPageBreak` strip that makes Word compute a layout
+instead of replaying a stored one. Neither changes a glyph.
+
+**A reference is only ground truth if Word had to compute it.** Exporting a
+hint-carrying fixture untouched gets you the pagination the file remembers,
+which for a SANITIZED fixture is the pagination of the text that was there
+before sanitizing. 17 of the 101 corpus fixtures with a cached reference carry
+hints and are exposed to this; see the `#43` survey.
 
 `wild2-legal-ca-agreement` is the same story and its reference is stale too. It
 carries 17 hints; strip them — 442 bytes, nothing else — and Word exports 22
