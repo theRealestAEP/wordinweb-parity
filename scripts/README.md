@@ -1035,3 +1035,47 @@ So the fix is one-sided and small: **keep the row's layout height at the exact
 value, which is already right, and stop clipping the cell's painted content to
 it.** The content should overflow the row box and be cut off by the page edge,
 not by the row.
+
+### math-eq's page-8 residual is a text-line deficit, not a pagination one (#62)
+
+Partial diagnosis. The cause is narrowed to one page-filling difference and a
+named suspect, but the suspect is NOT confirmed and should be probed before
+anything is changed.
+
+**The equations are already right.** Images per page are identical in both
+renders — 2, 7, 9, 6, 6, 9, 2, 0 — so the VML extent fix did its job and no
+equation crosses a page boundary differently. Whatever is left is text.
+
+**We do not fill the page.** The section is A4 with a 1440 tw bottom margin, so
+the body bottom is 1122.53 - 96 = **1026.53 px**. Word's page 7 runs its last
+baseline to 1018.30, filling that almost exactly. Our page 7 stops at
+**938.36**, and the deepest body item we place anywhere in the document is
+**983.63** — so our usable page is short by at least 43 px and page 7 is 88 px
+short of Word's fill.
+
+The consequence is the whole residual. Word's page-7 tail (the paragraph
+containing `guseqotu`) is on OUR page 8, and our page 8 therefore carries Word's
+page-7 tail followed by Word's entire page-8 bibliography. Both renders still
+end at 8 pages, so nothing about the page COUNT reveals it; the tail is simply
+shifted, which is exactly the reported shape — page 8 structural at 27.34%,
+page 7 at 6.23%, every other page at or below 1.69%.
+
+Pages 1 to 6 stay clean because they are image-dominated with little running
+text. Word's page 7 carries 94 text items. A per-text-line deficit is invisible
+until a page is mostly text, and then it lands all at once.
+
+**The suspect, unconfirmed:** this section carries
+`<w:docGrid w:type="lines" w:linePitch="312"/>`. A `lines` grid makes Word snap
+each line to a 312 tw (20.8 px) pitch, and our body text on this document
+measures 20.67 px per line. Over the ~44 lines a full body holds, 0.13 px per
+line is only 6 px, so the pitch alone does not obviously account for 43, and the
+honest position is that the grid is a candidate and not a finding.
+
+**Next measurement, and do this before changing anything.** Sweep `w:docGrid`
+`type` (`default`, `lines`, `linesAndChars`) against `linePitch` over at least
+two settings, on a page of plain text with a known line height, and read the
+line count and the last baseline per page in Word. That separates three things
+this measurement cannot: a line pitch we ignore, a body bottom we compute short
+by a constant, and a per-line advance that is simply wrong. The 43 px figure is
+a floor rather than a constant — it is our deepest item anywhere, not a measured
+body bottom — so do not tune against it.
