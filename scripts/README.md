@@ -151,6 +151,14 @@ build variable.
 | --- | --- | --- | --- | --- |
 | 1 (≤5 pages) | 76 | 142 | 60 | 16 |
 | 2 (6–39 pages) | 16 | 214 | 10 | 6 |
+| 3 (≥40 pages) | 3 | 680 | 3 | 0 |
+| **total** | **95** | **1036** | **73** | **22** |
+
+Wave 3 is the whole result in miniature: wild-multicolumn (46pp),
+wild2-lit-yiddish-rtl (215pp, 206 hints, right-to-left) and
+wild2-legal-nih-contract (419pp, 88 hints) reproduce byte for byte on every one
+of their 680 pages. Two thirds of the corpus by page count, the two hardest
+documents in it, and not one pixel moved. Only 32 of 1036 pages differ at all.
 
 The drift itself is bounded. Every difference except the ones named below is one
 of three harmless shapes: a few words nudged horizontally within a line (maximum
