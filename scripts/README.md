@@ -524,13 +524,17 @@ sides. Emptiness alone does not change it, and a page break alone does not
 change it.
 
 **An empty paragraph whose only run is a page break is the exception. Word puts
-it on the current page whatever the room — 18 px was still enough — and starts
-the new page after it. We apply the ordinary test and spill it.** In the fixture
-that is 22.1 px of room against our 32.7 px demand, so we spill, and the spill
-costs the page.
+it on the current page at 18 px of room, where the ordinary test wants 32.7, and
+starts the new page after it. We apply the ordinary test and spill it.** In the
+fixture that is 22.1 px of room against our 32.7 px demand, so we spill, and the
+spill costs the page.
 
 Both this and the two #38 rules are the same shape of defect: a quantity Word
 declines to charge at a boundary, charged in full by us.
+
+Sweep S's floor is 18 px, and the threshold turns out to sit 0.1 px below it, so
+the sweep read "fits at every room tested" as "always fits". It is not always;
+see "One break, one advance" below for the demand Word actually charges.
 
 **Sweep S under-determines the rule, and toc-insert is what separates it.** The
 swept target carries no `w:sectPr`, so only ONE page advance is ever available
@@ -558,6 +562,107 @@ exactly why the probe could not see the difference.
 Read a sweep that pins a rule only as far as the advances the probe makes
 available. Two settings of the room is one variable; a second construct that
 adds an advance is another, and this rule needed both.
+
+**Every row of that table is now retracted except the last.** The two
+ca-agreement rows read a 23-page reference the July Word build computed and this
+one does not, and the re-export above settles it at 22 for the unedited document
+and 22 for the TOC-inserted one. With both rows at 22 the table discriminates
+nothing, and the room-conditional rule it forced was tuned on a dead target. The
+replacement is measured below.
+
+### One break, one advance; and the break-only paragraph costs one bare line
+
+`scripts/generate-sectadvance-probe.mjs` writes two documents that between them
+separate every variable this rule was ever confused by. Each case fills a page,
+tunes a shim so an exact room is left, puts a target paragraph there and then a
+MARKER, and the marker's page minus the last filler's page is the number of page
+advances taken. `probe-sectadvance.docx` puts a `w:sectPr` on every target and
+sweeps the following section's start type; `probe-sectadvance-nosect.docx` is the
+same sweep with no sections at all. Both Word exports reproduced themselves byte
+for byte on every page, so the control the drift screen demands passes here too.
+
+**The advance count is not the defect.** At room 200, where the target certainly
+fits and nothing is confounded, Word and we agree on every shape:
+
+    target                     following section   Word   ours
+    empty, break only              nextPage           1      1
+    empty, break only              continuous         1      1
+    text + page break              nextPage           1      1
+    text + page break              continuous         1      1
+    text, no break                 nextPage           1      1
+    text, no break                 continuous         0      0
+    empty, no break                nextPage           1      1
+    empty, no break                continuous         0      0
+
+A page break followed by a `nextPage` section start is ONE advance, not two —
+the break and the section start are the same page end — and our layout already
+collapses them. `evenPage` and `oddPage` are excluded from that comparison on
+purpose: their advance count also depends on the parity of the page a case
+happens to land on, and once the two renders' page counts diverge the same case
+sits on different-parity pages, so those rows do not compare across engines.
+
+**The defect is the fit test, and it is one quantity.** The room at which each
+target stops spilling, Word against us:
+
+    target                          sectPr   Word fits   Word spills   ours fits   ours spills
+    empty, break only, 10 pt          yes        17           16          33            27
+    empty, break only, 20 pt          yes        33           32        (200)           40
+    empty, break only, 10 pt          no         17           16        every           never
+    empty, break only, 20 pt          no         33           32        every           never
+    text + page break, 10 pt          yes        33           27          33            27
+    text, no break,    10 pt          yes        33           27          33            27
+
+Three readings fall straight out.
+
+**Word's demand doubles with the font size, so it is a line height, not a
+constant.** 10 pt brackets it in (16, 17] px and 20 pt in (32, 33]; the two
+brackets intersect at 1.60 to 1.65 px per point. That is the SINGLE-SPACED line
+— about 1.221 em for this theme's Calibri — and it excludes both alternatives.
+The `w:line="276"` multiple would make it 18.72 px at 10 pt, and Word fits at 17
+and 18. Adding `w:before="200"` would make it 32.05 px, which is exactly the
+ordinary demand the text-carrying rows show. **Word charges an empty break-only
+paragraph its bare line, and neither its space-before nor its line multiple.**
+
+**Word does not care about the `w:sectPr`.** The no-section control gives the
+identical 17/16 and 33/32 thresholds. A gate on `sectPr` has nothing to gate.
+
+**Our two branches are both wrong, in opposite directions.** With a `sectPr` we
+apply the ordinary test, so we spill from room 27 down where Word carries on to
+16. With no `sectPr` we never spill at all, at any room or size. The gate does
+not make one branch right; it picks which way to be wrong.
+
+That also reconciles sweep S rather than contradicting it. Sweep S ran at 11 pt,
+where the demand is 17.6 to 18.2 px, and its floor was 18. Word fitted at 18
+because 18 is at or above the demand, and the sweep called that "always".
+
+The rule to implement is one line: **to fit at the foot of a page, an empty
+paragraph whose only run is `<w:br w:type="page"/>` demands its single-spaced
+line height. Every other paragraph demands space-before plus its full line, as
+now.** Same shape as the #38 rules and the exact-row rule — a quantity Word
+declines to charge at a boundary, charged in full by us.
+
+Pins for that change, all measured at engine `f88a63f`:
+
+| pin | expected | now |
+| --- | --- | --- |
+| probe-sectadvance BK 10 pt | fit 17, spill 16 | fit 33, spill 27 |
+| probe-sectadvance B2 20 pt | fit 33, spill 32 | fit 200, spill 40 |
+| probe-sectadvance-nosect NS 10 pt | fit 17, spill 16 | never spills |
+| probe-sectadvance-nosect N2 20 pt | fit 33, spill 32 | never spills |
+| probe-sectadvance TB / TO 10 pt | fit 33, spill 27 | same — must not move |
+| probe-pagefit sweep S | fits at 18..45 | same — must not move |
+| wild2-legal-ca-agreement | 22 pages | 23 |
+| wild2-med-nccih-protocol | 23 pages | same — must not move |
+| wild2-med-phase23-protocol | 69 pages | same — must not move |
+
+The two fixture pins that motivated the whole question resolve like this.
+ca-agreement's break-only paragraph sits at **28.06 px** of room and demands
+16.3, so Word fits it and takes one advance; we demand 32.05, spill it, and the
+spill buys the blank page 2 that makes us 23. nccih's sits at **543 px** of room
+and demands 17.9, so it fits under any rule anyone has proposed. The two
+instances were never distinguished by the section type, the header, or the
+compat mode. **One of them is at the knife edge and the other is nowhere near
+it**, and a rule was tuned on the pair as though both were evidence.
 
 ### toc-insert renders no TOC, so its PASS means nothing
 
