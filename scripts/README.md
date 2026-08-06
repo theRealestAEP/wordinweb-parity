@@ -982,6 +982,14 @@ error on top of it.
 
 ### An exact row clips nothing; it just stops at the paper edge (#56)
 
+> **CORRECTION (engine commit 5285045):** the "Word paints" column below
+> (59/12/58) was a PDF-extraction artifact — the reader ignored Word's clip
+> path (`re W* n` at the row box), reporting emitted text operators, not
+> rendered ink. PyMuPDF (clip-honoring) and 192 DPI rasters agree: Word
+> paints 1 line in the A/C/P cases and 0 in F, identical to our engine.
+> Both engines clip exact rows; no fix was needed and none landed. The
+> layout-channel rows (mark-to-mark 34.33px) remain valid.
+
 Two observations looked incompatible. `generate-exactrow-probe.mjs` put 8 plain
 paragraphs in an `hRule="exact"` row and was read as showing BOTH engines
 clipping them identically. Then a 14-paragraph TOC in a 260 tw row vanished
