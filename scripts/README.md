@@ -290,12 +290,55 @@ is 0.75 pt, `w:space="1"` is 1 pt, and 1.75 pt is 2.4 CSS px. **Word treats a ru
 of identically bordered paragraphs as one bordered block, with no rule and no
 space between them; we charge each paragraph its own border and space.**
 
-The +1.7 px step is narrowed but NOT confirmed. The only unusual construct in
-that stretch is two empty paragraphs carrying
-`<w:spacing w:line="60" w:lineRule="auto"/>` — a quarter-line multiple — at
-13 pt. Two of them at ~0.85 px each would account for it, and the document holds
-exactly two, but neither has been measured on its own: they are empty, so there
-is no text to measure between.
+The second step is **2.31 px, not 1.7**, and the quarter-line paragraphs have
+nothing to do with it. That reading is retracted here rather than quietly
+dropped, because it was reached by elimination — "the only unusual construct in
+the stretch" — and elimination named the wrong thing.
+
+`generate-quarterline-probe.mjs` measures the construct three ways. A paragraph
+whose `w:lineRule="auto"` multiple is a quarter line costs 5.000 CSS px at 13 pt
+in our render and 5.000 in Word's; two cost us 10.000 and Word 9.667; over a
+12-line stack the accumulated difference is 0.07 px. Word's baseline-to-baseline
+advance depends on where on the page the line sits — at 13 pt the first advance
+is 15.000 pt and the rest 14.750, and at 26 pt that order reverses — so a
+per-paragraph cost read off a two-line control is not a quantity Word has, and
+only the accumulation over a stack means anything. The same probe excludes
+`w:jc`, `w:tabs` and text length: Word gives all six shapes identical geometry.
+
+The structural argument is shorter and would have saved the measurement. Both
+quarter-line paragraphs sit in the first row of the signature table, and that row
+carries `<w:trHeight w:hRule="exact" w:val="495"/>`. An exact row is exactly that
+tall whatever it holds, so nothing inside it can move anything.
+
+The real rule is **a cell's own borders come out of an exact row's height, and a
+table's borders do not.** `generate-exactrow-probe.mjs` rebuilds the fixture's
+three rows — exact 495, 110 and 1089 twips — and varies one thing at a time,
+measuring `top(row 2 mark) - top(row 0 mark)` in CSS px:
+
+    variant                       ours     Word     diff
+    exact rows, tblBorders       46.34    46.03    +0.31
+    atLeast rows, tblBorders     58.34    58.03    +0.31
+    exact rows, no borders       46.34    46.03    +0.31
+    atLeast, no borders          54.34    54.03    +0.31
+    exact, middle row removed    39.00    38.67    +0.33
+    fixture tcPr, borders+shd    46.34    44.03    +2.31
+    fixture tcPr, borders only   46.34    44.03    +2.31
+    fixture tcPr, shading only   46.34    46.03    +0.31
+
+Every variant sits within the same 0.31 px of Word except the two carrying the
+fixture's own `<w:tcBorders>`. Word draws a cell border INSIDE the exact row and
+takes its width out of the content box: `w:sz="12"` is 1.5 pt, and Word's number
+drops by exactly 2.00 CSS px. A `<w:tblBorders>` rule of the same weight in the
+same visual position costs Word nothing, and `<w:shd>` is inert. We charge
+neither, so an exact row whose cells carry their own borders is 1.5 pt too tall.
+
+That reproduces the fixture to 0.02 px: from `TIV'W VIQIMUSIM` to `[TIV gece]`
+Word measures 44.00 and we measure 46.33, against the probe's 44.03 and 46.34.
+
+So `hRule="exact"` is handled correctly, table borders are handled correctly, and
+neither rule that closes #38 is a line-spacing rule. Both are borders charged
+where Word absorbs them — one between adjacent bordered paragraphs, one between
+an exact row's content and its own cell border.
 
 `wild2-med-phase23-protocol`, whose re-exported reference shows the same
 one-extra-page shape, has **zero** bordered paragraphs and **zero** quarter-line
