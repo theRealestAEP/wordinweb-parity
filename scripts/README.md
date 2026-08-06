@@ -1416,3 +1416,56 @@ so faint is the correct appearance and the current `1/dpr` floor is what makes
 
 Landing it needs a full gate run, because it moves ink on every bordered fixture
 in the corpus at once.
+
+### The header overcharge is the 22.5 pt table clearance, not the trailing space (#72)
+
+`scripts/generate-headerheight-probe.mjs` settles which component of
+`measureHeaderFooter` puts the body ~30.5 px too low above a zero top margin.
+Six sections, each `w:top="0"` so the HEADER governs the body top, each with its
+own header part, varying one authored thing. Header lines are
+`w:line="240" w:lineRule="exact"` — 12 pt, 16.00 CSS px — and TB's row is an
+exact 240 tw, so TB and P1 carry the SAME content height and differ only in
+being a table.
+
+    case  header                              Word     ours   ours - Word
+    P1    one paragraph                      64.64    64.59         -0.05
+    P2    two paragraphs                     80.64    80.59         -0.05
+    P3    three paragraphs                   96.64    96.59         -0.05
+    S2    one paragraph, w:after=200 (10pt)  77.97    77.92         -0.05
+    S4    one paragraph, w:after=400 (20pt)  91.31    91.25         -0.06
+    TB    one table row, exact 240 tw        64.64    94.59        +29.95
+
+**Word's rule is simply `headerDistance + header height`, with the trailing
+space-after included and no clearance of any kind.** Line count scales it exactly
+16.00 px per line (P1→P2→P3), the trailing space-after enters at exactly its
+authored value (+13.33 for 10 pt, +26.67 for 20 pt), and **a table header costs
+Word exactly what a paragraph header of the same content height costs** — TB and
+P1 are the same number to the digit.
+
+**Five of the six agree with us to 0.05 px, and only TB diverges.** The named
+suspect for #72 — the header's trailing space-after — is **refuted**: S2 and S4
+match on both sides, so we already charge that quantity correctly. Line count is
+right too.
+
+The whole overcharge is the last term of `measureHeaderFooter`:
+
+    Math.max(height, contentBottom) +
+      (!hasOnlyUnwrappedAnchors && complexHeader ? ptToPx(22.5) : 0)
+
+`ptToPx(22.5)` is 30.00 px, `complexHeader` is true when the header holds a table
+or a positioned shape, and the measured divergence is 29.95 — which is 30.00 once
+the -0.05 every row shares is taken out. **For a TABLE header Word reserves
+nothing, so that clearance should not apply to the table half of
+`complexHeader`.**
+
+That also explains the negmargin probe's number: its header is a single-row table
+with an exact `trHeight`, so the clearance fires there by construction, which is
+why the overcharge showed up as ~30.4-30.7 px in a measurement that never varied
+the header's composition.
+
+**Scope the fix to what was measured.** This probe moves the TABLE case only. The
+positioned-shape half of `complexHeader`, and the `hasOnlyUnwrappedAnchors`
+carve-out that already exists beside it, are NOT tested here — the 22.5 pt may
+well be right for an anchored shape, and #67's pleading-rail finding is the
+reason that carve-out exists at all. Vary an anchored shape the same way before
+removing the term outright.
