@@ -1607,3 +1607,149 @@ so it should take `pageBreakOnlyDemand`. Whether it does is the next thing to
 measure, and it wants engine instrumentation rather than another browser probe:
 if it is taking the ordinary demand instead, space-before plus line is 34.17 px
 against 29.51 and the spill is explained exactly.
+
+### ca-agreement's last page was a phantom line in the FLOW (#75, closed)
+
+The instrumentation the section above asks for was written, and it exonerates
+the break-only rule completely. `isPageBreakOnlyParagraph` ACCEPTS the shape,
+`pageBreakOnlyDemand` fires in the browser exactly as it does headlessly, and
+the demand is the bare 15.33 px line the rule intends. Nothing in the flag path,
+the `pPr` `rPr` or the one-line precondition is wrong.
+
+**The paragraph spilled because the cursor reached it at y=948.89 against a 960
+bottom — 11.11 px of room, not 29.51.** That is the whole correction, and it
+retracts the premise rather than the rule.
+
+**29.51 px was measured below the last PAINTED item, and on that page our paint
+and our flow disagreed by 18.40 px.** `browser-page-room.mjs` reports the room
+under the deepest thing on the page, which is the right question for a paragraph
+that paints something and the wrong one for a paragraph that paints nothing:
+between the last painted item at 930.49 and the cursor at 948.89 sat four empty
+paragraphs' worth of flow that no scan of the raster can see.
+
+The 18.40 px is one rule. `layoutBlock` charged a document-opening empty
+paragraph TWO mark lines when a table followed, and `applyOpeningFlowOverlap`
+then lifted the whole painted first-page body back up by exactly the same line
+height. So the reservation only ever moved the FLOW — invisibly, by construction
+— and it moved it just far enough to spill the break-only paragraph and buy the
+blank verso.
+
+Word charges ONE line, and the current-build reference says so to 0.02 px. Its
+letterhead table's first row is an `hRule="exact"` 260 tw = 17.33 px, and the
+rule under that row sits at 131.71, so Word's table top is 114.38 against a body
+top of 96 — an 18.38 px opener, where our mark line measures 18.40.
+
+The two-line reading was PDF-measured on the 23-page export that #58 replaced,
+so it is one more casualty of that reference and not a new defect. The
+grown-header half of the rule (phase23's 2 x (13.4 line + 6 after)) keeps its
+own evidence and is untouched; only the table disjunct and its paint-side
+counterpart go.
+
+**Scope was checked rather than assumed.** Exactly ONE corpus fixture opens with
+an empty paragraph immediately followed by a table, and it is ca-agreement.
+
+At engine `9a6b058`: ca-agreement is **22 pages** in the browser, the break-only
+paragraph sits at 930.494 with 29.51 px of genuine room against its 15.33 px
+demand, and the full edit-roundtrip gate is 17/17. **toc-insert's baseline half
+goes from 99.080% worst to 0.650%**, its web side landing on 22 pages against
+Word's 22 for the first time. Its edited half is 23/23 with 12 TOC entries on
+each side, so that scenario is no longer the contaminated case this file warns
+about.
+
+The general lesson is the one the `word-reacted` section already makes in a
+different key: **a number read off the raster describes the paint, and
+pagination is decided by the flow.** When the two can disagree — and any rule
+that reserves space without painting it makes them disagree — only engine
+instrumentation settles which one a fit test saw.
+
+### A rule's painted width lives in a transform, because Chromium snaps boxes (#19/#79)
+
+Word paints `w:sz/8` points faithfully at every weight, so there is no Word-side
+quantization to match and the whole error was ours. THREE sites produced it,
+where the backlog named one:
+
+1. the width snap in `renderEdge`, `max(1/dpr, round(w*dpr)/dpr)`;
+2. the `deviceHairline` PAINT branch beside it, which hard-coded a 1 px strip
+   with `scaleY(.5)` for every rule under 0.75 px — that, not the snap, is what
+   painted `sz=2` and `sz=4`, so dropping the snap alone would have left Word's
+   DEFAULT table rule untouched;
+3. **Chromium snaps a painted box's SIZE to a whole CSS pixel.** Writing the
+   declared width into `style.height` makes `sz=2` THREE times too heavy and
+   leaves `sz=8` exactly as wrong as before. The old `deviceHairline` branch was
+   working around this and never said so.
+
+**Measure a rule as INK MASS off the raster, never as a DOM box.** The box lies
+in both directions: `getBoundingClientRect` reported the snapped 0.5 px rule as
+0.5, and reported a fractional height as 0.667 on a box that painted 1.0. Sum
+`1 - luminance` down a column through the rule instead. Painted ink against
+Word's `sz/8` pt, at pinned device scale:
+
+    w:sz     before 1x   before 2x    after 1x   after 2x
+       2     unpainted   unpainted       1.000      0.994
+       4         0.753       0.753       1.000      1.003
+       6         1.000       1.000       1.000      1.000
+       8         0.750       0.750       1.000      1.002
+      12..48     1.000       1.000       1.000      1.000
+
+The 1x/2x sign flip is gone. The fix is to carry the width as `scaleY`/`scaleX`
+on a 1 px box, the same trick the hairline branch used, applied at every weight;
+position handling is separate and unchanged.
+
+**`sz=2` was not painted at all, before or after, and a DOM measurement cannot
+see that either.** `sameParagraphBorders` compared `width`, which floors at
+0.75 px and therefore SATURATES below `sz=6`, reporting 0.25 pt and 0.5 pt rules
+as the same edge. The probe's `sz2` and `sz4` paragraphs merged into one bordered
+block and the shared boundary was suppressed. Harmless while both weights snapped
+to one painted width; live the moment each is painted at its own. Any probe that
+sweeps a property should check that every case in the sweep actually rendered.
+
+Corpus spot-check, `tableRuleWeightErrorPct` against the same references:
+
+    staging-tblextreme p1   27.52% -> 5.85%
+    staging-tblextreme p2   25.66% -> 4.21%
+    parity-tables p1        22.30% -> 2.48%
+    coverletter-anon p1     39.24% -> 0.53%
+    forsale p1              48.34% -> 22.81%
+    benchmark p1            10.68% -> 12.75%
+
+`severityPct` is unchanged on every fixture, and the three no-light-rules
+controls (parity-dividers, parity2-dropcap, probe2-styleref-headers) do not move
+at all. The full edit-roundtrip gate stays 17/17, and **toc-insert's edited half
+goes to mean 0.000% / worst 0.000% over its 23 pages**, from 0.011% / 0.260% —
+the ink these three sites were losing was the last thing left in it. **benchmark p1's rule channel RISING while its ink goes from 0.75x to
+1.0x means our rule SET differs from Word's on that page** — more ink makes a
+wrong set worse — so that is a separate defect this change reveals rather than
+causes. forsale carries `w:sz="0"` borders, the one case with no Word
+measurement behind it; they keep the old one-device-pixel floor.
+
+### The chart legend sits still; the plot's right edge does not (#81)
+
+`LEGEND_GAP = 16` in `chart-geometry.ts` was fitted to the LINE page of
+probe-charts-basic, and the bar page contradicted it by ~13 px. Re-reading every
+page of `parity/probe-charts-basic-word.pdf` with `fitz get_drawings()` — one
+method for all five, chart-local CSS px, plot rect taken from the white plot fill
+and its gridlines — shows the line page is the outlier and the bar pin was right:
+
+    page      plot left   plot right   legend key   key w   legend text
+    column        35.23       401.44       422.77    7.32        433.52
+    line          35.21       375.63       413.68    8.00        433.48
+    pie               —            —       439.13    7.32             —
+    bar           37.86       394.31       422.77    7.32        433.50
+    area          35.21       392.99       422.76    7.32        433.49
+
+**The legend does not move.** Four of the five pages put the key at 422.77 with a
+7.32 px swatch and the text at 433.5. Only the LINE page differs, and only in the
+key: 413.68, 8.00 wide, because a line chart's key is a line-and-marker sample
+rather than a plain swatch. The legend TEXT's left edge is invariant to 0.04 px
+across every page that has one.
+
+**So there is no constant clearance to widen or narrow.** The plot-right-to-key
+gap is 21.33 (column), 28.46 (bar), 29.77 (area) and 38.05 (line) — four
+different numbers for one alleged constant. `LEGEND_GAP` generalises the single
+page whose key geometry is atypical, and the right edge is set by something other
+than the legend's position. What sets it per chart type is NOT established here
+and should be measured before any constant is re-fitted.
+
+The old bar figure (264.8 pt plot width, commit 6669f9e) re-reads as 267.34 pt —
+2.54 pt wider, which is the extraction offset that comment already admitted. The
+bar page never contradicted anything; the method it was measured with did.
