@@ -216,7 +216,15 @@ suppressing space-before outright at the page top and left ~19 CSS px
 unaccounted. Word suppresses it outright only after a plain page break; after a
 SECTION break it keeps `before - previous space-after`, so our excess there is
 8 CSS px rather than 16, and the rest — 26.40 CSS px — is the continuous-section
-carry-over. Both readings sum to the same 34.
+carry-over. Both readings sum to the same 34, and nothing is left over.
+
+The other candidate for that residual — that the section's first-page body
+origin tracks `w:header` distance rather than the top margin — is excluded.
+Varying `w:header` over 0, 360, 1440 and 2880 twips, on the section that ends at
+the break, on the one that begins after it, and on both, leaves the page-4 gap
+at exactly 42.40 CSS px in all twelve. The same run's control, turning that
+section's `continuous` into `nextPage`, moves it to 16.00. Header distance is
+inert for this position.
 
 Baselines are close to free. The corpus already holds a Word export of every
 unedited fixture as `parity/<fixture>-word.pdf`, so no scenario needs a second
