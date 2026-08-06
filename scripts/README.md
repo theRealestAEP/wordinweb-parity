@@ -211,6 +211,13 @@ A page created by a plain `<w:br w:type="page"/>` with no section break is
 already right on both counts: Word and we both put the paragraph at the body
 top.
 
+That supersedes the split in the commit before it, which read Word as
+suppressing space-before outright at the page top and left ~19 CSS px
+unaccounted. Word suppresses it outright only after a plain page break; after a
+SECTION break it keeps `before - previous space-after`, so our excess there is
+8 CSS px rather than 16, and the rest — 26.40 CSS px — is the continuous-section
+carry-over. Both readings sum to the same 34.
+
 Baselines are close to free. The corpus already holds a Word export of every
 unedited fixture as `parity/<fixture>-word.pdf`, so no scenario needs a second
 Word round trip, and the web baseline is rendered once per FIXTURE rather than
