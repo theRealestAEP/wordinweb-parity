@@ -1044,7 +1044,49 @@ value, which is already right, and stop clipping the cell's painted content to
 it.** The content should overflow the row box and be cut off by the page edge,
 not by the row.
 
-### math-eq's page-8 residual is a text-line deficit, not a pagination one (#62)
+### math-eq's page-8 residual is a page-BOTTOM deficit, not a per-line one (#62)
+
+> **CORRECTION.** The section below reads the residual as a per-text-line
+> page-fill deficit with a floor of "at least 43 px", derived from a deepest
+> body item of 983.63. **Both numbers are wrong and the reading with them.**
+> 983.63 came from a browser scan that filtered body items to `bottom <= 985`,
+> so it could not report anything deeper than 985 whatever the render did; the
+> same document scanned to 1035 reaches **1006.97** on page 5 and 1000.63 on
+> page 4. The "43 px" was the gap between a nominal body bottom and that
+> artefact, so it never measured anything.
+>
+> **Our line pitch on the page in question is IDENTICAL to Word's.** Measured
+> against `parity/wild2-math-eq-as-images-word.pdf` with PyMuPDF, page 7 runs
+> at 26.00 px through the body text in both engines, and the paragraph that
+> spills runs at 41.67 px in both. There is no per-line deficit to find.
+>
+> What actually happens is one fit decision. Word's page 7 ends
+> `Hunefigipawetagi` at 939.30 and then places BOTH lines of the following
+> paragraph, at 959.99..980.66 and 1001.67..1022.33, against a nominal body
+> bottom of 1026.53. We end `Hunefigipawetagi` at 938.36 — the same place to
+> within a pixel — and move that whole two-line paragraph to page 8. At our own
+> pitch its second line would land at 1000.72..1021.39, which is INSIDE the
+> nominal bottom, so the ordinary test should have kept it. The paragraph is
+> two lines with `w:widowControl` on, which makes it unsplittable, so rejecting
+> the second line moves both.
+>
+> That is the same shape engine commit `355be56` recorded on
+> `wild2-legal-ca-agreement` and deliberately left alone: "the ordinary test's
+> effective bottom for a line can sit ~14px above the nominal 960". Here the
+> deficit is bracketed rather than pinned — our render reaches 1006.97
+> somewhere, and it refuses 1021.39 here, so the effective bottom lies in
+> **[1006.97, 1021.39)** and the deficit is **at most 14.42 px**. Two
+> independent documents, two independent measurements, one ~14 px quantity.
+>
+> **So #62 and ca-agreement's remaining 23rd page are one defect, and it is in
+> `planBreaks`' effective bottom — `updateBottom`, `paragraphOverhang` or the
+> note reserves — not in the line pitch, not in the docGrid, and not in the
+> break-only rule.** Pin it with a room sweep on a document whose lines are a
+> known height before changing anything.
+>
+> The docGrid sweep the section below asks for was run anyway, and it found two
+> real and separate defects. Neither explains this page. See "What a docGrid
+> actually does" below.
 
 Partial diagnosis. The cause is narrowed to one page-filling difference and a
 named suspect, but the suspect is NOT confirmed and should be probed before
@@ -1087,3 +1129,99 @@ this measurement cannot: a line pitch we ignore, a body bottom we compute short
 by a constant, and a per-line advance that is simply wrong. The 43 px figure is
 a floor rather than a constant — it is our deepest item anywhere, not a measured
 body bottom — so do not tune against it.
+
+### What a docGrid actually does, and the two things we get wrong
+
+`scripts/generate-docgrid-probe.mjs` writes `probe-docgrid.docx`: six sections,
+each starting `nextPage`, each holding the same 60 single-line paragraphs on the
+fixture's own A4 geometry with no header or footer, differing in one authored
+thing. Read per case as the number of the last line on the section's first page,
+that line's bottom, and the line pitch.
+
+    case   grid                              Word pitch  ours   Word 1st top  ours    Word p1  ours
+    N      (none)                                 16.00  16.32         96.57   96.52       57    57
+    D312   linePitch=312, w:type omitted           16.00  16.32         96.57   96.52       57    57
+    L312   type="lines"        pitch 312           20.67  20.67         98.90  184.52       44    40
+    L240   type="lines"        pitch 240           32.00  16.32        104.57  160.52       29    53
+    L480   type="lines"        pitch 480           32.00  32.00        104.57  240.52       29    25
+    C312   type="linesAndChars" pitch 312          20.67  20.67         98.90  184.52       44    40
+
+Word's rule is one line: **a `lines` or `linesAndChars` grid snaps each line's
+advance UP to a whole number of grid rows; a grid with `w:type` omitted is
+inert.** `linesAndChars` behaves exactly as `lines` for vertical geometry. Our
+engine already treats the `default` grid as inert (N and D312 agree with Word to
+0.32 px, which is just our line height), so only the two `lines` cases matter.
+
+**1. We reserve four grid rows at a section opening and Word reserves none.**
+`engine.ts:2216` adds `4 * docGridLinePitch` to `bodyTop` on the first page of a
+section. Word's first line under a lines grid starts at 98.90 px against a body
+top of 96 — it reserves 2.33 px, which is just the snap of the first line
+itself. Ours starts at 184.52, 88.00 px lower, and the reserve tracks the pitch
+exactly: 88.00 at pitch 312, 64.00 at 240, 144.00 at 480. The comment at that
+site claims "Word reserves four grid rows at a section opening"; on a plain text
+section Word reserves nothing, and this is the whole reason our L312 page holds
+40 lines where Word's holds 44.
+
+**2. Our snap is `max(natural, pitch)` where Word's is
+`ceil(natural / pitch) * pitch`.** L240 is the case that separates them: the
+grid row is 16.00 px and the natural line is 16.32, so Word takes TWO rows and
+advances 32.00 while we fall back to the bare natural 16.32 and fit 53 lines
+where Word fits 29. L312 and L480 agree only because the natural line is smaller
+than one row there, where both formulas return one row. A sweep with a single
+pitch cannot see this; it needs a pitch on each side of the natural line.
+
+**The page-bottom test is NOT implicated.** In every case both engines stop at
+the last line that fits under the nominal body bottom of 1026.53 — ours ends
+L312 at 1011.34 with the next line needing 1032.01, Word ends at 1008.99 with
+the next needing 1029.66. Both are correct; they differ only because defect 1
+started ours 88 px lower. So this probe does not explain #62's page 7, which is
+not a section opening and whose pitch already matches Word's.
+
+### Verification at engine tip 2ca1765
+
+`npm run parity:edit-roundtrip` is **17/17**, measured against
+`wordinweb 0.2.5 — likeoffice @ 2ca1765f8219` with both engine locations agreeing.
+Every scenario reads severity mean 0.000% and worst 0.000% except `header-footer`
+(0.400% / 0.800%, its long-standing rasterization noise) and `toc-insert`
+(0.011% / 0.260%). **`field-update` is 0.000% / 0.000% over 23 pages on BOTH the
+edited and the baseline halves**, so the continuous-section and space-before
+fixes hold at tip.
+
+**Browser page counts, which are what decide a pagefit landing.** The break-only
+change (`355be56`) moved two fixtures headlessly and flagged the browser as the
+decider. Measured in the real renderer at this tip:
+
+| fixture | Word | headless before | headless after | BROWSER at tip |
+| --- | --- | --- | --- | --- |
+| wild-gatech | 22 | 23 | 24 | **22** |
+| wild-wirfp | 20 | 19 | 20 | **20** |
+| wild2-legal-ca-agreement | 22 | 23 | 23 | **23** |
+| wild2-math-eq-as-images | 8 | — | — | **8** |
+
+Both movers land on Word's own count in the browser, including `wild-gatech`,
+which the ApproxMeasurer put at 24 — one page WORSE than before the change. A
+headless delta is not evidence about a page count; this is the second time that
+has been shown on this rule and it should not need showing a third.
+
+**ca-agreement is still 23, and the break-only rule is no longer why.** The room
+at the foot of its page 1 is now **28.06 px**, measured by
+`scripts/browser-page-room.mjs` at this tip, against a demand of 16.3 — so the
+paragraph fits and the rule fires correctly. The earlier reading of **12.73 px**
+in "The room under the break-only paragraph" above was taken before the two #38
+border fixes and the exact-row fix landed, and those reclaimed the difference;
+the number is stale, not wrong-headed, and 28.06 is what current code offers.
+
+Our page 2 is nevertheless a blank verso: its only body item is one empty
+14.77 px line at the body top, which is the break-only paragraph itself, and the
+"Qeliwecap Ca. ____, with ____." at y=48 and "A-2 / jow 8-54-09" at y=990 are the
+running header and footer, not body ink. So the paragraph still spills — at 28.06
+px of room against a 16.3 px demand — which means the fit test is rejecting it on
+the EFFECTIVE bottom, not on the demand. That is the ~14 px deficit `355be56`
+deferred, and it is the same one #62 runs into. **The `wild2-legal-ca-agreement =
+22 pages` pin is unmet at this tip, and closing it means closing that deficit.**
+
+The gate's own `toc-insert` numbers say the same thing from the other side: the
+edited comparison passes at 23 pages against Word's 23, while the BASELINE reads
+**99.080% worst** — our unedited 23 against the re-exported 22-page reference,
+one page out of step from page 2 on. The baseline is the uncontaminated half
+here, and it is the one that fails.
