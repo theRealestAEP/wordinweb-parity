@@ -413,6 +413,66 @@ Read a sweep that pins a rule only as far as the advances the probe makes
 available. Two settings of the room is one variable; a second construct that
 adds an advance is another, and this rule needed both.
 
+### toc-insert renders no TOC, so its PASS means nothing
+
+Measured at engine tip dd7a26e. **Our render of the TOC-inserted document is
+identical to the unedited fixture** — not similar, identical. The gate's own
+edited `web-1.png` is byte-for-byte the same file as its baseline `web-1.png`
+in a run that PASSED, and page 1 diffs clean line for line.
+
+Neither the harness nor the package is at fault:
+
+  - `scripts/check-edited-render.mjs` reproduces `renderWebPages` exactly —
+    fixture by URL in viewing mode, then `setInputFiles` the edited DOCX — and
+    page count, page-1 character count and dot-leader presence are all
+    unchanged. The SAME path with a different document moves the render from 23
+    pages to 8, so viewing-mode uploads work.
+  - The saved `document.xml` carries a proper TOC field (begin / instrText /
+    separate, 12 `PAGEREF _Toc` entries, no `w:sdt`). Word lays it out: Word's
+    edited page 1 has 90 text lines against the unedited 46, with dot leaders.
+
+We write a correct TOC and lay it out as nothing. Until that is fixed:
+
+1. **toc-insert's PASS is spurious.** The metric scored our TOC-less page 1
+   against Word's TOC-bearing page 1 at 0.65% severity.
+2. **The scenario is not evidence about pagination rules.** Our web side is
+   effectively the unedited document throughout. Word lays the unedited file in
+   23 pages and the edited one in 22; we drew 23 before the break-only rule
+   (correct for the document we are actually drawing) and 22 after (wrong for
+   it). The scenario "passes" only because our unedited-content render fell to
+   22 and Word's edited render happens to be 22 as well.
+3. **The baseline is the only uncontaminated number in it**, and it reports the
+   break-only rule as a straight regression here: 23 vs 23 matching at 0.65%
+   became 22 vs Word's 23 at 99.07% worst.
+
+A scenario whose web side silently renders the UNEDITED document still produces
+a severity score, a page count and a PASS. Compare the edited and baseline PNGs
+before believing any scenario that exercises a field.
+
+### The room under the break-only paragraph
+
+`scripts/browser-page-room.mjs <fixture> <pages>` reports the room left at the
+foot of a page's body. The break-only paragraph carrying the first `sectPr` is
+empty, so it paints nothing and cannot be found by text; what can be measured is
+the room it was offered. bodyBottom is calibrated from the deepest body item
+anywhere in the document rather than assumed from the margins.
+
+Unedited `wild2-legal-ca-agreement` page 1: last body item bottom 945.82,
+deepest body item anywhere 958.55, margin bottom 960. **Room = 12.73 px** (14.18
+against the margin). TIGHT, not plenty — which kills the reading that the
+unedited case had room to spare and that the two states of this document
+therefore discriminate the rule. They do not.
+
+That paragraph's rPr is `sz=20` (10pt), NOT phase23's 11pt, so phase23's 32.7px
+demand does not transfer: a 10pt line alone is ~13.3px, within a rounding of the
+room. The fit here is marginal, and no rule should be tuned on it.
+
+Word's unedited blank page 2 carries text at baseline 58.04 (header band, above
+the 96px margin) and 1005.00 (footer band, below 960), and nothing between — no
+body ink, no images. This does NOT establish that Word left the page empty
+rather than spilling the paragraph onto it: an empty paragraph's mark is
+non-printing, so both readings predict exactly this content stream.
+
 ### wild2-math-eq-as-images: the line box, not the image
 
 `scripts/pdf-page-geometry.py <pdf> <page>` reads a Word PDF's content stream
