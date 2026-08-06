@@ -404,7 +404,13 @@ export const scenarios = [
       "Manual-only checks NOT asserted here: that the ribbon's Update Table button offers Update page numbers / " +
       "Update entire table, and that Ctrl-clicking an entry navigates to its heading.",
     async edit(ed) {
-      await ed.clickText("GECEFAVO VEZOCUHOJ");
+      // The caret goes in the first TOP-LEVEL body paragraph, after the
+      // letterhead. It used to land on the letterhead title, which is a cell of
+      // a table whose row is <w:cantSplit/><w:trHeight w:hRule="exact"
+      // w:val="260"/> -- a 17.3px fixed row. The TOC's 14 paragraphs went into
+      // that row, where we clip them to nothing and Word draws 90 lines, so the
+      // scenario measured exact-row overflow rather than the TOC it names.
+      await ed.clickText("pogupupeg");
       ed.assert(await ed.call("insertToc") === true, "insertToc refused the caret");
       await ed.settle();
     },
