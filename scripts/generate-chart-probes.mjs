@@ -37,6 +37,37 @@
  * writes no c:spPr for the gridlines or the chart space, so Word falls back to a
  * plain black default that a chart inserted through its own UI never shows.
  *
+ * All of that is fixed as of engine 39ece28, and re-measured against FRESH Word
+ * references. The authored ChartML changed materially, so the cached references
+ * were stale for the comparison; the old pair is kept beside the new one as
+ * parity/probe-charts-*-19a9ae6-word.pdf, named for the engine that authored the
+ * DOCX Word was given. Four of the five pages fell to near nothing:
+ *
+ *   page      before   after
+ *   column      6.73    0.38
+ *   line       32.19   30.03
+ *   pie         4.41    1.05
+ *   bar        10.38    1.70
+ *   area        6.67    1.93
+ *
+ * The line page barely moved, and the triptych says why. Gridlines, chart-space
+ * frame, axis scale, plot rectangle and every text run now agree; what is left
+ * is that WORD DRAWS THE SERIES STROKE AND ITS MARKERS FAR HEAVIER THAN WE DO —
+ * a ~2.25 pt line carrying large diamonds and squares, against our hairline and
+ * a marker a few pixels across. That is the whole 36.88% ink-weight difference,
+ * and the 5.91 ΔE00: a thin dark line over white averages lighter than a thick
+ * one.
+ *
+ * It is the SAME authoring gap one level down, and it explains why only this
+ * page kept its residual — a column, bar, pie or area chart has no series stroke
+ * or marker to disagree about. `<c:ser>` in the line chart carries NEITHER a
+ * `c:spPr` (so no `a:ln w=`) NOR a `c:marker` (so no symbol and no size), so
+ * Word applies its own default and we apply ours. Author both to close it.
+ *
+ * These two probes are deliberately NOT in parity/word-reference-manifest.json —
+ * they live in fixtures-staging so the corpus run does not adopt them — so
+ * refreshing their references needs no manifest change.
+ *
  * Every chart here carries the SAME data, so a difference between two pages is
  * a difference between chart kinds and nothing else. The values are deliberately
  * not round — a 9.6 maximum makes the axis heuristic visible, where a 10 would
