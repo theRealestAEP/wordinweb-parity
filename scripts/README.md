@@ -1313,3 +1313,49 @@ means zero" but "nil on both sides means zero".
 **Still unprobed:** the sided-ness half of #51 — a one-sided UNSHARED cell border
 in an exact row, where half-share, own-top and own-bottom all agree on current
 evidence. This probe does not separate them, and one variant would.
+
+### We do not fall back at all on lo-provenance, and that is the asymmetry (#68)
+
+#58 recorded `probe3-lo-provenance` as the corpus's only proven behavioural Word
+build change: its `SourceText` style names "Liberation Mono", "which neither
+build resolves", the July export fell back to Courier New and current Word falls
+back to Calibri. The question left open was what OUR fallback is, so it could be
+aligned. **There is nothing to align: we never fall back.**
+
+`~/Library/Fonts` holds LiberationMono, LiberationSans and LiberationSerif, so
+the browser resolves all three and paints the real faces. Our computed styles on
+that fixture are `"Liberation Serif", sans-serif` (108 runs), `"Liberation
+Mono", sans-serif` (7 runs) and `"Liberation Sans", sans-serif` (3), and a canvas
+measurement confirms the Mono request lands on a monospace face — 288.05 px for
+`MMMMiiiill` at 48 px, against Calibri's 230.25.
+
+Word substitutes **all three**, and the reference PDF names exactly what it used:
+
+| authored | Word used | metric-compatible? |
+| --- | --- | --- |
+| Liberation Serif | Times New Roman | yes, by design |
+| Liberation Sans | Arial | yes, by design |
+| Liberation Mono | **Calibri** | **no** — its twin is Courier New |
+
+The Liberation family exists to be metrically compatible with those three
+Microsoft faces, so the Serif and Sans substitutions move almost nothing, and
+that is why only the Mono run showed up in the drift screen. The July build's
+Courier New was the CORRECT metric twin; current Word swapping it for a
+proportional Calibri is a substitution regression on Microsoft's side.
+
+**So the 1.380% is a measurement-environment asymmetry, not an engine defect: we
+paint the font the document asks for and Word paints a substitute, because Word
+cannot see fonts installed in the user's `~/Library/Fonts`.** Three independent
+substitutions in one file are the evidence that it sees none of them.
+
+**Do not "align" this by teaching the engine that Liberation Mono means
+Calibri.** That would reproduce a Word bug rather than Word's layout, it would
+pin us to one Word build (July's answer was a different font), and it would make
+the document render worse for any user who actually has the font. If the 1.380%
+needs to stop being reported, the honest fixes are to annotate the manifest entry
+as an environment artefact, or to stop the fixture depending on a font only one
+side can see — not to copy the substitution.
+
+Worth generalizing: a reference is only comparable if BOTH renderers resolve the
+same faces. Installing a font locally silently changes what our side paints and
+nothing about what Word's cached references did.
