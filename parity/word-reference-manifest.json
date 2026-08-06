@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "generatedAt": "2026-08-06T11:04:26.607Z",
+  "generatedAt": "2026-08-06T11:42:37.995Z",
   "fixtures": {
     "benchmark": {
       "sourcePackageSha256": "fcce177e72a4e214276fe588643c8e39ac11340d424937c31d5bc54507d46e82",
@@ -405,7 +405,7 @@
       "sourcePackageSha256": "8273afa6e561c5faf0e7775948dd2a82e8413449f6e73a29dce4b928b15c35ff",
       "referenceDocx": "apps/demo/public/fixtures/probe3-lo-provenance.docx",
       "referenceDocxPackageSha256": "8273afa6e561c5faf0e7775948dd2a82e8413449f6e73a29dce4b928b15c35ff",
-      "referencePdfSha256": "37893bfb2e2ee9d8c5d4255d599d93a3e60c03c804a65bb652647bf38f5c705c",
+      "referencePdfSha256": "e4d413f326cb8d62e8da4598aea30c9e0ffbcd1d7aaded02ae58a88e18cab07e",
       "pages": 1
     },
     "probe3-mirror-book": {
@@ -661,10 +661,10 @@
       "pages": 4
     },
     "wild3-template-caed-pleading": {
-      "sourcePackageSha256": "bc31b7bffbcc14ac219b3d70e7f157560179e8b5d45d0bebfd5f0c9930a494e2",
+      "sourcePackageSha256": "4c689596ce5e6165605471008c7e9393deae85873b70cc49ecd5f4c79d034263",
       "referenceDocx": "apps/demo/public/fixtures/wild3-template-caed-pleading.docx",
-      "referenceDocxPackageSha256": "bc31b7bffbcc14ac219b3d70e7f157560179e8b5d45d0bebfd5f0c9930a494e2",
-      "referencePdfSha256": "d86281517f3c74cde222a3495a052b3c27a1147b55c056ce4837677713a5797b",
+      "referenceDocxPackageSha256": "4c689596ce5e6165605471008c7e9393deae85873b70cc49ecd5f4c79d034263",
+      "referencePdfSha256": "0bd5a24edf37fb4aba189147e118e37d77bc475260f2a60aca52d6ffe9a6e964",
       "pages": 1
     },
     "wild3-template-fws-manual": {
