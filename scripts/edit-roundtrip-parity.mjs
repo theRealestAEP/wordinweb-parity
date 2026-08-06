@@ -289,6 +289,7 @@ async function runScenario(browser, metricPage, scenario) {
     worstSeverityPct: null,
     meanMismatchPct: null,
     pages: [],
+    notes: {},
   };
   if (!existsSync(join(fixtureDir, `${scenario.fixture}.docx`))) {
     result.failures.push(`Missing fixture ${scenario.fixture}.docx`);
@@ -358,6 +359,12 @@ async function runScenario(browser, metricPage, scenario) {
   if (result.wordPages !== result.webPages) {
     result.failures.push(`Page-count mismatch: Word ${result.wordPages} vs web ${result.webPages}`);
   }
+  // A scenario that states its page count says so BEFORE any pixel comparison:
+  // a pagination change would otherwise read as whatever the scenario is really
+  // about (a field arithmetic bug, say) rather than as repagination.
+  if (scenario.expectPages !== undefined && result.wordPages !== scenario.expectPages) {
+    result.failures.push(`Expected ${scenario.expectPages} pages, Word produced ${result.wordPages}`);
+  }
 
   const wordPngs = pngs(
     ensureRasters(wordPdf, join(wordRasterCacheDir, `${result.wordPdfSha256}-r192`), "word", info.pages),
@@ -399,6 +406,25 @@ async function runScenario(browser, metricPage, scenario) {
     result.failures.push("No comparable pages");
     return { ...result, passed: false, durationMs: Date.now() - startedAt };
   }
+  // A scenario may assert things pixels cannot show — what survived into the
+  // saved package, or what desktop Word does with it beyond exporting a PDF.
+  if (scenario.verify) {
+    const verifyDir = join(editedDir, `${scenario.name}-verify`);
+    mkdirSync(verifyDir, { recursive: true });
+    try {
+      await scenario.verify({
+        editedDocx,
+        wordPdf,
+        wordPages: result.wordPages,
+        verifyDir,
+        fail: (message) => result.failures.push(message),
+        note: (key, value) => { result.notes[key] = value; },
+      });
+    } catch (error) {
+      result.failures.push(`Verification failed: ${error.message}`);
+    }
+  }
+
   result.meanSeverityPct = result.pages.reduce((sum, page) => sum + page.severityPct, 0) / result.pages.length;
   result.worstSeverityPct = result.pages.reduce((worst, page) => Math.max(worst, page.severityPct), 0);
   result.meanMismatchPct = result.pages.reduce((sum, page) => sum + page.mismatchPct, 0) / result.pages.length;

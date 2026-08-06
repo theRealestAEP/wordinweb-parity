@@ -143,6 +143,86 @@ export function exportWithWord({ name, docx, destination, packageHash, cacheDir 
 }
 
 /**
+ * Open `docx` in Word, run Word's own update over every field (its F9), and
+ * save the result back out as .docx.
+ *
+ * This is the only way to ask "does Word agree with our field arithmetic?"
+ * without a human pressing keys. `update field` is per-field and returns a
+ * boolean, so the loop reports how many fields Word actually recomputed; a
+ * field it refuses is skipped rather than aborting, because one unsupported
+ * field should not hide the rest.
+ *
+ * Word is never activated — it stays in the background like every export here.
+ */
+export function wordUpdateFieldsAndSave({ name, docx, docxDestination }) {
+  const stagedDocx = join(wordIoDir, `${name}-fieldsrc.docx`);
+  const stagedOut = join(wordIoDir, `${name}-fieldupd.docx`);
+  rmSync(stagedDocx, { force: true });
+  rmSync(stagedOut, { force: true });
+  copyFileSync(docx, stagedDocx);
+  const base = escapeAppleScript(basename(stagedDocx));
+  const script = `with timeout of 900 seconds\n` +
+    `tell application "Microsoft Word"\n` +
+    `  try\n` +
+    // This usually runs right after a PDF export of the same document. Word
+    // reports that export finished before it is ready to open anything else,
+    // and the next open then silently does nothing — so quiesce first.
+    `    close every document saving no\n` +
+    `  end try\n` +
+    `  delay 3\n` +
+    `  open file name "${escapeAppleScript(stagedDocx)}"\n` +
+    `  repeat with attempt from 1 to 180\n` +
+    `    if exists document "${base}" then exit repeat\n` +
+    `    delay 1\n` +
+    `  end repeat\n` +
+    `  if not (exists document "${base}") then error "Word did not finish opening ${base}"\n` +
+    `  set theDocument to document "${base}"\n` +
+    `  delay 5\n` +
+    `  set updatedCount to 0\n` +
+    `  set totalCount to (count of fields of theDocument)\n` +
+    `  repeat with i from 1 to totalCount\n` +
+    `    try\n` +
+    `      if (update field (field i of theDocument)) then set updatedCount to updatedCount + 1\n` +
+    `    end try\n` +
+    `  end repeat\n` +
+    `  save as theDocument file name "${escapeAppleScript(stagedOut)}" file format format document\n` +
+    // `save as` renames the document, which leaves `theDocument` pointing at a
+    // name that no longer exists; closing through it fails with -1728 AFTER the
+    // save has already succeeded. Close by state instead of by reference.
+    `  try\n` +
+    `    close every document saving no\n` +
+    `  end try\n` +
+    `  return (totalCount as string) & "/" & (updatedCount as string)\n` +
+    `end tell\n` +
+    `end timeout`;
+  // Word declines to open anything for a while after finishing an export, and
+  // says so only by never producing the document. Opening it and updating 143
+  // fields takes ~14s once Word is ready, so a failure here means "still busy",
+  // not "cannot": retry rather than reporting a field bug that is not one.
+  let out;
+  for (let attempt = 1; ; attempt++) {
+    try {
+      out = execFileSync("osascript", ["-e", script], {
+        timeout: 910_000,
+        encoding: "utf8",
+        stdio: ["ignore", "pipe", "inherit"],
+      }).trim();
+      break;
+    } catch (error) {
+      if (attempt >= 3) throw error;
+      console.log(`Word was not ready for the field update (attempt ${attempt}); retrying`);
+      execFileSync("sleep", ["20"]);
+    }
+  }
+  if (!existsSync(stagedOut) || statSync(stagedOut).size === 0) {
+    throw new Error(`Word field update produced no document for ${name}`);
+  }
+  copyFileSync(stagedOut, docxDestination);
+  const [fields, updated] = out.split("/").map(Number);
+  return { fields, updated };
+}
+
+/**
  * Mismatched-pixel count between two PNGs, measured in a browser page so both
  * sides decode through the same image pipeline. Sizes are unioned onto a white
  * canvas, so a page that differs in size counts the surplus as mismatch.
