@@ -1469,3 +1469,35 @@ carve-out that already exists beside it, are NOT tested here — the 22.5 pt may
 well be right for an anchored shape, and #67's pleading-rail finding is the
 reason that carve-out exists at all. Vary an anchored shape the same way before
 removing the term outright.
+
+### An exact row's cell border is charged to its OWN side, and we already do (#51b)
+
+The sided-ness half of #51, left open because every case the exact-row probe
+measured carried borders on both edges, where all three candidate models predict
+the same total. An exact row's HEIGHT is fixed by definition, so only where the
+content sits INSIDE the row can separate them.
+
+`scripts/generate-sidedness-probe.mjs` puts a marker immediately before a single
+`hRule="exact"` row and another inside it, with no `w:tblBorders` so only the
+cell border under test is in play, and reports `top(MK) - top(REF)`:
+
+    case  cell borders (sz=12 = 1.5pt = 2.00px)   Word    ours    vs N
+    N     none                                   16.00   16.00   +0.00
+    T     top only                               18.00   18.00   +2.00
+    B     bottom only                            16.00   16.00   +0.00
+    TB    top and bottom                         18.00   18.00   +2.00
+
+    model        predicted T   predicted B   predicted TB
+    half-share         +1.00         +1.00          +2.00
+    own-side           +2.00          0.00          +2.00
+    own-bottom          0.00          0.00           0.00
+
+**`own-side` is Word's model and the other two are refuted.** The content box
+loses the FULL border width at the edge the border is on: a top border pushes the
+content down by its whole 2.00 px, a bottom border takes its width off the bottom
+and does not move the content top at all, and `TB` matches `T` because only the
+top edge bears on this measurement.
+
+**Our engine already implements it, matching Word to 0.00 px on all four cases.**
+No change is needed, and the earlier "half-share vs own-top vs own-bottom all
+agree on current evidence" is now resolved rather than merely still-ambiguous.
