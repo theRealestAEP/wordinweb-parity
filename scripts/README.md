@@ -1753,3 +1753,72 @@ and should be measured before any constant is re-fitted.
 The old bar figure (264.8 pt plot width, commit 6669f9e) re-reads as 267.34 pt —
 2.54 pt wider, which is the extraction offset that comment already admitted. The
 bar page never contradicted anything; the method it was measured with did.
+
+### A lines-grid section's opening paragraph is an ordinary paragraph (#82)
+
+`generate-gridopen-probe.mjs` sweeps six openers on one
+`w:docGrid w:type="lines" w:linePitch="312"`, varying only the first paragraph
+of each section and then running the same plain body under it. Both Word
+exports reproduce byte for byte on all 12 pages. Word's `L01` top, against the
+plain case, beside our engine before and after:
+
+    case                                    Word     ours before   ours after
+    P   plain, no before                   +0.00           +0.00        +0.00
+    S   plain, w:before=12pt              +16.00           +0.00       +16.00
+    G   snapToGrid=0, no before            -2.33          +37.00        -4.67
+    GS  snapToGrid=0, w:before=12pt       +13.67          +11.33       +11.33
+    H   Heading1                           +0.00          +23.59        +0.92
+    HG  Heading1 + snapToGrid=0            -2.33          +36.92        -4.75
+
+**Three rules lived in `docGridDropBefore` and Word refutes all three.** A
+`snapToGrid="0"` opener without a space-before dropped TWO grid rows — Word
+drops none, and its -2.33 is simply the first line's grid snap not being taken,
+which is what turning the grid off means. A `Heading1` opener took a grid row
+plus 1.5pt of "grid leading" — Word puts it exactly where a plain paragraph
+goes. And every other opener had its space-before DROPPED — Word applies it in
+full, on top of the snap.
+
+**The third was never suspected, and it is the same gap that produced the other
+two.** `probe-docgrid` authors `w:before="0"` in all six of its cases, so it
+could not see a space-before being dropped, and the change that read its result
+took the silence for licence. A sweep pins a rule only as far as the values it
+varies — the same lesson the sectPr sweep taught about advances.
+
+In ABSOLUTE terms the three opt-out cases now land on Word to 0.13 px. What
+remains is a constant +2.29 px in the first line's grid snap on the SNAPPED
+cases and a further +0.92 on Heading1, both pre-existing.
+
+**Still open, measured here and deliberately not fixed:** `snapToGrid="0"`
+should also suppress the PER-LINE grid snap. Word runs those paragraphs at
+their natural 18.33 px advance and we still snap them to 20.67. That is the
+`minLineHeight` argument to `breakParagraph`, threaded through six call sites
+including two lookahead simulations, so it wants its own change and its own
+gate run.
+
+### A both-nil boundary charges nothing inside an exact row too (#51, closed)
+
+The one variant e186c1e's restriction left open. An exact row's HEIGHT cannot
+answer the question — it is the authored value whatever the borders say — so
+`generate-exactnil-probe.mjs` measures the content INSET instead: two
+`hRule="exact"` 495 tw rows sharing one `tblBorders insideH` sz-12 rule (1.5pt =
+2.00 CSS px), reporting `top(MK in row 2) - top(UP in row 1)`. Row 1's exact
+height is 33.00 px, so anything above that is the boundary's cost.
+
+    case  authored at the shared boundary      Word     ours   ours - Word
+    N     no rule at all                      33.03    33.00         -0.03
+    R     insideH sz=12, no nil               35.00    34.00         -1.00
+    RN    insideH sz=12, BOTH cells nil       33.00    34.00         +1.00
+    RO    insideH sz=12, only the LOWER nil   35.00    34.00         -1.00
+    RU    insideH sz=12, only the UPPER nil   35.00    34.00         -1.00
+
+**Word's #51 rule governs the inset exactly as it governs an atLeast row's
+height.** `R` costs the full 2.00 px, `RN` costs zero, and a one-sided nil
+suppresses nothing — `RO` and `RU` agree to the digit, so the rule is symmetric
+and does not care which side declares it.
+
+**We get all four rule cases wrong, and identically.** Our number is 34.00
+everywhere: we charge HALF the rule where Word charges the whole of it to the
+row below the boundary, and we do not read `nil` here at all. Note that
+`exactRowCellBorderShare` only inspects `tcBorders`, so a `tblBorders insideH`
+rule never reaches it — the 1.00 px comes from elsewhere and the fix wants that
+path found before anything is changed.
