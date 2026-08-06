@@ -168,6 +168,31 @@ margin. Raw `mismatchPct` is still recorded per page as context.
 Each compared page also writes the Word | web | diff triptych under
 `diff-png/<scenario>/`, so a failure is diagnosable without re-running.
 
+### Baseline attribution
+
+Every scenario is also scored against its fixture **as authored**, before any
+edit, and each page records four numbers rather than one: its edited severity,
+its baseline severity, how far OUR render moved from our own baseline, and how
+far WORD's moved from its. Failures are then classified automatically:
+
+- `present-in-baseline` — the page already differed before the edit, so this is
+  a renderer issue and not the scenario's;
+- `edit-introduced` — our render changed and now disagrees;
+- `word-reacted` — our render held still and Word's moved, i.e. the edit changed
+  what Word does with the file rather than what we draw.
+
+That last case is not hypothetical. Both current failures are `word-reacted`:
+on toc-insert we keep the fixture's own blank page and Word absorbs it, and on
+field-update our page 4 never moves while Word raises it 34 CSS px. Both were
+originally filed as our bugs, and establishing otherwise took a manual
+investigation each time; the classification now falls out of the run.
+
+Baselines are close to free. The corpus already holds a Word export of every
+unedited fixture as `parity/<fixture>-word.pdf`, so no scenario needs a second
+Word round trip, and the web baseline is rendered once per FIXTURE rather than
+once per scenario. A fixture with no cached reference is skipped and says so
+rather than triggering an export.
+
 Word PDFs and rasters cache under the same Word container directory the
 saved-DOCX gate uses, keyed by the DOCX package hash, so re-running a scenario
 whose edit produced identical content costs no Word round trip. Every run

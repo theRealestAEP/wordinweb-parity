@@ -106,9 +106,11 @@ const editedDir = join(outDir, "edited-docx");
 const wordPdfDir = join(outDir, "word-pdf");
 const webPngDir = join(outDir, "web-png");
 const diffPngDir = join(outDir, "diff-png");
+const baselinePngDir = join(outDir, "baseline-png");
+const rasterCacheDir = join(parityDir, ".raster-cache");
 const wordPdfCacheDir = join(wordIoDir, "edit-roundtrip-pdf-cache");
 const wordRasterCacheDir = join(wordIoDir, "edit-roundtrip-raster-cache");
-for (const dir of [outDir, editedDir, wordPdfDir, webPngDir, diffPngDir, wordIoDir, wordPdfCacheDir, wordRasterCacheDir]) {
+for (const dir of [outDir, editedDir, wordPdfDir, webPngDir, diffPngDir, baselinePngDir, rasterCacheDir, wordIoDir, wordPdfCacheDir, wordRasterCacheDir]) {
   mkdirSync(dir, { recursive: true });
 }
 
@@ -246,7 +248,8 @@ async function renderWebPages(browser, scenario, docx, directory) {
       waitUntil: "domcontentloaded",
     });
     await page.waitForSelector(".dxw-page span", { state: "attached", timeout: 120_000 });
-    await loadEditedDocx(page, docx, { expectApi: false });
+    // A null docx renders the fixture as authored — the unedited baseline.
+    if (docx) await loadEditedDocx(page, docx, { expectApi: false });
     await page.waitForFunction(
       () => !document.querySelector(".dxw-body-mode, .dxw-hf-mode, .dxw-comment-hl, .dxw-comment-card, .dxw-sel"),
       null,
@@ -269,6 +272,79 @@ async function renderWebPages(browser, scenario, docx, directory) {
   }
 }
 
+/** Score one PNG pair on the shared metric. Semantic layers are null — this
+ * gate reads severityPct, which needs none of them. */
+async function scorePair(metricPage, referencePng, candidatePng) {
+  return metricPage.evaluate(pageMetric, [
+    readFileSync(referencePng).toString("base64"),
+    readFileSync(candidatePng).toString("base64"),
+    null,
+    null,
+    null,
+    null,
+    "matched",
+    { text: [], images: [], fills: [], rules: [], width: 0, height: 0 },
+  ]);
+}
+
+/**
+ * The same comparison against the fixture as authored, before any edit.
+ *
+ * Without it every failure looks like the edit's fault. Two of this gate's
+ * findings turned out to be the opposite — our render was unchanged and correct,
+ * and Word moved in response to what we saved — and establishing that took a
+ * manual investigation each time. The baseline makes the attribution fall out
+ * of the run.
+ *
+ * Nearly free: the corpus already holds a Word export of every unedited fixture
+ * as parity/<fixture>-word.pdf, so no scenario needs a second Word round trip.
+ * A fixture without one is skipped rather than exported, to keep it that way.
+ */
+async function captureBaseline(browser, metricPage, scenario) {
+  const referencePdf = join(parityDir, `${scenario.fixture}-word.pdf`);
+  if (!existsSync(referencePdf)) return { available: false, reason: "no cached Word reference for this fixture" };
+  const info = pdfInfo(referencePdf);
+  const wordPngs = pngs(
+    ensureRasters(referencePdf, join(rasterCacheDir, `${sha256(referencePdf)}-r192`), "word", info.pages),
+    "word",
+  );
+  const directory = join(baselinePngDir, scenario.fixture);
+  mkdirSync(directory, { recursive: true });
+  const webPngs = existsSync(join(directory, "web-1.png"))
+    ? pngs(directory, "web")               // shared between scenarios on one fixture
+    : await renderWebPages(browser, scenario, null, directory);
+  const pages = [];
+  for (let index = 0; index < Math.min(wordPngs.length, webPngs.length); index++) {
+    const metric = await scorePair(metricPage, wordPngs[index], webPngs[index]);
+    pages.push({ page: index + 1, severityPct: Number(metric.severityPct), mismatchPct: Number(metric.mismatchPct) });
+  }
+  return {
+    available: true,
+    wordPages: info.pages,
+    webPages: webPngs.length,
+    webPngs,
+    wordPngs,
+    pages,
+    worstSeverityPct: pages.reduce((worst, page) => Math.max(worst, page.severityPct), 0),
+  };
+}
+
+/**
+ * Why a page differs, decided from four comparisons rather than argued about:
+ * the baseline pair, the edited pair, our render against our own baseline, and
+ * Word's against its own.
+ */
+function classifyPage({ baselineSeverity, editedSeverity, ourDelta, wordDelta }) {
+  if (baselineSeverity === null) return "unclassified";
+  if (baselineSeverity > THRESHOLDS.worstSeverityPct) return "present-in-baseline";
+  if (editedSeverity <= THRESHOLDS.worstSeverityPct) return "clean";
+  if (ourDelta === null || wordDelta === null) return "edit-introduced";
+  // Our render held still and Word's moved: the edit changed what Word does
+  // with the file, not what we draw.
+  if (ourDelta <= THRESHOLDS.worstSeverityPct && wordDelta > THRESHOLDS.worstSeverityPct) return "word-reacted";
+  return "edit-introduced";
+}
+
 async function runScenario(browser, metricPage, scenario) {
   const startedAt = Date.now();
   const result = {
@@ -289,6 +365,8 @@ async function runScenario(browser, metricPage, scenario) {
     worstSeverityPct: null,
     meanMismatchPct: null,
     pages: [],
+    baseline: null,
+    attribution: null,
     notes: {},
   };
   if (!existsSync(join(fixtureDir, `${scenario.fixture}.docx`))) {
@@ -372,31 +450,46 @@ async function runScenario(browser, metricPage, scenario) {
   );
   const scenarioDiffDir = join(diffPngDir, scenario.name);
   mkdirSync(scenarioDiffDir, { recursive: true });
+  const baseline = await captureBaseline(browser, metricPage, scenario);
+  result.baseline = {
+    available: baseline.available,
+    reason: baseline.reason ?? null,
+    wordPages: baseline.wordPages ?? null,
+    webPages: baseline.webPages ?? null,
+    worstSeverityPct: baseline.worstSeverityPct ?? null,
+  };
   for (let index = 0; index < Math.min(wordPngs.length, webPngs.length); index++) {
-    // The four semantic-layer arguments drive the appearance metrics only; this
-    // gate scores structure, so it passes null and reads severityPct.
-    const metric = await metricPage.evaluate(pageMetric, [
-      readFileSync(wordPngs[index]).toString("base64"),
-      readFileSync(webPngs[index]).toString("base64"),
-      null,
-      null,
-      null,
-      null,
-      "matched",
-      { text: [], images: [], fills: [], rules: [], width: 0, height: 0 },
-    ]);
+    const metric = await scorePair(metricPage, wordPngs[index], webPngs[index]);
     // The Word | web | diff triptych is the only thing that makes a failing
     // page diagnosable without re-running the scenario.
     const diffPng = join(scenarioDiffDir, `p${index + 1}.png`);
     writeFileSync(diffPng, Buffer.from(metric.png, "base64"));
+
+    // Against the unedited fixture: how this page scored before the edit, and
+    // which side actually moved.
+    const baselinePage = baseline.available ? baseline.pages[index] : null;
+    const ourBaseline = baseline.available ? baseline.webPngs[index] : null;
+    const wordBaseline = baseline.available ? baseline.wordPngs[index] : null;
+    const ourDelta = ourBaseline ? Number((await scorePair(metricPage, ourBaseline, webPngs[index])).severityPct) : null;
+    const wordDelta = wordBaseline ? Number((await scorePair(metricPage, wordBaseline, wordPngs[index])).severityPct) : null;
+    const severityPct = Number(metric.severityPct);
     result.pages.push({
       page: index + 1,
-      severityPct: Number(metric.severityPct),
+      severityPct,
       mismatchPct: Number(metric.mismatchPct),
       lineShiftPct: Number(metric.lineShiftPct),
       misalignedPct: Number(metric.misalignedPct),
       driftClass: metric.driftClass,
       pageStatus: metric.pageStatus,
+      baselineSeverityPct: baselinePage ? baselinePage.severityPct : null,
+      ourRenderDeltaPct: ourDelta,
+      wordRenderDeltaPct: wordDelta,
+      attribution: classifyPage({
+        baselineSeverity: baselinePage ? baselinePage.severityPct : null,
+        editedSeverity: severityPct,
+        ourDelta,
+        wordDelta,
+      }),
       wordPng: wordPngs[index],
       webPng: webPngs[index],
       diffPng,
@@ -433,6 +526,14 @@ async function runScenario(browser, metricPage, scenario) {
   }
   if (result.worstSeverityPct > THRESHOLDS.worstSeverityPct) {
     result.failures.push(`Worst page severity ${result.worstSeverityPct.toFixed(4)}% > ${THRESHOLDS.worstSeverityPct}%`);
+  }
+  // Scenario attribution is the worst page's, in the order that matters most
+  // to whoever reads the failure.
+  for (const kind of ["present-in-baseline", "edit-introduced", "word-reacted", "unclassified", "clean"]) {
+    if (result.pages.some((page) => page.attribution === kind)) {
+      result.attribution = kind;
+      break;
+    }
   }
   return { ...result, passed: result.failures.length === 0, durationMs: Date.now() - startedAt };
 }
@@ -478,7 +579,9 @@ try {
       ? `severity mean ${result.meanSeverityPct.toFixed(3)}%, worst ${result.worstSeverityPct.toFixed(3)}%`
         + ` (raw mean ${result.meanMismatchPct.toFixed(2)}%), ${result.pages.length} page(s)`
       : "no pages compared";
-    console.log(`  ${result.passed ? "PASS" : "FAIL"} — ${detail}`);
+    console.log(`  ${result.passed ? "PASS" : "FAIL"} — ${detail}${result.attribution && result.attribution !== "clean" ? ` [${result.attribution}]` : ""}`);
+    if (result.baseline && !result.baseline.available) console.log(`    baseline skipped: ${result.baseline.reason}`);
+    else if (result.baseline) console.log(`    baseline worst severity ${result.baseline.worstSeverityPct.toFixed(3)}%`);
     for (const failure of result.failures) console.log(`    - ${failure}`);
   }
 } finally {
