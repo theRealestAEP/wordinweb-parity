@@ -136,6 +136,52 @@ that copy. Keep the copy derivable from the corpus fixture by the two scripts
 above and nothing else, so its lineage can be re-checked at any time by
 re-deriving it and comparing.
 
+### The build-drift screen (#58)
+
+111 of the cached references were exported between 2 and 22 July 2026 by an older
+Word build, and #55 proved that build differs behaviourally (VML extent rounding).
+The screen re-exports each reference from the exact DOCX its manifest names, on
+the Word build installed now, and compares page count first and then every page
+rasterized at 192 DPI byte for byte. Only the build varies — same package, hints
+included, same machine, same fonts. Hints are deliberately NOT stripped here:
+#48 settled the hint variable already, and stripping would confound it with the
+build variable.
+
+| wave | references | pages | reproduce byte for byte | differ |
+| --- | --- | --- | --- | --- |
+| 1 (≤5 pages) | 76 | 142 | 60 | 16 |
+| 2 (6–39 pages) | 16 | 214 | 10 | 6 |
+
+The drift itself is bounded. Every difference except the ones named below is one
+of three harmless shapes: a few words nudged horizontally within a line (maximum
+0.554pt, on wild-doerfp), a whole block nudged vertically (maximum 0.260pt), or
+an embedded JPEG re-encoded in the same box at the same resolution. None reflows
+and none changes a page count.
+
+Beware the raw pixel percentage on dense pages: wild2-sci-ieee-2col reads 1.39%
+from a single 0.26pt block shift, because two-column text has enormous edge
+length per unit area.
+
+The differences that were NOT harmless:
+
+- **probe3-lo-provenance** — the only proven behavioural build change. Its
+  SourceText style names "Liberation Mono", which neither build resolves; the
+  July export fell back to Courier New and current Word falls back to Calibri.
+  Reference replaced; severity 0.050% → 1.380%.
+- **wild3-template-caed-pleading** — its reference never came from the committed
+  fixture (recorded source hash bc31b7bf, fixture 4c689596, unchanged since
+  01dbbb7, and the PDF carries no Creator). Re-exported, the body sits 120.04pt
+  lower. Reference replaced; severity 0.000% → 36.810%.
+- **wild2-legal-ca-agreement** — the corpus's only page-count change, 23 → 22,
+  already known from #38 and #48 as replayed pagination rather than a computed
+  layout. Now it will not reproduce even WITH its hints intact.
+- **parity2-fields** and **probe3-field-switches** — these embed their own export
+  date, so they differ on every re-export by construction and are not drift.
+
+Two references were replaced. Everything else was left alone deliberately:
+re-exporting a tenth of a point is churn that discards the July baseline for no
+measurable gain.
+
 ### wild-athabasca: what an unprovenanced reference costs
 
 `parity/wild-athabasca-word.pdf` and `parity/wild-wirfp-word.pdf` arrived with
