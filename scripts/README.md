@@ -176,9 +176,14 @@ its baseline severity, how far OUR render moved from our own baseline, and how
 far WORD's moved from its. Failures are then classified automatically:
 
 - `present-in-baseline` — the page already differed before the edit, so this is
-  a renderer issue and not the scenario's;
+  not the scenario's doing;
 - `edit-introduced` — our render changed and now disagrees;
 - `word-reacted` — our render held still and Word's moved.
+
+Every one of these names an ASYMMETRY. None of them names a culprit, and each
+has now been read as one at least once. `present-in-baseline` used to say "so
+this is a renderer issue"; the section fix made that wrong too, and the wording
+above is what is left after removing the claim.
 
 `word-reacted` says WHICH side moved. It does NOT say which side is right, and
 reading it as "our render is fine" is a mistake this gate has already made. On
@@ -225,6 +230,22 @@ the break, on the one that begins after it, and on both, leaves the page-4 gap
 at exactly 42.40 CSS px in all twelve. The same run's control, turning that
 section's `continuous` into `nextPage`, moves it to 16.00. Header distance is
 inert for this position.
+
+Both rules are fixed as of engine `918da3a`, and the probe now reads what Word
+reads: 6.00 pt above the body top for a continuous section start, 6.00 for a
+nextPage one, 0.00 after a plain page break. field-update goes to severity mean
+0.000%, worst 0.000% over 23 pages.
+
+**That fix is what makes `wild2-med-nccih-protocol`'s BASELINE diverge**, and the
+divergence is the reference's, not ours. `parity/wild2-med-nccih-protocol-word.pdf`
+was exported from a file still carrying its stored `lastRenderedPageBreak`
+hints, so Word replayed the stored pagination instead of computing one, and
+page 4 sits 34 CSS px below where Word's own layout puts it. We used to match
+that stale position and now correctly do not, so the unedited page-4 baseline
+reads 39.100% and the gate labels it `present-in-baseline`. Nothing there is a
+renderer defect. Re-exporting that reference from a disturbed copy is the open
+item; until then the label on this fixture means "the reference is stale", which
+is the third distinct thing these three labels have been misread as saying.
 
 Baselines are close to free. The corpus already holds a Word export of every
 unedited fixture as `parity/<fixture>-word.pdf`, so no scenario needs a second
