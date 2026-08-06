@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "generatedAt": "2026-08-06T07:15:21.938Z",
+  "generatedAt": "2026-08-06T07:55:38.414Z",
   "fixtures": {
     "benchmark": {
       "sourcePackageSha256": "fcce177e72a4e214276fe588643c8e39ac11340d424937c31d5bc54507d46e82",
@@ -607,8 +607,8 @@
     "wild2-math-eq-as-images": {
       "sourcePackageSha256": "0e60d34431ddf0abc72ffee9687c2225b06de175fa01c775dab1bbd035e5c21a",
       "referenceDocx": "parity/word-reference-docx/wild2-math-eq-as-images.docx",
-      "referenceDocxPackageSha256": "d38afdf34b668182cd81e1cff29f674a5def31ed44c8a5e15a26b5df5e91ce96",
-      "referencePdfSha256": "8523eafa96d7b31d192920236d58798d95bfd33dd79289d65de9da2ce792cb99",
+      "referenceDocxPackageSha256": "f645fd8b30bfed6809672d758a0aed5fe069f1e8b2b0b4fd5080fbb85d9a669b",
+      "referencePdfSha256": "5ceeb3afd8505a8f7e31d56d545f3133a13a01b53ab6d00ffa13ee94379196e7",
       "pages": 8
     },
     "wild2-math-omml-dense": {
