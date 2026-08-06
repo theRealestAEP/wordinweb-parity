@@ -859,3 +859,41 @@ Correcting the sign moves our body 172.24 px down where the fixture needs
 empty `BodyText` paragraphs measuring differently in the two renders, and it may
 well be an artefact of our body currently starting 84 px above the page top.
 Re-measure the fixture after the sign fix before reading anything into it.
+
+### Which "wild2-legal"? All four, and the pages moved by one
+
+Four engine comments cite a bare `wild2-legal`, which names two fixtures with
+opposite provenance — `wild2-legal-ca-agreement`, whose reference the section
+above replaced, and `wild2-legal-nih-contract`, which the drift screen passed on
+all 419 pages. Every one of the four is **ca-agreement**, and the evidence is
+structural rather than circumstantial.
+
+The construct those comments are about is an empty paragraph immediately
+followed by a table. ca-agreement's body **opens** with exactly that — an empty
+paragraph, then the caption table — and nih-contract's opens with a text
+paragraph, so `engine.ts:3095`'s "wild2-legal p1" can only be ca-agreement.
+Mid-flow, ca-agreement carries the construct three more times, at body blocks
+21, 249 and 345. Block 21 is the signature table on page 1 that #38 measured;
+blocks 249 and 345 are the notices table and the signature-block table, and they
+land on **old pages 15 and 23** — which is `engine.ts:3106`'s "p15/p23"
+exactly. `engine.ts:3239`'s bullet routing cites "p3", and ca-agreement's old
+page 3 is the `KACUCUJI A` bullet list while nih-contract's page 3 is contents
+with dot leaders.
+
+**None of those measurements has to be re-taken.** Rasterized at 192 DPI, the
+old 23-page reference and the new 22-page one are byte identical page for page
+either side of the dropped blank: old page 1 equals new page 1, and old pages 3
+to 23 equal new pages 2 to 22. The stale part of that reference was one inserted
+blank verso and nothing else, so the pixels at every cited page never moved.
+What changes is only the numbering — **every cited page from 3 up drops by one**:
+
+| site | as written | correct |
+| --- | --- | --- |
+| `engine.ts:3095` | wild2-legal p1 | wild2-legal-ca-agreement p1 |
+| `engine.ts:3106` | wild2-legal's p15/p23 | wild2-legal-ca-agreement's p14/p22 |
+| `engine.ts:3146` | wild2-legal's 2 x 13.8 | wild2-legal-ca-agreement's 2 x 13.8 |
+| `engine.ts:3239` | phase23 + wild2-legal p3 | phase23 + wild2-legal-ca-agreement p2 |
+
+A citation that names a page number is only as durable as the reference's page
+count. Write the fixture's full name and expect to re-check the number whenever
+a reference is re-exported.
