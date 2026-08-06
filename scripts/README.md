@@ -806,3 +806,56 @@ update the manifest before running the candidate gate.
 
 One-off probe generators, forensic readers, and local export experiments are
 kept outside the public repository under `internal/scripts/`.
+
+### A negative top margin is an absolute distance, and we read it as a signed one
+
+`wild3-template-caed-pleading` is the corpus's only fixture with negative page
+margins (`w:top="-1325"`, `w:bottom="-1267"`, `w:header="432"`). Against the
+re-exported reference our body sits 160.25 CSS px too high on its single page —
+a uniform translation, identical horizontal positions, no reflow. The header is
+placed correctly: its line-number column starts at 86.64 px in our render and at
+baseline 101.04 in Word's, which is the same place. Only the body origin moves.
+
+`scripts/generate-negmargin-probe.mjs` gives each case its own section and its
+own `w:pgMar`, puts a marker with an exact line height first in the body so the
+marker's top IS the body top, and moves three things one at a time: `w:top`
+through the negative range and past zero, the header's height (the fixture's own
+`hRule="exact"` 14880 tw row against a 2880 tw one), and `w:header`. Both Word
+exports reproduced themselves byte for byte on all 22 pages.
+
+Body top in CSS px, at `w:header="432"`, for the tall header and the short one:
+
+    w:top (tw)   w:top (px)   Word tall   Word short   ours (both)
+      -2880        -192.00      192.20       192.20      -187.39
+      -2160        -144.00      144.20       144.20      -139.39
+      -1440         -96.00       96.18        96.18       -91.39
+      -1325         -88.33       88.51        88.51       -83.73
+       -720         -48.00       48.18        48.18       -43.39
+       -360         -24.00       24.14        24.14       -19.39
+
+Both engines are exactly linear and neither looks at the header at all — the
+tall and short columns are identical to the digit, and repeating the fixture's
+own row at `w:header="1440"` gives 88.51 again on both. Header height and header
+distance are inert under a negative top margin, which disposes of the standing
+guess that this position tracks the first-page header.
+
+What is left is the sign. **Word puts the body top at `|w:top|` below the top of
+the page; we put it at `w:top` itself, which is above the page.** Word's residual
+against `|w:top|` is a constant +0.18 px, ours against `w:top` a constant
++4.61 px, and both slopes are exactly 1. The engine change is to take the
+absolute value; the +4.61 px is a separate constant worth explaining but not
+worth guessing at from here.
+
+Above zero the header does govern, and there we disagree for a different reason:
+with the short header Word puts the body top at 236.87 px (`w:header` 28.8 plus
+the header's 208 px of content) and we put it at 267.59, and at `w:header="1440"`
+the same 30.4 px gap appears (304.24 against 334.59). **We overcharge a header's
+height by about 30.5 px.** That is not #67's defect and it does not affect this
+fixture, whose margin is negative, but the probe measured it and it should not be
+lost.
+
+Correcting the sign moves our body 172.24 px down where the fixture needs
+160.25, so **about 12.6 px will remain**. That residual is the leading run of
+empty `BodyText` paragraphs measuring differently in the two renders, and it may
+well be an artefact of our body currently starting 84 px above the page top.
+Re-measure the fixture after the sign fix before reading anything into it.
