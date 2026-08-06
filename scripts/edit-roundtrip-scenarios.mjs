@@ -464,17 +464,24 @@ export const scenarios = [
       // previous-properties payload is non-empty — an untouched paragraph would
       // record an empty <w:pPr/> and prove nothing about the payload.
       //
-      // Resolved one at a time through the bulk calls, NOT through
-      // accept/rejectRevisionAtCaret: those resolve a caret through
-      // revisionForText, which only recognises w:ins/w:del ancestors, so a
-      // formatting revision is unreachable by caret in this build even though
-      // revisionCount() counts it. With exactly one suggestion outstanding,
-      // accepting "all" of them accepts precisely that one.
+      // The RUN format resolves through the caret, the way a reviewer clicks a
+      // suggestion: revisionForText walks the ancestors of the clicked text and
+      // recognises the w:rPrChange on the run it lands in. Click rather than
+      // find: find() leaves a selection, and this acts on the caret.
       await ed.select("italic");
       await ed.call("applyFormat", { bold: true });
       ed.assert(await ed.call("revisionCount") === 1, "run format did not record a suggestion");
-      ed.assert(await ed.call("acceptAllRevisions") === 1, "could not accept the suggested run format");
+      await ed.clickText("italic");
+      ed.assert(await ed.call("acceptRevisionAtCaret") === true, "could not accept the suggested run format at the caret");
 
+      // The PARAGRAPH format still has to go through the bulk call. Its
+      // w:pPrChange resolves from a w:t in core — revisionForText returns it and
+      // rejectRevision undoes it — but rejectRevisionAtCaret returns false in the
+      // browser for every way of placing the caret in the paragraph: click, find
+      // plus ArrowRight, click plus ArrowRight, and click with suggesting off. So
+      // the caret cannot reach a paragraph-format revision in this build even
+      // though it reaches a run-format one. With exactly one suggestion
+      // outstanding, rejecting "all" of them rejects precisely that one.
       await ed.select("Centered single line of text");
       await ed.call("setAlignment", "right");
       ed.assert(await ed.call("revisionCount") === 1, "alignment did not record a suggestion");
