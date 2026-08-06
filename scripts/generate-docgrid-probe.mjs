@@ -107,7 +107,13 @@ const documentXml =
 // content types the base declares all still resolve.
 parts["word/document.xml"] = strToU8(documentXml);
 
-const out = join(root, "apps/demo/public/fixtures/probe-docgrid.docx");
+// Probes live in fixtures-staging, like every other probe with a Word
+// reference. parity-parallel.mjs adopts a reference only when a DOCX of
+// the same name sits in apps/demo/public/fixtures, so keeping it out of
+// there is what stops the full corpus run from picking the probe up.
+// To read it in the browser: copy it into apps/demo/public/fixtures,
+// measure, then remove it again.
+const out = join(root, "fixtures-staging/probe-docgrid.docx");
 writeFileSync(out, Buffer.from(zipSync(parts)));
 console.log(`wrote ${out}`);
 console.log(`cases: ${cases.map((c) => c.id).join(", ")}  (${LINES} lines each)`);

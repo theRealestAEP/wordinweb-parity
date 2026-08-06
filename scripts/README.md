@@ -1272,3 +1272,44 @@ gate is that displacement seen through the metric, and it is a real one.
 Measure this from the Word PDF's gridlines rather than from a raster: the seven
 horizontal gridlines and the axis line give the plot rectangle directly, and
 `fitz`'s `get_drawings()` reports them with their 1.0 pt width.
+
+### A nil cell border costs nothing, but only when both sides say so (#51)
+
+`scripts/generate-nilborder-probe.mjs` varies one thing at a time on the row
+0 / row 1 boundary of a three-row `atLeast` table whose rows are governed by
+their content, and reports `top(row 1 mark) - top(row 0 mark)` — a pure layout
+distance that never looks at paint. The table rule is `w:sz="12"`, which is
+1.5 pt, or **2.00 CSS px**.
+
+    case        authored at the boundary          Word    ours    ours - Word
+    D-norule    no tblBorders at all             15.33   15.35          +0.02
+    A-none      tblBorders only                  17.33   17.34          +0.01
+    B-nilboth   BOTH cells declare nil           15.33   17.34          +2.01
+    C-nilone    only row 0's cells declare nil   17.37   17.35          -0.02
+    E-own12     row 0 cells bottom single sz=12  17.33   17.34          +0.01
+    F-own24     row 0 cells bottom single sz=24  19.33   19.34          +0.01
+
+Word's model reads straight off the controls. `D` fixes the bare content height
+at 15.33, `A` adds exactly 2.00 for one rule, and `F` adds exactly 4.00 for a
+`w:sz="24"` (3 pt) border — so **what a boundary costs is the width of the border
+actually drawn there, and it scales with `w:sz` rather than being a constant**.
+`E` shows a cell border that merely restates the rule at the same width adds
+nothing.
+
+**`B` is the finding: a nil on BOTH sides of the shared boundary returns the row
+to its no-rule height exactly, 15.33 against D's 15.33. Word charges zero.** And
+`C` is the other half: a nil on only ONE side does NOT suppress, and Word charges
+the rule in full. A shared boundary needs both cells to decline it.
+
+**We agree with Word on five cases out of six and get `B` wrong by exactly one
+rule width.** That is `rowBorderWidths` taking `max(tblBorders.insideH,
+cellBottom, cellTop)` and reading `w:val="nil"` as "no opinion" rather than as a
+zero that overrides — while `paintCellEdges` reads it correctly and draws no
+rule. So wherever a nil cell border overrides a table rule we are 2.00 px too
+tall on that boundary and paint nothing there. `C` passing in both engines says
+the one-sided case is already right and must stay right: the fix is not "nil
+means zero" but "nil on both sides means zero".
+
+**Still unprobed:** the sided-ness half of #51 — a one-sided UNSHARED cell border
+in an exact row, where half-share, own-top and own-bottom all agree on current
+evidence. This probe does not separate them, and one variant would.
