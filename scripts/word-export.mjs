@@ -223,6 +223,52 @@ export function wordUpdateFieldsAndSave({ name, docx, docxDestination }) {
 }
 
 /**
+ * How many tracked changes desktop Word finds in `docx`.
+ *
+ * Word's own count is the second opinion on revisions the engine wrote: that
+ * Word reads a w:rPrChange/w:pPrChange as a revision at all says the markup is
+ * well formed, and the number says it agrees about how many. Never activates.
+ */
+export function wordRevisionCount({ name, docx }) {
+  const staged = join(wordIoDir, `${name}-revcount.docx`);
+  rmSync(staged, { force: true });
+  copyFileSync(docx, staged);
+  const base = escapeAppleScript(basename(staged));
+  const script = `with timeout of 600 seconds\n` +
+    `tell application "Microsoft Word"\n` +
+    `  try\n` +
+    `    close every document saving no\n` +
+    `  end try\n` +
+    `  delay 3\n` +
+    `  open file name "${escapeAppleScript(staged)}"\n` +
+    `  repeat with attempt from 1 to 180\n` +
+    `    if exists document "${base}" then exit repeat\n` +
+    `    delay 1\n` +
+    `  end repeat\n` +
+    `  if not (exists document "${base}") then error "Word did not finish opening ${base}"\n` +
+    `  set revisionTotal to (count of revisions of document "${base}")\n` +
+    `  try\n` +
+    `    close every document saving no\n` +
+    `  end try\n` +
+    `  return revisionTotal as string\n` +
+    `end tell\n` +
+    `end timeout`;
+  for (let attempt = 1; ; attempt++) {
+    try {
+      return Number(execFileSync("osascript", ["-e", script], {
+        timeout: 610_000,
+        encoding: "utf8",
+        stdio: ["ignore", "pipe", "inherit"],
+      }).trim());
+    } catch (error) {
+      if (attempt >= 3) throw error;
+      console.log(`Word was not ready to count revisions (attempt ${attempt}); retrying`);
+      execFileSync("sleep", ["20"]);
+    }
+  }
+}
+
+/**
  * Mismatched-pixel count between two PNGs, measured in a browser page so both
  * sides decode through the same image pipeline. Sizes are unioned onto a white
  * canvas, so a page that differs in size counts the surplus as mismatch.

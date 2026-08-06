@@ -27,12 +27,53 @@
 import { unzipSync, strFromU8 } from "fflate";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
-import { wordUpdateFieldsAndSave } from "./word-export.mjs";
+import { wordRevisionCount, wordUpdateFieldsAndSave } from "./word-export.mjs";
 
 /** One part of a saved package, as text. */
 function part(docx, name) {
   const files = unzipSync(readFileSync(docx));
   return files[name] ? strFromU8(files[name]) : null;
+}
+
+/**
+ * Every `<w:pPr>` / `<w:rPr>` element that contains a tracked-formatting
+ * change, each as its own substring.
+ *
+ * Used to check the two things OOXML requires of a *PrChange and that no corpus
+ * document currently exercises: that it carries the PREVIOUS properties rather
+ * than an empty shell, and that it is the LAST child of the properties element
+ * holding it.
+ */
+function propertiesWithChange(document, kind) {
+  // Nesting-aware: a *PrChange carries the previous properties as a nested
+  // element of the SAME name, so matching the first closing tag would cut the
+  // block in half and make a correct payload look empty.
+  const opener = new RegExp(`<w:${kind}Pr(?:\\s[^>]*)?>`, "g");
+  const tag = new RegExp(`<w:${kind}Pr(?:\\s[^>]*)?>|</w:${kind}Pr>`, "g");
+  const blocks = [];
+  let start;
+  while ((start = opener.exec(document))) {
+    tag.lastIndex = start.index;
+    let depth = 0;
+    let end = -1;
+    let step;
+    while ((step = tag.exec(document))) {
+      if (step[0].startsWith("</")) {
+        depth -= 1;
+        if (depth === 0) {
+          end = step.index + step[0].length;
+          break;
+        }
+      } else {
+        depth += 1;
+      }
+    }
+    if (end < 0) break;
+    const block = document.slice(start.index, end);
+    if (block.includes(`<w:${kind}PrChange`)) blocks.push(block);
+    opener.lastIndex = end;
+  }
+  return blocks;
 }
 
 /** 48x48 checkerboard, small enough to inline and obvious enough to see. */
@@ -407,6 +448,87 @@ export const scenarios = [
       if (pageRefs(theirs) !== pageRefs(ours)) {
         fail(`PAGEREF count changed under Word's update: ours ${pageRefs(ours)}, Word ${pageRefs(theirs)}`);
       }
+    },
+  },
+  {
+    name: "tracked-format",
+    fixture: "parity-text",
+    description:
+      "Suggest three formatting changes as Reviewer A (run bold, paragraph alignment, list toggle), " +
+      "accept one and reject one, and leave the third pending as a real w:pPrChange.",
+    async edit(ed) {
+      await ed.clickText("Plain text parity");
+      await ed.call("setSuggesting", true, "Reviewer A");
+
+      // Each target already carries the property being changed, so the recorded
+      // previous-properties payload is non-empty — an untouched paragraph would
+      // record an empty <w:pPr/> and prove nothing about the payload.
+      //
+      // Resolved one at a time through the bulk calls, NOT through
+      // accept/rejectRevisionAtCaret: those resolve a caret through
+      // revisionForText, which only recognises w:ins/w:del ancestors, so a
+      // formatting revision is unreachable by caret in this build even though
+      // revisionCount() counts it. With exactly one suggestion outstanding,
+      // accepting "all" of them accepts precisely that one.
+      await ed.select("italic");
+      await ed.call("applyFormat", { bold: true });
+      ed.assert(await ed.call("revisionCount") === 1, "run format did not record a suggestion");
+      ed.assert(await ed.call("acceptAllRevisions") === 1, "could not accept the suggested run format");
+
+      await ed.select("Centered single line of text");
+      await ed.call("setAlignment", "right");
+      ed.assert(await ed.call("revisionCount") === 1, "alignment did not record a suggestion");
+      ed.assert(await ed.call("rejectAllRevisions") === 1, "could not reject the suggested alignment");
+
+      await ed.select("Right-aligned single line");
+      await ed.press("ArrowRight");
+      await ed.call("toggleList", "bullet");
+
+      await ed.call("setSuggesting", false);
+      await ed.settle();
+      ed.assert(await ed.call("revisionCount") === 1, `expected one pending suggestion, got ${await ed.call("revisionCount")}`);
+    },
+    async verify({ editedDocx, fail, note }) {
+      const document = part(editedDocx, "word/document.xml");
+      const paragraphChanges = propertiesWithChange(document, "p");
+      const runChanges = propertiesWithChange(document, "r");
+      note("pPrChangeCount", paragraphChanges.length);
+      note("rPrChangeCount", runChanges.length);
+
+      // Accepted: the run format stays, its change record does not.
+      if (runChanges.length !== 0) fail(`Accepted run format left ${runChanges.length} w:rPrChange behind`);
+      // Rejected + pending: exactly the list toggle remains.
+      if (paragraphChanges.length !== 1) {
+        return fail(`Expected exactly one pending w:pPrChange, found ${paragraphChanges.length}`);
+      }
+
+      const pending = paragraphChanges[0];
+      note("pendingChange", pending.slice(0, 220));
+      const payload = pending.match(/<w:pPrChange\b[^>]*>([\s\S]*)<\/w:pPrChange>/)?.[1] ?? "";
+      // A change element that records no previous properties is a change that
+      // cannot be rejected — the payload IS the undo.
+      if (!/<w:pPr>[\s\S]*<\/w:pPr>/.test(payload) || /^<w:pPr\s*\/>$/.test(payload.trim())) {
+        fail(`Pending w:pPrChange carries no previous properties: ${payload.slice(0, 160)}`);
+      }
+      if (!/<w:jc\b/.test(payload)) {
+        fail(`Pending w:pPrChange payload lost the previous alignment: ${payload.slice(0, 160)}`);
+      }
+      // Schema order: the change element closes the properties element.
+      if (!pending.trimEnd().endsWith("</w:pPrChange></w:pPr>")) {
+        fail(`w:pPrChange is not the last child of its w:pPr: ...${pending.slice(-120)}`);
+      }
+      if (!/w:author="Reviewer A"/.test(pending)) fail("Pending change is not attributed to Reviewer A");
+
+      // Rejected alignment fully restored: the centered paragraph is centered.
+      const centered = document.includes('<w:jc w:val="center"/>');
+      note("centerRestored", centered);
+      if (!centered) fail("Rejecting the alignment suggestion did not restore the centered paragraph");
+
+      // Word's own reading of the same markup. The corpus has never carried a
+      // non-empty *PrChange, so this is where a schema mistake shows up.
+      const count = wordRevisionCount({ name: "tracked-format", docx: editedDocx });
+      note("wordRevisions", count);
+      if (count !== 1) fail(`Word counts ${count} tracked changes where the engine left 1 pending`);
     },
   },
 ];
