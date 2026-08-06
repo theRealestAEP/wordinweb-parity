@@ -247,6 +247,27 @@ renderer defect. Re-exporting that reference from a disturbed copy is the open
 item; until then the label on this fixture means "the reference is stale", which
 is the third distinct thing these three labels have been misread as saying.
 
+`wild2-legal-ca-agreement` is the same story and its reference is stale too. It
+carries 17 hints; strip them — 442 bytes, nothing else — and Word exports 22
+pages where the cached reference has 23. The extra one is a blank verso at
+page 2 that only the stored pagination contains. Word's computed layout of the
+untouched fixture is page-for-page identical to Word's layout of the
+TOC-inserted save, so the toc-insert edit changes Word's pagination not at all;
+it only disturbs the file enough to make Word recompute. Our 23rd page is ours,
+and it is there before any edit.
+
+Its cause is worth recording because it is not a page-break rule. Pages 3 and 4
+of the same render fill to within 17.1 and 12.8 px of the body bottom, so there
+is no early ceiling; page 1 simply arrives at its foot 3.7 px low, leaving
+32.9 px where the next block needs 34.2 (19.4 space-before plus a 14.8 line). We
+miss by 1.3 px, spill two paragraphs onto a page of their own, and the explicit
+page break then starts the heading a page later than Word does. The 3.7 px is
+two discrete spacing steps on that page, +2.4 and +1.7, not accumulation.
+
+Measure that kind of question in the BROWSER. Through `ApproxMeasurer` the same
+page looks catastrophic — different line breaking and 15.6 px of drift — and all
+of it is the approximate measurer rather than the renderer.
+
 Baselines are close to free. The corpus already holds a Word export of every
 unedited fixture as `parity/<fixture>-word.pdf`, so no scenario needs a second
 Word round trip, and the web baseline is rendered once per FIXTURE rather than
