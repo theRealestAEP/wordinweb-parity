@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "generatedAt": "2026-08-06T08:02:37.028Z",
+  "generatedAt": "2026-08-06T11:04:26.607Z",
   "fixtures": {
     "benchmark": {
       "sourcePackageSha256": "fcce177e72a4e214276fe588643c8e39ac11340d424937c31d5bc54507d46e82",
@@ -28,6 +28,13 @@
       "referenceDocx": "apps/demo/public/fixtures/coverletter-anon.docx",
       "referenceDocxPackageSha256": "ba2de991a9d620b77d5b67fa0d2b7d39a80c601dd6bc18d85ad7677dc9915bc8",
       "referencePdfSha256": "8afe55892b22fc651ff6708fe7c355027fd967b5e3761f6586f85fa1928f7afd",
+      "pages": 1
+    },
+    "forsale": {
+      "sourcePackageSha256": "58e0b56db1b3806d1cba64eb3eefc2757486433108f6f2eecd77f3296e0e90b8",
+      "referenceDocx": "apps/demo/public/fixtures/forsale.docx",
+      "referenceDocxPackageSha256": "58e0b56db1b3806d1cba64eb3eefc2757486433108f6f2eecd77f3296e0e90b8",
+      "referencePdfSha256": "a6fecfa2840bda917ca3af246dec18d1ce832395df35f37e511e92f5f6f97074",
       "pages": 1
     },
     "parity-colbalance": {
@@ -542,10 +549,10 @@
       "pages": 1
     },
     "wild-athabasca": {
-      "sourcePackageSha256": "d76a74b028eb6ef0f05a5e7bf4f272fa9798204f614a9bf97f0bc308f99f1579",
+      "sourcePackageSha256": "8866c0c67fe06fef4eba75fccc43c430a3a406c9c7f4f7981e098e5726d9fd68",
       "referenceDocx": "apps/demo/public/fixtures/wild-athabasca.docx",
-      "referenceDocxPackageSha256": "d76a74b028eb6ef0f05a5e7bf4f272fa9798204f614a9bf97f0bc308f99f1579",
-      "referencePdfSha256": "c9e37d97a55988fb2a254bf01d9a547f982003e518d9ba087282e73c9a5adb61",
+      "referenceDocxPackageSha256": "8866c0c67fe06fef4eba75fccc43c430a3a406c9c7f4f7981e098e5726d9fd68",
+      "referencePdfSha256": "8fefa1bdcbc2d24c4d0d9b23479d6d633fc8278f926f2505dedc8c8c9a792e78",
       "pages": 31
     },
     "wild-doerfp": {
@@ -577,10 +584,10 @@
       "pages": 46
     },
     "wild-wirfp": {
-      "sourcePackageSha256": "4ef0c545f6e7924f6217d4c958fef0a0998d06c1a53a01d01ac9e2b71e853ecf",
-      "referenceDocx": "apps/demo/public/fixtures/wild-wirfp.docx",
-      "referenceDocxPackageSha256": "4ef0c545f6e7924f6217d4c958fef0a0998d06c1a53a01d01ac9e2b71e853ecf",
-      "referencePdfSha256": "7939e41a4e4e946d7fe7d716fd751f63551bfc2ceabe8eb895f02733c2a8455b",
+      "sourcePackageSha256": "a47c34f7b699ce0fd1b231ec179c1c5e90cfd0fcb01906a035a6753874da89f0",
+      "referenceDocx": "parity/word-reference-docx/wild-wirfp.docx",
+      "referenceDocxPackageSha256": "e4f54109b213ccc29bc8ed1c85612e35d13f7c3268b58ed0253eb0658ea18983",
+      "referencePdfSha256": "82d3732408d8517093d791806118cab8d964ba09d53aa63e63d2261f38c202fe",
       "pages": 20
     },
     "wild2-legal-ca-agreement": {
@@ -605,7 +612,7 @@
       "pages": 215
     },
     "wild2-math-eq-as-images": {
-      "sourcePackageSha256": "0e60d34431ddf0abc72ffee9687c2225b06de175fa01c775dab1bbd035e5c21a",
+      "sourcePackageSha256": "ba4aac41efe4059b724a9faa23d7023105327e1b7df18c223a8b3dc0ccec6d17",
       "referenceDocx": "parity/word-reference-docx/wild2-math-eq-as-images.docx",
       "referenceDocxPackageSha256": "f645fd8b30bfed6809672d758a0aed5fe069f1e8b2b0b4fd5080fbb85d9a669b",
       "referencePdfSha256": "5ceeb3afd8505a8f7e31d56d545f3133a13a01b53ab6d00ffa13ee94379196e7",
@@ -619,7 +626,7 @@
       "pages": 17
     },
     "wild2-med-nccih-protocol": {
-      "sourcePackageSha256": "55a5d6ecb6bb669d186fd338faba55726896e759b09aba30c15c4259fa738ae3",
+      "sourcePackageSha256": "8f5a5bd2f349366f5ae7a2c92d234eea144394ecaff708b74fa3a7857e364372",
       "referenceDocx": "parity/word-reference-docx/wild2-med-nccih-protocol.docx",
       "referenceDocxPackageSha256": "4b5c88bff220a42ca1385d5a9ea5da737714f49a4af208ea8773ba0bc05022c1",
       "referencePdfSha256": "48899bd603dc3b867b2ca0357fee9a7c479d0f1e13f96883a2b009ccf6b8651b",
