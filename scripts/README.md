@@ -343,7 +343,48 @@ an exact row's content and its own cell border.
 `wild2-med-phase23-protocol`, whose re-exported reference shows the same
 one-extra-page shape, has **zero** bordered paragraphs and **zero** quarter-line
 paragraphs. Its extra page is a different cause, and closing #38 will not close
-it.
+it. That cause is now isolated, and it is a page-fit rule.
+
+### An empty paragraph carrying only a page break always fits
+
+Word lays phase23 in 69 pages and we lay 70, with the same content on pages 1 to
+68. The whole difference is one fit decision at the foot of page 68. Our render
+and Word's agree there line for line — the section 10.4 table ends at the same
+place and the empty paragraph after it sits at the same place — and then Word
+puts ONE MORE empty paragraph on the page and we do not. That paragraph's only
+run is `<w:br w:type="page"/>`, so spilling it costs a whole page: our page 69
+holds nothing but that paragraph, and its break starts the heading on page 70
+where Word starts it on 69.
+
+The paragraph authors no `w:spacing`, so it inherits this document's
+`w:pPrDefault` — `before="200" after="200" line="276"` — which at 11 pt is a
+19.4 px line with 13.3 px above and 13.3 px below. There was 22.1 px of room.
+
+`scripts/generate-pagefit-probe.mjs` fills a page with exact-height paragraphs,
+tunes a shim so an exact amount of room is left, and puts one paragraph there.
+Four sweeps over rooms of 18 to 45 CSS px, each differing from the next by one
+authored thing, and the room at which the paragraph stops spilling:
+
+    target paragraph                    ours     Word
+    text, no page break                  33       33
+    text plus a page break               33       33
+    EMPTY, only a page break             33    fits at every room tested
+    empty, no page break                 33       33
+
+Three of the four agree exactly, and they pin the ordinary rule: a paragraph
+needs its space-before AND its line to fit, and does NOT need its space-after —
+13.3 + 19.4 is 32.7, which is why the threshold sits between 30 and 33 on both
+sides. Emptiness alone does not change it, and a page break alone does not
+change it.
+
+**An empty paragraph whose only run is a page break is the exception. Word puts
+it on the current page whatever the room — 18 px was still enough — and starts
+the new page after it. We apply the ordinary test and spill it.** In the fixture
+that is 22.1 px of room against our 32.7 px demand, so we spill, and the spill
+costs the page.
+
+Both this and the two #38 rules are the same shape of defect: a quantity Word
+declines to charge at a boundary, charged in full by us.
 
 Baselines are close to free. The corpus already holds a Word export of every
 unedited fixture as `parity/<fixture>-word.pdf`, so no scenario needs a second
