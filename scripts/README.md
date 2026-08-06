@@ -413,6 +413,51 @@ Read a sweep that pins a rule only as far as the advances the probe makes
 available. Two settings of the room is one variable; a second construct that
 adds an advance is another, and this rule needed both.
 
+### wild2-math-eq-as-images: the line box, not the image
+
+`scripts/pdf-page-geometry.py <pdf> <page>` reads a Word PDF's content stream
+and reports image boxes from the CTM that scales the unit image square, and
+text positions from `Tm`/`Td`. The image boxes are PLACED boxes and compare
+directly with the DOM; the text positions are BASELINES and do not.
+`scripts/browser-page-images.mjs <fixture> <page>` reports the same page from
+the browser.
+
+Page 2 carries the first equations. Our image boxes match Word's within a
+rounding pixel — heights 41.33/53.33/50.66/20.00/41.33/41.33/41.33 against
+42.00/53.00/50.33/19.67/42.00/42.00/42.00, widths within 0.67, and every x
+identical. So the images are neither mis-sized nor mis-indented. Their TOPS
+run -10.3, -21.0, -21.0, -20.0, -31.0, -52.0, -72.7 px against Word.
+
+Removing the constant 10.41 px ascent offset (measured on the two text-only
+opening lines, which agree to 0.00) aligns our line tops with Word's baselines
+and says exactly where the space goes:
+
+    our top     +asc   Word base    delta     step  line
+     102.63   113.04      113.04     0.00     0.00  text
+     126.63   137.04      137.04     0.00     0.00  text
+     169.63   180.04      192.73   -12.69   -12.69  (7)  IMAGE
+     212.97   223.38      244.07   -20.69    -8.00  text
+     236.97   247.38      268.07   -20.69     0.00  text
+     ...        ...          ...      ...    ~0.3   six text lines, flat
+     677.63   688.04      721.53   -33.49   -12.00  (2)  IMAGE
+     721.63   732.04      775.56   -43.52   -10.03  text
+     763.30   773.71      828.24   -54.53   -11.01  (9)  IMAGE
+     815.30   825.71      900.93   -75.22   -20.69  (6)  IMAGE
+     858.97   869.38      954.60   -85.22   -10.00  text
+
+Every text-only step is zero to a third of a pixel. Every loss lands on a line
+carrying an equation image, about 12 px each. Our text layout is exact and our
+images are the right size: what is short is the LINE BOX that holds an inline
+image. The gap above the first image is 13.70 px where Word leaves 24.04, and
+the 10.34 px difference is the 10.41 px text ascent to within rounding — we
+appear not to reserve the text ascent on a line an inline image dominates.
+
+It compounds: by the foot of page 2 we are 85 px ahead, so we pull Word's first
+two page-3 equations onto page 2 (nine images against Word's seven) and every
+later page is shifted. That is the 51% mean over 7 of 8 pages — one per-line
+defect, not a per-page one. Fix the image line box and re-measure before
+reading anything else in this fixture.
+
 Baselines are close to free. The corpus already holds a Word export of every
 unedited fixture as `parity/<fixture>-word.pdf`, so no scenario needs a second
 Word round trip, and the web baseline is rendered once per FIXTURE rather than
