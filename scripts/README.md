@@ -1359,3 +1359,60 @@ side can see — not to copy the substitution.
 Worth generalizing: a reference is only comparable if BOTH renderers resolve the
 same faces. Installing a font locally silently changes what our side paints and
 nothing about what Word's cached references did.
+
+### Word does not quantize a rule's width; we do, on the three lightest weights (#19)
+
+`scripts/generate-rulewidth-probe.mjs` puts one paragraph per border weight —
+`w:sz` 2, 4, 6, 8, 12, 18, 24, 36, 48, i.e. 0.25 to 6.00 pt — each carrying only
+a `w:space="0"` bottom border, so the width question is not confounded with a
+placement one.
+
+**Word paints `sz/8` points faithfully at every one of the nine weights**, as a
+filled rectangle rather than a stroke, ratio 1.000x throughout (the 6 pt row
+reads 6.025 from the rect extraction, which is the extraction's rounding). So
+there is no Word-side quantization to match, and the whole error is ours.
+
+`renderEdge` snaps the painted width to a whole DEVICE pixel —
+`Math.max(1/dpr, Math.round(declaredWidth * dpr) / dpr)`. Measured in the
+browser at both scales, six weights are exact and three are not:
+
+    w:sz   authored   in px    ours @1x   ours @2x    error @2x
+       2     0.25 pt  0.3333      0.5000     0.5000       +50.0%
+       4     0.50 pt  0.6667      0.5000     0.5000       -25.0%
+       6     0.75 pt  1.0000      1.0000     1.0000            0
+       8     1.00 pt  1.3333      1.0000     1.5000       +12.5%
+      12     1.50 pt  2.0000      2.0000     2.0000            0
+      18+          —       —       exact      exact            0
+
+Two things follow that the backlog note did not have.
+
+**The error is concentrated on the two commonest weights.** `sz=4` is Word's
+default table rule and `sz=8` the next most used, and they are exactly the two
+that miss. Total ink mass is preserved under antialiasing, so the painted-width
+ratio IS the ink ratio, and the metric's symmetric weight error follows directly:
+28.58% for an all-`sz4` grid. The 27.5% measured on `staging-tblextreme` with
+positions already matching is that number, which closes the loop on where the
+residual comes from.
+
+**`sz=8` changes SIGN with the display.** At 1x we paint 1.000 px against 1.333
+(-25.0%, a 28.57% weight error); at 2x we paint 1.500 (+12.5%, 11.77%). So a
+non-retina user sees a different rule weight than the parity gate measures, and
+any calibration read at one scale does not transfer to the other.
+
+**The snap buys crispness the reference does not have.** The comment at that site
+justifies it by Word's 0.5 pt rule being "one physical pixel" at 2x. It is not:
+0.5 pt is 1.333 device px at 2x, and the reference raster at 192 DPI is
+0.5/72*192 = 1.333 device px too — antialiased across two rows, exactly the
+unsnapped case. **Matching Word means not snapping the width.**
+
+Recommended change, NOT made here: drop the width snap and keep the position
+handling, which is separate and already correct (`placeExact`/`applyFrac` carry
+the fractional offset in a transform). Predicted effect: every weight goes to
+1.000x, `tableRuleWeightErrorPct` on rule-heavy fixtures falls from ~27.5% to
+about nothing, and the 1x/2x sign flip disappears. Keep a floor only where a
+declared width would otherwise round to zero — Word paints 0.25 pt faithfully,
+so faint is the correct appearance and the current `1/dpr` floor is what makes
+`sz=2` 50% too heavy.
+
+Landing it needs a full gate run, because it moves ink on every bordered fixture
+in the corpus at once.
