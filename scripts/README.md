@@ -113,6 +113,53 @@ byte changes still require a new Word export. Candidate rasters and reference
 rasters are cached by the exact Word-PDF SHA-256. Browser screenshots, browser
 PDFs, report PNGs, and off-page comment UI are excluded from this gate.
 
+### What makes a reference ground truth
+
+A reference PDF is ground truth only when Word had to compute the layout in it,
+and only when someone else can compute it again. Two things break that, and both
+have caught real fixtures:
+
+- **Stored pagination.** Word records where it last broke the pages as
+  `w:lastRenderedPageBreak` and replays them until an edit disturbs the file, so
+  a reference exported from a hint-carrying package can show a layout Word would
+  no longer produce. Strip the hints with
+  `scripts/strip-pagination-hints.py <source> <destination>` and export from the
+  stripped copy. The strip is byte-level, so the copy stays a checkable function
+  of its source.
+- **A package Word refuses.** An untyped `docProps/custom.xml` that `_rels/.rels`
+  references makes Word stop with a modal AppleScript cannot answer. Repair it
+  with `scripts/fix-custom-properties-type.py` before exporting anything.
+
+When a fixture needs either treatment, the reference is exported from a copy
+under `parity/word-reference-docx/`, and the manifest's `referenceDocx` names
+that copy. Keep the copy derivable from the corpus fixture by the two scripts
+above and nothing else, so its lineage can be re-checked at any time by
+re-deriving it and comparing.
+
+### wild-athabasca: what an unprovenanced reference costs
+
+`parity/wild-athabasca-word.pdf` and `parity/wild-wirfp-word.pdf` arrived with
+the workspace (1d0dc82) already exported, on a machine and from packages this
+repository never held. Their corpus fixtures could not open in Word at all, so
+the manifest named a source that demonstrably did not produce them. Both PDFs
+also carry `Title`/`Subject`/`Keywords` of "Fixture" where the corpus files leave
+those elements empty, which is a second, independent tell that the export source
+was a sibling package rather than the fixture.
+
+Re-exported from the repaired fixtures (f974a48) both references reproduce:
+wirfp 20 of 20 pages byte-identical at 192 DPI, athabasca 30 of 31, and
+athabasca's page 2 differs only in two lines whose words, baselines and widths
+all match while one inter-word space is 0.062pt wider and one word 0.076pt
+narrower. The keepNext chain the engine cites on this fixture is present in the
+fresh export: document paragraphs 211-217 are seven consecutive Heading2/Heading3
+paragraphs, they land together at the top of page 20 with the Normal paragraph
+that terminates the chain, and page 19 ends 317.4pt early — 11.5 slots at that
+run's 27.5pt line pitch.
+
+So an unprovenanced reference is not automatically a wrong one. What it costs is
+the ability to say so without re-exporting, and every measurement standing on it
+stays provisional until someone does.
+
 ## Edit round-trip
 
 The saved-DOCX gate proves the website re-serializes a document Word already
