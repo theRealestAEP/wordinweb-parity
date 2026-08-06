@@ -5,7 +5,7 @@
  * kinds at Word defaults, one per page — and fixtures-staging/
  * probe-charts-autoscale.docx, which varies only the data maximum.
  *
- * The corpus has no chart fixture at all, so three things the renderer does are
+ * The corpus had no chart fixture at all, so three things the renderer did were
  * documented guesses rather than measurements:
  *
  *   1. the automatic value-axis scale (where the axis starts and ends, and the
@@ -13,6 +13,29 @@
  *   2. the default text sizes (14pt title, 9pt for axis labels, legend entries
  *      and data labels);
  *   3. where labels sit relative to the plot.
+ *
+ * All three were wrong, and all three are fixed as of engine 19a9ae6. The axis
+ * now agrees with Word on all six autoscale datasets, up from one of six; the
+ * title is 18pt and the rest 10pt; legend spacing is 18.1pt and a bar chart's
+ * legend is reversed. Severity fell on every page — column 15.08 to 6.73, line
+ * 46.91 to 32.19, pie 5.02 to 4.41, bar 16.08 to 10.38, area 12.23 to 6.67.
+ *
+ * What remains is neither text nor scale. Measured on the line page, where the
+ * residual is largest:
+ *
+ *   - Word paints the 7 horizontal gridlines and the axis lines pure BLACK at
+ *     1.0pt; we paint them #D9D9D9. That is most of the remaining ink weight.
+ *   - Word draws a frame around the chart space; we draw none.
+ *   - Word varies marker shape by series, diamond then square; we draw a circle
+ *     for every series, and our legend key is a filled swatch where Word's is a
+ *     line segment carrying the marker.
+ *   - our plot rectangle is about 7% larger along the value axis — gridline span
+ *     161.0pt against Word's 150.2 on the column page, 282.7 against 264.8 on
+ *     the bar page — so we reserve less room than Word for labels and legend.
+ *
+ * Read the first two as AUTHORING findings before renderer ones: insertChartAt
+ * writes no c:spPr for the gridlines or the chart space, so Word falls back to a
+ * plain black default that a chart inserted through its own UI never shows.
  *
  * Every chart here carries the SAME data, so a difference between two pages is
  * a difference between chart kinds and nothing else. The values are deliberately
