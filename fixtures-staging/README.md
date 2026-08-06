@@ -174,7 +174,8 @@ Both are good candidates to teach `scripts/validate-docx.py` in a follow-up.
   to keep the anchor Word-valid without hand-verifying that extension's child
   order; it covers percent *sizes* (`wp14:sizeRelH/sizeRelV`) instead.
 - **Watermarks** in staging-hf2 are rotated anchored `wps` shapes, not VML
-  `v:textpath` WordArt (already a known engine gap — parity2-watermark); this
+  `v:textpath` WordArt (formerly an engine gap; the textpath ink-fitting has
+  since been calibrated — parity2-watermark measures 0% structural); this
   fixture targets header-per-section + pgNumType behavior, not the WordArt path.
 - Charts-as-fallback-image, OLE placeholders and ruby were considered but not
   built (they need embedded binary parts + bespoke content types); flagged as
