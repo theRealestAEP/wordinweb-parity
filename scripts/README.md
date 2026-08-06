@@ -1225,3 +1225,50 @@ edited comparison passes at 23 pages against Word's 23, while the BASELINE reads
 **99.080% worst** — our unedited 23 against the re-exported 22-page reference,
 one page out of step from page 2 on. The baseline is the uncontaminated half
 here, and it is the one that fails.
+
+### The line chart's residual is a legend reservation, and 163% is not a bug (#64)
+
+Two separate questions, and the second one has to be settled first or it
+poisons the first.
+
+**The >100% semantic-text figure is the metric's own scale, not an anomaly.**
+`textWeightErrorPct` is `200 * Σ|webMass - wordMass| / (wordTotal + webTotal)` —
+a symmetric difference normalized by the MEAN of the two masses, so its range is
+**0 to 200%**, and `parity-metric.mjs` self-checks exactly that
+(`symmetricWeightError(2, 1) === 200/3`). Every semantic weight channel uses the
+same scale, including the `weight 2.95%` on the same page. So `163.12%` means
+the two text layers are very nearly DISJOINT: solving `200|a-b|/(a+b) = 163.12`
+puts the smaller side at about a tenth of the larger, i.e. roughly 90% of the
+text mass has no counterpart in its paired region. It corroborates the
+displacement rather than contradicting it, and nothing needs fixing in the
+metric. Read any semantic weight number against 200, not 100.
+
+**The geometry is a legend width reservation.** The chart SPACE agrees exactly —
+both engines put it at 134.99, 96.00 to 614.99, 384.00, so the graphicFrame
+extent is not in question. The plot rectangle inside it:
+
+    edge          Word      ours     ours - Word
+    left        170.20    175.80          +5.60
+    right       510.61    531.70         +21.09
+    top         150.40    151.84          +1.44
+    bottom      350.71    352.16          +1.45
+    width       340.41    355.90         +15.49
+    height      200.31    200.32          +0.01
+
+**The value axis is CLOSED**, which retires the "~7% larger along the value axis"
+finding this file records from the column and bar pages: the height now agrees to
+0.01 px and the whole vertical position to 1.45. What is left is horizontal, and
+it is not symmetric — we are 5.60 px too far right on the left edge and 21.09 px
+too far right on the right edge.
+
+The right edge is the real one, and the legend is what sits there. Word's legend
+text runs `Alpha` at x=568.47..601.88 and `Beta` at 568.47..594.88, with its keys
+just left of that, so Word leaves **34.4 px between the plot's right edge and the
+legend block**. Ours leaves 18.6 px: our keys start at 550.32 where Word's plot
+has already stopped at 510.61. **We under-reserve the legend's horizontal band
+and spend the difference on plot width.** The 4.24 px alignment figure in the
+gate is that displacement seen through the metric, and it is a real one.
+
+Measure this from the Word PDF's gridlines rather than from a raster: the seven
+horizontal gridlines and the axis line give the plot rectangle directly, and
+`fitz`'s `get_drawings()` reports them with their 1.0 pt width.
