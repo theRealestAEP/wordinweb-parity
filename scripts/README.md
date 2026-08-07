@@ -1822,3 +1822,116 @@ row below the boundary, and we do not read `nil` here at all. Note that
 `exactRowCellBorderShare` only inspects `tcBorders`, so a `tblBorders insideH`
 rule never reaches it — the 1.00 px comes from elsewhere and the fix wants that
 path found before anything is changed.
+
+### parity-hftemplates p2-p4: the reference is clean and the score is a regression (#89)
+
+The 96.88% on p2 (192.72% semantic text, with p4 at 15.52% and p3 at 4.09%)
+carried the classic stale-reference signature, so the screening discipline was
+applied first: two fresh exports of the fixture on the current Word build are
+byte identical to each other AND byte identical to the cached July 16 reference
+on all four pages at 192 DPI. The reference needs no re-export, and the score
+is real.
+
+It is also new. Every full run from 18 to 30 July (engine `e2f94ad`) read this
+fixture 0/0/0/0, and the 6 August run at engine `22451c2` reads 0/96.88/4.09/
+15.52 — the regression landed in that window, which contains #80's removal of
+the 22.5pt complex-header clearance.
+
+The asymmetry, measured from the fresh Word PDF against our render: on pages
+2-4 our BODY TOP sits 29.0 / 23.0 / 30.5 CSS px above Word's, and page 1
+agrees exactly. Page 1's header is a plain paragraph; the other three are the
+template headers — Ion Light (a table), Banded (a wrapSquare anchored bar),
+Ion Dark (a wrapTopAndBottom anchored bar). On p2 the arithmetic closes to
+0.1pt: Word's body top is `headerDistance 35.4 + table row 36.0 + the header's
+trailing empty paragraph ~22.5 = 93.9pt`, above the 72pt top margin, while we
+stop at `35.4 + 36.0 = 71.4pt` — under the margin, so the margin governs and
+we sit 22.5pt high. **We drop the paragraph that follows the header's table**;
+the old 22.5pt clearance was accidentally standing in for it, which is why #80
+regressed this fixture and why the two header probes (whose table header has
+no trailing paragraph) measured the clearance as pure overcharge. Both
+readings are right about their own documents: the probes under-determined the
+rule, exactly the way `probe-docgrid`'s `w:before="0"` hid the space-before
+drop. The anchored-shape pages miss by 23.0 and 30.5px and their decomposition
+is not pinned here — only that Word charges header height we do not.
+
+### benchmark p1's 12.75% rule channel is raster quantization, not a rule defect (#83)
+
+The rule SETS match. Word's page-1 vectors hold 9 horizontal + 7 vertical
+table rules (two tables), every one 0.5pt, plus two 0.75pt text-border rules;
+our render paints the same 16 rules at the same positions (a single ~0.6pt
+whole-page shift, within the metric's global offset) and the same lengths.
+Nothing is missing, nothing is extra, and no boundary class differs — so
+there is no probe to write and no engine change to make.
+
+What the channel measures is the REFERENCE raster. pdftoppm rounds both edges
+of a thin filled rectangle to the nearest device pixel, so an identical 0.5pt
+rule (1.333 device px at 192 DPI) lands as one or two whole device rows purely
+by where it falls on the pixel grid. Predicted from each rule's vector edges by
+`round(edge x 8/3)`, all 14 table rules match the raster exactly — 7 rules
+read 2 rows (0.75pt of ink) and 7 read 1 row (0.375pt). Our render antialiases
+the true 1.333, so every rule differs from the reference by -25% or +33% in
+mass, and the channel sums that to 12.75%. The pre-#79 snap painted 1.0 device
+px, which agreed with the majority phase by luck — that is the whole story of
+10.68% rising to 12.75% when our ink went from 0.75x to 1.0x of Word's.
+
+Read the rule-weight channel with this floor in mind wherever the authored
+weight is under ~1pt: for sub-pixel rules it cannot reach zero for any correct
+renderer. Set membership and position questions go to the PDF vectors, not the
+raster.
+
+### The chart legend right edge is fixed in pt, and the per-type gap is a label overhang (#84)
+
+`scripts/generate-legendedge-probe.mjs` writes `fixtures-staging/
+probe-legendedge.docx`: bar, line and pie, each with the standard right legend
+at 360x216pt AND at 240x144pt (the wp:extent is the only thing the small cases
+change). Both Word exports reproduce byte for byte on all six pages, and
+`parity/probe-legendedge-word.pdf` is the reference. Everything below is read
+from the PDF vectors with fitz `get_drawings()`, chart-local pt.
+
+**Every right-edge quantity is identical at the two box sizes**, so the whole
+band is fixed in pt at Word's default 10pt chart text and nothing on this edge
+is a fraction of the box — which retires `PLOT_EDGE_INSET`'s share of it, and
+the probe's left/top/bottom edges are size-invariant too (plot left 28.40/
+28.40 on bar, 26.41/26.41 on line), so the fraction fitted in 6669f9e was a
+one-size accident throughout.
+
+The band, right to left: the legend label column's right edge sits 9.87pt off
+the chart's right edge; labels are left-aligned at `chartRight - 9.87 -
+maxLabelWidth`; the key sits 8.05pt left of the label column when it is a
+swatch (5.49pt square + 2.56 gap) and 21.42pt when it is a line sample (19.2pt
+segment + 2.2 gap). Then the plot's right edge:
+
+    page      key left   plot right   gap     16pt + half last bottom label
+    bar  L      317.07       295.74   21.33   16 + 5.30 ("12")  = 21.30
+    bar  S      197.07       175.74   21.33   16 + 5.30         = 21.30
+    line L      303.71       281.72   21.99   16 + 6.31 ("Q4")  = 22.31
+    line S      183.71       161.72   21.99   16 + 6.31         = 22.31
+    column (probe-charts-basic)       16.00   16 + 0            = 16.00
+    area   (probe-charts-basic)       22.33   16 + 6.31         = 22.31
+
+**The rule: the plot stops 16pt short of the legend key, plus half the width
+of the bottom-axis label that centres on the plot's right edge.** A bar
+chart's last value tick and a line or area chart's last category centre on
+that edge and overhang it; a column chart centres its categories inside their
+bands and overhangs nothing. Three of the four types close to 0.03pt and line
+to 0.32. (#81's line-page gap of 38.05px was measured to the marker inside the
+line sample, not the sample's left edge; re-anchored, that page reads the same
+21.99pt as this probe.)
+
+The pie has no plot rect. Its circle takes the vertical leftover (diameter
+166.92pt in the 216pt box, 93.77 in the 144pt one, both against a ~40.7pt
+title band and ~10.5pt bottom pad) and centres horizontally in the band the
+legend leaves, with ~4.7pt of clearance folded in: centre x = (keyLeft -
+4.7)/2 at both sizes.
+
+Engine branch `legend-edge` (worktree, commit recorded in the wave report)
+implements the right-edge rule and the measured band for right legends:
+plot right = legendLeft - 16pt - overhang, replacing the tick allowance, the
+fractional inset and the flat LEGEND_GAP on that edge only. Measured back in
+the browser, gridline right edges land on Word within 0.10-0.99pt at BOTH
+sizes on all four axis pages, and probe-charts-basic's line page falls 30.03%
+-> 4.78% with column/bar/area flat or better. What remains on these pages is
+the VERTICAL band (our line-S plot runs 39.75..121.88pt against Word's
+40.80..119.03) and the left gutter (ours 30.75 against Word's 26.41) — both
+size-invariant in pt, neither decomposed by a probe yet, and the small-box
+pages stay noisy until they are.
