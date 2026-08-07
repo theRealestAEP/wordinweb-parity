@@ -2033,3 +2033,73 @@ lin/roundRect layoutDef and remain inconsistent with their caches in exactly
 the way cycle was; the explicit-color and pinned-text halves of this change
 already apply to them, but their geometry is not calibrated. That is the
 remaining phase of #94.
+
+### staging-eastasian's 38% was the compat gate on the grid snap, not the CJK (#tail-A)
+
+The reference screening discipline came first, and it matters here because the
+repo held TWO copies: `parity/staging-eastasian-word.pdf` (July 16, the one
+the corpus gate reads) reproduces byte for byte against two fresh exports of
+the fixture; `fixtures-staging/staging-eastasian-word.pdf` (July 14) was a
+stale sibling carrying a phantom empty heading line that pushed every band
+64px down, and is now replaced by the clean copy. Diagnose against the
+`parity/` copy only.
+
+Measured by INK BANDS (raster row profiles - the DOM baselines of our flex
+spans measure span bottoms, not baselines, and had invented two intra-line
+"defects" the ink shows do not exist), all 14 bands matched in height and
+every Normal<->Normal boundary agreed to 0.5px. The four boundaries touching
+a Heading1 line missed by 7.5-13px each, summing to a 26.5px spread: Word
+gives the heading line (Calibri Light 16pt, natural 26.04px) TWO grid rows
+of the pitch-360 grid - 48px, glyph box centered - while we laid natural x
+multiplier = 28.1px.
+
+`generate-docgrid15-probe.mjs` -> `fixtures-staging/probe-docgrid15.docx`
+(reference `parity/probe-docgrid15-word.pdf`, two exports byte-identical)
+separates what staging-eastasian could not: at compat 15, in-paragraph
+advances read directly per case:
+
+    case   font                 pitch   natural   Word advance
+    A360   Calibri 11pt          360      17.9      26.00  (= quantQuarterPt(24 x 1.0792))
+    B360   Calibri Light 16pt    360      26.04     48.03  (2 rows)
+    D360   Calibri Light 18pt    360      29.3      48.03  (2 rows)
+    E360   MS Mincho 11pt        360       -        26.00
+    F360   MS Mincho 16pt        360       -        48.03  (2 rows - EA snaps too)
+    H360   Heading1 (2 lines)    360      26.04     48.03  (+ follower gap closes to 0.03px)
+    A240   Calibri 11pt          240      17.9      32.00  (2 rows of 16)
+    B240   Calibri Light 16pt    240      26.04     32.00  (2 rows of 16)
+
+So the engine's `compatibilityMode < 15` gate on textSnap had NO discriminating
+evidence behind it: it was calibrated on the fixture's Chinese-fallback lines,
+where snap (2 x 24 = 48) and multiplier x natural (44.48 x 1.0792 = 48.0) are
+numerically identical. probe-docgrid and probe-gridopen are both compat 12, so
+the compat-15 side had never been probed. H360 also confirms the section-break
+space-before rule (36.71 = 31.37 + max(0, before 16 - prev after 10.67))
+composing with the snap.
+
+Engine `tail-fixes` 821eac5 removes the gate for horizontal flow.
+staging-eastasian p1: **38.01% -> 0.00% structural**. Deliberately NOT
+implemented, filed as measured asymmetries:
+
+- **EA oversized lines at compat 15** (F360): Word snaps them; our substituted
+  Hiragino/PingFang raw profiles overstate the natural (ja 11pt raw box
+  24.10px > pitch 24) and would false-snap lines Word lays at one row. The
+  corpus EA lines land right through the auto path (zh baselines +0.09px), so
+  the EA carve-out stays until the profiles carry Word-em snap metrics.
+- **Vertical (tbRl) flow keeps the old gate**: enabling the snap there moved
+  probe2-ruby-vertical p2 from 0.02% to 12.05%; Word's vertical column pitch
+  does not take this rule, and nothing further is probed about it.
+- The residual after the fix is a uniform-ish +0.5..+7px drift (band spread
+  6.5px, worst at H2/combine where the PingFang re-sync interacts), inside
+  0.00% structural.
+
+Sentinels at 821eac5, digit for digit against the corpus log:
+probe2-ruby-vertical 0.15/0.02, wild2-math-eq-as-images 0.00/1.69/1.23/1.25/
+1.29/1.14/0.65/0.90, benchmark 0.00/0.37/0.35/4.00, staging-tblextreme
+0.00/0.00. Core suite green, edit round-trip 17/17.
+
+Tools this added: `internal/scripts/ink-bands.py` / `ink-bands2.py` (x-windowed
+raster row-band comparison, web screenshot @2x vs reference @192dpi) and
+`internal/scripts/capture-page.mjs`. Measure vertical drift questions with ink
+bands, not DOM rects: `display:flex` span boxes bottom-align their glyphs, so
+a span's rect bottom is not a baseline and cross-font comparisons built on it
+are artifacts.
