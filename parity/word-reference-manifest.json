@@ -713,10 +713,17 @@
       "pages": 1
     },
     "word-interop-smartart-only": {
-      "sourcePackageSha256": "f1ff4b0a8d69bf2ac544bd7c7f0bf4c375ca728706f9e4aa1eab1ff3b5d7907e",
+      "sourcePackageSha256": "a39849c30f5da5cda80a48fefdc8498b7f88592407b512bc60843152034e73aa",
       "referenceDocx": "apps/demo/public/fixtures/word-interop-smartart-only.docx",
-      "referenceDocxPackageSha256": "f1ff4b0a8d69bf2ac544bd7c7f0bf4c375ca728706f9e4aa1eab1ff3b5d7907e",
-      "referencePdfSha256": "cbc6fc25c49e21644f34f9f525cc51d5fa3f210f8f995bf498efcfe01d05f2fb",
+      "referenceDocxPackageSha256": "a39849c30f5da5cda80a48fefdc8498b7f88592407b512bc60843152034e73aa",
+      "referencePdfSha256": "1abac21a0aeb88c7b9777571621c995698aa1ea09703ac88edcae30c6d47f096",
+      "pages": 1
+    },
+    "word-interop-smartart-embedded": {
+      "sourcePackageSha256": "c50b1b8a302cdfe655e1247d3d0d918e36786767620ebe96f45903d491e5da7c",
+      "referenceDocx": "apps/demo/public/fixtures/word-interop-smartart-embedded.docx",
+      "referenceDocxPackageSha256": "c50b1b8a302cdfe655e1247d3d0d918e36786767620ebe96f45903d491e5da7c",
+      "referencePdfSha256": "99233b6fb1c1cd35ca668168b473db61cc11aa1582ca166962ba3fc022dc97f2",
       "pages": 1
     }
   }

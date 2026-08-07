@@ -1978,3 +1978,58 @@ runs 39.75..121.88pt against Word's 40.80..119.03) and so is the left gutter
 series against those standing offsets. Both leftovers are size-invariant in
 pt, neither is decomposed by a probe yet, and the small-box pages stay noisy
 until they are.
+
+### SmartArt we author must survive Word's re-evaluation (#94)
+
+Word does not paint the cached `dsp:drawing` a SmartArt package carries; it
+re-runs the `layoutDef` over the data model and paints what THAT produces. So
+authored SmartArt has two descriptions of the same art, and they have to agree.
+Ours did not, and the whole 65.66% on `word-interop-smartart-only` was that
+disagreement: the engine cached a cycle family's ellipse ring in explicit
+srgbClr colors while its layoutDef said `alg lin` + `shape roundRect` +
+autofit, and its colorsDef said `schemeClr accent1` — which, in a package with
+NO theme part, Word resolves against its own default theme. Word painted a row
+of three #156082 roundRects with 24pt Aptos where our render showed the cached
+ring. Real-Word-authored SmartArt was never affected (its two descriptions
+agree by construction), which is why `wild2-med-phase23-protocol` p13 sat at
+0.08% severity throughout.
+
+Engine `b67b22a` (branch `smartart-consistency`) makes the cycle family
+self-consistent, and two Word exports calibrated it:
+
+- **Everything pinnable was pinned, and Word honours every pin exactly.**
+  Child w/h as `refType` fractions (0.25*W, 0.3*H → 90.00x54.00pt measured),
+  the cycle `diam` (0.6*H → circle radius 54.00pt measured), `primFontSz`
+  val=12 with no autofit rule, and 12pt bold white Calibri written as explicit
+  `a:rPr` on the data-model runs (Word paints Calibri-Bold 12.00 over its
+  theme font). The cached node stroke is 1.5pt, matching what the styleDef's
+  `lnRef idx="2"` makes Word draw.
+- **`meth="cycle"` interpolates; `meth="repeat"` is the discrete one.** The
+  first calibration export came back with nodes 2 and 3 blended to #75C38E.
+  With `meth="repeat"` and the engine's six-color table as explicit srgbClr
+  values, Word paints #4472C4/#ED7D31/#70AD47 per node, exactly the cache.
+- **Word centers the arrangement's bounding box, not the circle.** For three
+  children the ring's bbox is vertically asymmetric (top -81pt, bottom +54pt
+  around the circle centre), and Word puts the BBOX centre at the canvas
+  centre — the circle centre lands 13.5pt low. The cache formula reproduces
+  this; measured agreement is 0.00-0.01pt on every ellipse edge.
+- **Connectors are dropped, one-sidedly.** The layoutDef declares no
+  connector nodes and the data model has no transition points, so Word draws
+  none; the cache now draws none either.
+
+Both references are fresh Word exports and both passed the self-reproduction
+control (two exports, byte identical on the page). The fixtures were
+regenerated with that engine build, the manifest is updated, and
+`word-interop-smartart-embedded` — previously without a reference at all —
+now has one:
+
+| fixture | before | after |
+| --- | --- | --- |
+| word-interop-smartart-only | 65.66% severity | 0.21% |
+| word-interop-smartart-embedded | (no reference) | 0.00% |
+
+The other three families (list, process, hierarchy) still carry the shared
+lin/roundRect layoutDef and remain inconsistent with their caches in exactly
+the way cycle was; the explicit-color and pinned-text halves of this change
+already apply to them, but their geometry is not calibrated. That is the
+remaining phase of #94.
