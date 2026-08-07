@@ -1924,14 +1924,21 @@ title band and ~10.5pt bottom pad) and centres horizontally in the band the
 legend leaves, with ~4.7pt of clearance folded in: centre x = (keyLeft -
 4.7)/2 at both sizes.
 
-Engine branch `legend-edge` (worktree, commit recorded in the wave report)
-implements the right-edge rule and the measured band for right legends:
-plot right = legendLeft - 16pt - overhang, replacing the tick allowance, the
-fractional inset and the flat LEGEND_GAP on that edge only. Measured back in
-the browser, gridline right edges land on Word within 0.10-0.99pt at BOTH
-sizes on all four axis pages, and probe-charts-basic's line page falls 30.03%
--> 4.78% with column/bar/area flat or better. What remains on these pages is
-the VERTICAL band (our line-S plot runs 39.75..121.88pt against Word's
-40.80..119.03) and the left gutter (ours 30.75 against Word's 26.41) — both
-size-invariant in pt, neither decomposed by a probe yet, and the small-box
-pages stay noisy until they are.
+Engine branch `legend-edge` (worktree, commits 2c516a4 and 7b43d65)
+implements the right-edge rule, the measured band for right legends, and the
+pie centring: plot right = legendLeft - 16pt - overhang, replacing the tick
+allowance, the fractional inset and the flat LEGEND_GAP on that edge only.
+Measured back in the browser, gridline right edges land on Word within
+0.10-0.99pt at BOTH sizes on all four axis pages, the pie centre within
+0.9-1.4pt at both sizes, and probe-charts-basic's line page falls 30.03% ->
+4.78% with column/bar/area flat or better. The full edit round-trip gate is
+17/17 on the branch build.
+
+Do not read this probe's per-page severity as the rule's score: line-S READS
+27.60% after the fix against 19.01% before, while its own gridlines land on
+Word. The page is dense, its VERTICAL band is still wrong (our line-S plot
+runs 39.75..121.88pt against Word's 40.80..119.03) and so is the left gutter
+(ours 30.75 against Word's 26.41), and correcting the width rescaled the
+series against those standing offsets. Both leftovers are size-invariant in
+pt, neither is decomposed by a probe yet, and the small-box pages stay noisy
+until they are.
