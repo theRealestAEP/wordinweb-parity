@@ -2275,3 +2275,78 @@ repeated-header path): all seven pages read 0.00, including p4's longstanding
 References: `parity/probe-exactnil11-word.pdf`, `probe-exactnil11p-word.pdf`,
 `probe-exactclip-word.pdf`, `probe-exactmar-word.pdf`,
 `probe-exactpad-word.pdf`.
+
+### A table's OUTER edge takes one declarer: the nil zeroes it, and an exact first row absorbs even a live rule (#100)
+
+probe-exactmar's V1 case carried the evidence sideways: lifting the caption
+rows out of their table turned two interior boundaries into the table's OUTER
+top and bottom edges, and against Word our V0/V1 (all-nil tcBorders under the
+fixture's live sz-8 tblBorders) read +1.97/+2.00 pt — one full rule per outer
+edge — while the nil-stripped V2/V3 agreed to 0.02 pt. Every earlier nil probe
+(#51, #86) measured SHARED boundaries, where suppression needs both cells; the
+outer edge has only one cell facing it and had never been isolated.
+
+`generate-exactouter-probe.mjs` isolates it: two packages from the exactnil
+base differing only in `compatibilityMode` (15 as authored, 11 rewritten),
+target rows at the table's FIRST row (outer top) and LAST row (outer bottom),
+one authored thing varied per case — no tblBorders (0), a live outer sz-12
+rule (R), the same rule plus the target cell's nil on that edge (N) — across
+exact 115 tw (X), exact 495 tw (Y, the scaling control) and content rows (C,
+the V1 construct). Zero cell margins throughout so the pre-15 bottom-margin
+charge cannot confound. Word END-REF spans, DIGIT-IDENTICAL in compat 11 and
+15:
+
+    case            0        R        N      charge of the live rule
+    X (exact 115)  F 29.75  29.75  29.75    top: NOTHING
+                   L 29.75  31.27  29.75    bottom: full 1.52pt
+    Y (exact 495)  F 48.77  48.78  48.75    top: nothing (height-invariant)
+                   L 48.75  50.28  48.77    bottom: full 1.53pt
+    C (content)    F   —    37.52  36.00    top: full 1.52pt (CL0 36.00 control)
+                   L 36.00  37.52  36.00    bottom: full 1.52pt
+
+Three rules, all compat-invariant: **a live outer rule charges the flow its
+full width — except above an exact FIRST row, which absorbs it into its fixed
+height (the #51b own-side inset seen from outside); and a nil on the outer
+cell edge alone zeroes the rule entirely, every variant reading the no-border
+control to the digit.** The scaling sweep pins the charge as a border width,
+not a height fraction.
+
+The self-reproduction control earned its keep again: the compat-15 package's
+export b laid the document-opening XF0 control ~31.5pt taller than exports
+a/c/d (which are ink-identical at 192 DPI and arithmetic-correct), a
+doerfp-class one-case wobble on the FIRST table of the document. Reference is
+export a; compat-11's pair reproduced ink-identically first try.
+
+Our engine before the change: nil ignored at outer edges (the V1 overcharge),
+and pre-15 exact rows took the half-lead/half-inset convention (+0.76pt at the
+top edge, -0.76 at the bottom against Word) that `exactInsetRow`'s compat gate
+preserved. The change: `rowBorderWidths` honors a first/last row's all-nil
+declaration at k=0/k=rows.length, and `exactInsetRow` drops the compat gate —
+probe-exactnil11's full 2.00px inset had already pinned the inset half in
+compat 11. After it, all 36 exactouter cases and all four exactmar variants
+land on Word within 0.03pt.
+
+**One scoped exception, fixture-calibrated.** us-courts-answer's body — one
+124-row compat-11 table whose row 0 declares top nil under a live sz-8
+tblBorders, repeating two tblHeader rows on every page — regressed p4 to 2.48%
+when the nil was honored at CONTINUATION segment tops: pages 2-7 hold 0.00
+only with the old 1.0pt charge kept there. No probe measures a
+repeated-header segment top (probe-exactouter's tables are single-page), so
+`nilSuppressedOuterTop` keeps the pre-nil charge on that path only, split
+half-lead/half-row-0-instance exactly as the old arithmetic did. Word's model
+at a repeated-header page top is measured only through this fixture; a probe
+with a header-repeating table crossing pages would pin it properly.
+
+Measured leftovers, not this change's: probe-exactnil11/-11p p2 read 67% in
+ANY build (baseline 67.16, this branch 67.38) because Word spills C1's
+trailing 12pt marker to p2 at a knife-edge p1 foot and we keep it — a page-fit
+divergence, not a border one; and B1's mixed exact/content interior boundary
+takes the full sz-12 rule in Word (MK-UP 26.25, flow +1.52) where we charge
+half (25.50/+0.75) — the mixed case `exactInsetRow`'s comment calls unmeasured
+now has a measurement, on the row BELOW the exact row.
+
+Sentinels at the branch build, digit for digit against
+`corpus-full-20260807-1116.log`: us-courts-answer 7x0.00, hftemplates 4x0.00,
+caed-pleading 0.00, benchmark 0.00/0.37/0.35/4.00, tblextreme 2x0.00;
+probe-exactmar/exactnil at 0.00. References:
+`parity/probe-exactouter11-word.pdf`, `probe-exactouter15-word.pdf`.

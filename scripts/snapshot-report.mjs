@@ -26,6 +26,12 @@ let nextImage = 0;
 async function convertImages() {
   while (nextImage < images.length) {
     const image = images[nextImage++];
+    // Interop preview links point at files interop-smoke already wrote under
+    // the public directory; verify they exist and leave them as they are.
+    if (image.startsWith("/interop/")) {
+      await access(join(publicDirectory, image.slice(1)));
+      continue;
+    }
     if (basename(image) !== image) {
       throw new Error(`Unexpected report image path: ${image}`);
     }
