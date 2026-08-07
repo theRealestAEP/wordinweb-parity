@@ -2211,3 +2211,67 @@ edit round-trip 17/17.
   probe-headeranchor, probe-headeranchor2, probe-emptyexact,
   probe-docgrid15). A `.dxw-page` timeout on a probe fixture means CHECK THE
   URL FIRST - the demo serves only what that directory holds.
+
+### The us-courts p1 regression was never the nil boundary: a pre-15 exact row charges its BOTTOM cell margin (#86 follow-up)
+
+wild3-template-us-courts-answer p1 went 0.08% -> 24.94% in the engine window
+`22451c2..72435fd`. The briefed suspect — #95's in-cell scoping of the
+after-table empty-paragraph collapse — is excluded twice over: `5bef1dd` is not
+an ancestor of the first regressed engine, and re-widening the collapse to all
+contexts on tip reproduces 24.94 digit for digit (the fixture's after-table
+`<w:p>` carries a pPr, which the collapse never matched anyway). Bisecting the
+three-commit window pins `72435fd` (#86, the exact-row rule arithmetic);
+`414f9da` still reads 0.08. The fixture is compatibilityMode 11, and every
+probe behind #86 was compat 15.
+
+Five probes, every package exported twice with ink-identical results:
+
+- `generate-exactnil11-probe.mjs` — probe-exactnil's five cases in the same
+  ca-agreement package with the ONE variable `compatibilityMode` rewritten
+  15 -> 11, plus exact/content, content/content and full-border (D) variants.
+  Verdicts identical to compat 15: a live insideH sz-12 insets the row below
+  2.00 px, a both-nil boundary insets zero, one-sided nil suppresses nothing.
+  END-REF is CONSTANT across N/R/RN/D1/D2 — an exact row's FLOW takes no rule
+  charge at all, in either compat regime.
+- `generate-exactnil11p-probe.mjs` — the same thirteen cases in the PLEADING's
+  own package (its Word-95-era compat flag pile, styles, fonts). Every number
+  identical to the ca-agreement-based probe: the flag pile is irrelevant.
+- `generate-exactclip-probe.mjs` — exact/exact pairs at 115/144/361/495 tw
+  (the fixture's problem rows are 115 tw = 7.67 px, SHORTER than their line):
+  flow = 2 x authored everywhere, rules or nil or neither. Clipping is
+  irrelevant.
+- `generate-exactmar-probe.mjs` — rows 3-5 of the caption table VERBATIM, then
+  one property stripped per case. tcMar is the whole difference: Word spaces
+  'for the' -> 'Rewugofi of' 5.75 pt wider with the fixture's margins
+  (top 58, bottom 29 tw) than without, and the nils still charge zero
+  (V0 55.03 px vs V2 58.99 with the rules live).
+- `generate-exactpad-probe.mjs` — the exact-115 spacer's tcMar varied one side
+  at a time, content rows untouched, against the (0,0) control:
+
+      (top, bottom) tw    gap moves
+      (58, 29)            +1.52 pt
+      (29, 58)            +3.00 pt
+      (58,  0)            +-0.00 pt
+      ( 0, 29)            +1.25 pt
+
+  **A pre-15 hRule="exact" row's flow is trHeight + its BOTTOM cell margin;
+  the top margin adds nothing.** The compat-15 regime charges the TOP margin
+  instead (probe-trheight), and neither regime charges rules to exact-row
+  flow. #86's both-nil suppression was correct in every compat mode; what its
+  guard removal deleted was a compensating half-rule-per-boundary charge that
+  had been standing in for the missing bottom margins (0.5 pt per boundary
+  against the true 1.45 pt per row).
+
+One more term, measured from the fixture's own Word PDF rather than a probe:
+the caption table's rows 0-1 are `tblHeader`, and the REPEATED instance of the
+exact-144 row charges only HALF its bottom margin — Word's 'Vop' -> first-data
+gap is 22.808 pt on p1 and 22.077 pt on p2/p7, bottomPad/2 = 0.73 pt apart.
+p7 exposes this directly because it is the only continuation page that opens
+on a text row instead of inside a split spacer row.
+
+After the engine change (rowHeightFromTrHeight pre-15 exact branch + the
+repeated-header path): all seven pages read 0.00, including p4's longstanding
+1.97 — the same missing term, entering through the repeated header stack.
+References: `parity/probe-exactnil11-word.pdf`, `probe-exactnil11p-word.pdf`,
+`probe-exactclip-word.pdf`, `probe-exactmar-word.pdf`,
+`probe-exactpad-word.pdf`.
