@@ -2103,3 +2103,111 @@ raster row-band comparison, web screenshot @2x vs reference @192dpi) and
 bands, not DOM rects: `display:flex` span boxes bottom-align their glyphs, so
 a span's rect bottom is not a baseline and cross-font comparisons built on it
 are artifacts.
+
+### caed-pleading's last 12.6px was w:suppressTopSpacing, not the empties (#tail-B)
+
+Measured with the x-windowed ink bands: the pleading rail is EXACT (28 of 28
+line numbers at 0.0 to -0.5px, both vertical rules within 0.75px), the body
+top is Word + 0.4 (probe-negmargin re-measured at tip: markers 192.59/144.59/
+96.59/88.92/48.59/24.59 against Word's 192.20/144.20/96.18/88.51/48.18/24.14),
+and the WHOLE residual was the body text sitting +12.5..13.0px low from the
+Court heading down - fully formed before Court's line, constant after it.
+
+`generate-emptyexact-probe.mjs` -> `fixtures-staging/probe-emptyexact.docx`
+(every export self-reproducing) went through two WRONG models before the flag
+was noticed, and both retractions are worth keeping:
+
+- "Word discounts ~12.7px across a run of empty exact paragraphs" - E6/E12
+  refute it: the empty exact-480 run slopes at exactly 32.00px per paragraph.
+- "Word top-anchors an undersized exact line at 0.8 x font size" - M9/M18
+  (9pt and 18pt markers land at the SAME baseline as 12pt) and X24/X48
+  (exact-360 and exact-720 bands land within 0.3px of each other) refute
+  both the size-scaling and any height-fraction anchor.
+
+What separates the fixture from pleading-anon (same 12pt-in-exact-480
+construct, 0.00% all seven pages under the UNCHANGED engine) is one settings
+flag: `<w:suppressTopSpacing/>` in w:compat. With it, Word charges the FIRST
+line of a page min(exact, natural): the fixture's opening empty paragraph
+costs 19.32px instead of 32, and every number on the page then closes -
+Court's baselines, the caption cells' exact-16 anchoring (baseline 12.6-12.7
+into the line, cell bottom rule at 730.56), and the caption table top at
+567.83 with the Court style's spacing-after 660tw = 44.0px charged in full.
+P12 shows the collapse at a POSITIVE top margin; Q6 shows an exact line
+UNDER its natural stays put (the suppression only shrinks).
+
+Engine `tail-fixes` cebe80d parses the flag and collapses the page-top exact
+line. **wild3-template-caed-pleading p1: 29.34% -> 0.00% structural.** Open,
+measured: our Arial 12pt natural is 18.40px where Word's collapsed line
+measures 19.32 (baseline pairs only constrain the sum of first-line height
+and the exact-line anchor, so the split is taken from our own metrics); the
+break plan does not mirror the collapse (only this fixture and
+probe-negmargin carry the flag, neither within 13px of a fit decision); the
+flag's space-before half is unprobed and unimplemented. Sentinels:
+pleading-anon 0.00 x7, benchmark/tblextreme/eastasian unchanged,
+probe-negmargin markers unchanged on every pinned case. Core green, gate
+17/17.
+
+### A header bar pushes the body only as far as Word's wrap rules say (#97)
+
+`generate-headeranchor2-probe.mjs` -> `fixtures-staging/probe-headeranchor2.docx`
+(reference `parity/probe-headeranchor2-word.pdf`, exports byte-identical)
+varies what the #80 probe could not: wrap mode x shape extent BELOW the
+header's last line, paragraph-positioned like #80 so the numbers compare.
+Word's marker (body top + 12.07 to its baseline):
+
+    case                       Word base   shape bottom
+    S8   square,  8pt             76.71    above the line
+    N40  none,   40pt             76.71    101.97
+    N72  none,   72pt             76.71    133.97
+    S40  square, 40pt             76.71    101.97
+    S72  square, 72pt             76.71    133.97
+    T40  topAndBottom, 40pt      114.04    101.97  <- body top = shape bottom
+    T72  topAndBottom, 72pt      156.73    144.64  (offset scales 1:1, both pitches)
+
+**wrapNone and wrapSquare never move the body top, however far the bar hangs
+below the header text. wrapTopAndBottom puts the body top exactly at the
+shape's bottom edge (+distB).** And the carrier paragraph is exempt from its
+own paragraph-positioned anchor: HDT40/HDT72 paint at the header top beside
+the band.
+
+parity-hftemplates p3/p4 are the same rules plus one more: their bars are
+PAGE-positioned, and Word lays the single carrier paragraph's own line BELOW
+the bar - p3 (Banded, full-width wrapSquare bar, behindDoc="1"): body top =
+bar bottom 88.45 + line + after = 119.03, closing to 0.6px; p4 (Ion Dark,
+wrapTopAndBottom): bar bottom 127.23 + distB 24 + line + after = 181.39,
+closing to 0.2px. So the header story wraps like body text, except that a
+shape anchored to a paragraph's OWN position does not displace that
+paragraph.
+
+Engine `tail-fixes` (this commit): frame stories bound their line breaker on
+registered floats (the cell path generalized, page-origin-shifted);
+page/margin-positioned wrapped anchors pre-emit so the carrier itself wraps;
+behindDoc no longer suppresses a frame float when the anchor declares a wrap;
+art (txbx-less wps) shapes carry wrap+dist and register floats in FRAME
+stories only; and contentBottom counts only topAndBottom float bands (S72
+pins that a square bar hanging below the text reserves nothing).
+
+**parity-hftemplates p3 4.09% -> 0.00%, p4 15.52% -> 0.00%** (p1/p2 hold at
+0.00). All seven probe cases land on Word (S/N at 64.59, T40 101.92 vs
+101.97, T72 144.59 vs 144.67). The ten #80 sentinels are digit for digit:
+probe-headerheight 64.59/80.59/96.59/77.92/91.25/64.59, probe-headeranchor
+64.59 x4. wild2-med-phase23-protocol (margin-anchored header art, 69 pages)
+is identical to the corpus log page for page; staging-anchors2,
+parity2-textboxes, parity-wrapmodes, parity-headerfooter, staging-hf2,
+benchmark, staging-tblextreme all at their corpus values. Core suite green,
+edit round-trip 17/17.
+
+### Two pre-existing findings from this wave, not caused by it
+
+- **wild3-template-us-courts-answer p1 reads 24.94% against the corpus log's
+  0.08%** at the UNTOUCHED likeoffice tip 8dba4e9 (verified by scoring on the
+  main checkout build before any tail-fixes change). The regression landed in
+  the #94/#95 window (3b49cc8..8dba4e9). Unattributed further; whoever owns
+  that merge window should bisect it.
+- The header probes (probe-headerheight, probe-headeranchor) and several
+  other fixtures-staging probes were never copied into
+  `apps/demo/public/fixtures`, so any browser measurement of them silently
+  timed out on a 404. They are copied now (probe-headerheight,
+  probe-headeranchor, probe-headeranchor2, probe-emptyexact,
+  probe-docgrid15). A `.dxw-page` timeout on a probe fixture means CHECK THE
+  URL FIRST - the demo serves only what that directory holds.
