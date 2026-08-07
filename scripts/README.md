@@ -1854,6 +1854,42 @@ rule, exactly the way `probe-docgrid`'s `w:before="0"` hid the space-before
 drop. The anchored-shape pages miss by 23.0 and 30.5px and their decomposition
 is not pinned here — only that Word charges header height we do not.
 
+### The dropped paragraph was the after-table collapse, applied outside cells (#95)
+
+The mechanism behind p2 was already in the engine and already correct — for
+cells. `layoutFrame` collapses the mandatory empty `<w:p/>` OOXML places after
+a table to zero height, a rule calibrated on parity2-nestedtables (the
+trailing `<w:p/>` after the L3 and L2 nested tables, inside a cell), and it
+applied that collapse in EVERY frame context: cells, headers, footers, text
+boxes alike. Ion Light's header is `tbl` + one empty pPr-less `w:p`, exactly
+the collapse's trigger, so the header measured 22.5pt short. Word's two rules
+were never one rule: in a cell the trailing paragraph collapses, in a header
+story it is charged in full, and #89's arithmetic closing to 0.1pt with the
+paragraph charged is the header-side evidence. No new probe was needed — both
+sides of the distinction already had a Word-verified fixture.
+
+Engine branch `header-trailing-para` (5bef1dd) gates the collapse on the
+`inCell` flag cell layout already passes. Measured against that build:
+p2 96.88% -> 0.00% (clean, matching p1), and every sentinel holds digit for
+digit — probe-headerheight P1/P2/P3/S2/S4/TB at 64.59/80.59/96.59/77.92/
+91.25/64.59, probe-headeranchor PB/AN/AS/AT all 64.59, benchmark
+0.00/0.37/0.35/4.00, staging-tblextreme 0.00/0.00. So the fix is the trailing
+paragraph, and no clearance came back.
+
+p3/p4 stay at exactly 4.09% and 15.52% — a separate mechanism, still open.
+What is measurable from the cached reference: calibrating text ascent on the
+now-agreeing p2 (14.34px), Word's body top sits 119.03px on p3 against our
+96.03 (we stop at the 72pt margin), and 181.39px on p4 against our 151.69
+(we do charge the shape's height, 29.70px short of Word's charge). Neither
+page closes to header arithmetic from the shape's extent, its page-offset
+bottom, or the Normal paragraph advance; the Banded/IonDark pStyles the
+fixture names are not defined in its styles.xml, so both resolve to Normal
+and style spacing is excluded. #80's headeranchor probe cannot see this —
+its shape ends above the line bottom, and these bars extend to page-relative
+bottoms of 56.9pt (wrapSquare) and 96.0pt (wrapTopAndBottom). Pinning it
+needs a probe that varies wrap mode and the shape's extent below its line,
+measured against a fresh Word export.
+
 ### benchmark p1's 12.75% rule channel is raster quantization, not a rule defect (#83)
 
 The rule SETS match. Word's page-1 vectors hold 9 horizontal + 7 vertical
