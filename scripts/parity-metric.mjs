@@ -190,6 +190,16 @@ async ([
   // offset (their median) so a uniform whole-page shift - a benign, common
   // Word-vs-Chrome difference - is not mistaken for drift.
   const tiles = [];
+  // Registration voters: only tiles whose search actually discriminates
+  // an offset (see "discriminated" below). Instrumented on probe-wrapclear
+  // (scripts/README.md #117): a uniform-fill region (e.g. a solid box
+  // interior) returns the IDENTICAL SAD at every candidate offset - not
+  // approximately equal, exactly equal, because every offset still lands
+  // fill-on-fill. Such a tile's "best" offset is whichever candidate the
+  // scan order happened to try first, not a measurement. Feeding that into
+  // the registration median drags the whole page's global offset off the
+  // real content. A tile with any texture (an edge, a rule, a glyph) always
+  // has a strictly-better offset than its runner-up.
   const bxs = [];
   const bys = [];
   for (let ty = 0; ty < tyN; ty++) {
@@ -211,11 +221,14 @@ async ([
 
       // Coarse-to-fine SAD search: 5x5 grid at step 2, then refine +/-1
       // around the winner. Deterministic; ~34 candidates vs 81 exhaustive.
-      let bx = 0, by = 0, best = Infinity;
+      // Track the runner-up SAD alongside the winner so a flat landscape
+      // (best === second) can be told apart from a real match below.
+      let bx = 0, by = 0, best = Infinity, second = Infinity;
       for (let dy = -SEARCH; dy <= SEARCH; dy += 2) {
         for (let dx = -SEARCH; dx <= SEARCH; dx += 2) {
           const s = sadAt(ox, oy, dx, dy);
-          if (s < best) { best = s; bx = dx; by = dy; }
+          if (s < best) { second = best; best = s; bx = dx; by = dy; }
+          else if (s < second) { second = s; }
         }
       }
       const cbx = bx, cby = by;
@@ -224,14 +237,26 @@ async ([
           if (dx < -SEARCH || dx > SEARCH || dy < -SEARCH || dy > SEARCH) continue;
           if (dx === cbx && dy === cby) continue;
           const s = sadAt(ox, oy, dx, dy);
-          if (s < best) { best = s; bx = dx; by = dy; }
+          if (s < best) { second = best; best = s; bx = dx; by = dy; }
+          else if (s < second) { second = s; }
         }
       }
-      tiles.push({ ox, oy, wordInk, webInk0, tileMass: (wordInk + webInk0) / 2, bx, by });
-      bxs.push(bx);
-      bys.push(by);
+      // Discriminated: the winning offset actually beats its runner-up. A
+      // tile that ties every candidate (best === second, always exactly
+      // equal for a uniform fill - never approximately) has no vote to cast.
+      const discriminated = second > best;
+      tiles.push({ ox, oy, wordInk, webInk0, tileMass: (wordInk + webInk0) / 2, bx, by, discriminated });
+      if (discriminated) {
+        bxs.push(bx);
+        bys.push(by);
+      }
     }
   }
+  // A page with no discriminated tile at all (nothing but flat fill) has no
+  // better signal than the raw population - fall back to it rather than
+  // registering on an empty vote.
+  const regBxs = bxs.length ? bxs : tiles.map((t) => t.bx);
+  const regBys = bys.length ? bys : tiles.map((t) => t.by);
 
   const median = (arr) => {
     if (!arr.length) return 0;
@@ -239,8 +264,8 @@ async ([
     const m = s.length >> 1;
     return s.length % 2 ? s[m] : Math.round((s[m - 1] + s[m]) / 2);
   };
-  const gDx = median(bxs);
-  const gDy = median(bys);
+  const gDx = median(regBxs);
+  const gDy = median(regBys);
 
   // Full-page appearance metrics use only the one global registration above.
   // They deliberately include all page-interior content: no matched-tile
@@ -972,7 +997,7 @@ async ([
   // Pass 2 uses the same tolerant residual per tile to measure local
   // displacement beyond the single page-global registration.
   for (const t of tiles) {
-    const { ox, oy, bx, by } = t;
+    const { ox, oy, bx, by, discriminated } = t;
     let tileStructNum = 0;
     let tileStructDen = 0;
     for (let ly = 0; ly < T; ly++) {
@@ -994,7 +1019,10 @@ async ([
     // are only meaningful where content actually matches (resF small). The
     // tile's own best offset (pass 1) is its true local shift; measured
     // against the global offset it becomes displacement beyond the uniform.
-    if (resF >= MATCH_F) continue;
+    // A tile that isn't discriminated (pass 1) has no real "own offset" -
+    // its bx/by is a scan-order artifact, not evidence of misalignment - so
+    // it cannot corroborate a reflow either.
+    if (resF >= MATCH_F || !discriminated) continue;
 
     const mag = Math.sqrt((bx - gDx) * (bx - gDx) + (by - gDy) * (by - gDy));
     offsets.push(mag);

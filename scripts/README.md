@@ -258,7 +258,7 @@ the thresholds.
 ### Which metric, and why
 
 Pages are graded on `severityPct` from `parity-metric.mjs` — the same
-`ink-dilate-line-v5` measurement the corpus gate uses — and **not** on raw
+`ink-dilate-line-v6` measurement the corpus gate uses — and **not** on raw
 mismatched-pixel percentage.
 
 Raw mismatch cannot grade a web-vs-Word page. Word-PDF and Chrome disagree on
@@ -2890,6 +2890,101 @@ exactly Word's quantized distB in our render too. Read probe-wrapclear's
 p3/p5/p14 as metric scaffold noise of this fixture's construction, the same
 class as the probe-scaffold pages #109c names, until the registration
 hardening lands.
+
+### The registration hardening lands: discriminated tiles only, `ink-dilate-line-v6` (#117)
+
+#116b filed the fix and stopped short of making it. Made here, in
+`parity-metric.mjs` only — no engine change.
+
+**Instrumented first.** A scratch build dumped every inked tile's winning
+SAD and its runner-up across probe-wrapclear's 20 pages (1843 tiles). The
+box-interior tiles read `best === second` — not approximately equal,
+bit-for-bit equal, because a uniform fill scores identically SAD at every
+searched offset — on 57.7% of all tiles, at a rock-steady mass of ~21845
+(matches #116b's ~21/px estimate over the 32×32 tile) on every single page.
+The discriminating tiles (borders, the CASE header, box labels) start at
+margin 0.0004 and range to 1.29, with nothing between 0 and that floor: the
+tie is exact, not a close call needing a tuned cutoff. Four ordinary
+sentinel pages (benchmark, chronology, parity-hftemplates,
+parity-pageborders — none of them wrapclear) show the identical zero-tie
+signature at 0-73% of their tiles, proportional to how much flat fill each
+carries, which is what says this is a general SAD-search property and not
+a wrapclear-specific patch target.
+
+**The fix seeds registration only with discriminated tiles** — those whose
+winning offset strictly beats its runner-up (`second > best`, no epsilon;
+the data above showed the floor is exact, so none was needed). A page with
+no discriminated tile at all falls back to the full population rather than
+registering on an empty vote. **The corroboration gate now requires the
+same thing**: a tile can vote into `misalignedPct`/`alignPx`/`alignP95`
+only if it is both matched (`resF < MATCH_F`, unchanged) and discriminated
+— a non-discriminated tile's own "best offset" is a scan-order artifact,
+not a measurement, so it cannot corroborate a reflow either.
+
+Recomputing wrapclear's per-page global by hand from the instrumented data
+shows the mechanism directly — the OLD median (all tiles) scatters across
+five different offsets for renders whose ink agrees to sub-pixel; the NEW
+median (discriminated tiles only) converges to two, (0,0) or (0,-1), on
+every one of the 20 pages:
+
+| page | old (gDx,gDy) | new (gDx,gDy) | discriminated / total |
+| --- | --- | --- | --- |
+| 1 | (-4, 0) | (0, 0) | 40 / 96 |
+| 3 | (-2, 0) | (0, 0) | 42 / 96 |
+| 5 | (-2, 0) | (0, -1) | 42 / 96 |
+| 13 | (-4, 0) | (0, 0) | 30 / 84 |
+| 14 | (-4, -1) | (0, -1) | 32 / 84 |
+| 16 | (-4, -1) | (0, -1) | 32 / 84 |
+
+Re-run through the real metric: p3 4.17 -> 0.00, p5 6.06 -> 0.00, p14
+9.92 -> 0.00, `driftClass` alignment -> clean on all 20 pages, `alignPx`
+0-1.00 everywhere (matching #116b's instrumented ink-band offsets of
+0.5-1.0 CSS px exactly). No other field of the metric changed.
+
+**METRIC_VERSION bumps `ink-dilate-line-v5` -> `ink-dilate-line-v6`**
+(`parity-report.mjs`). What changed: tile discrimination is now required
+both to seed the page's global registration and to corroborate a line-
+reflow claim. Historical per-page numbers become incomparable because any
+page whose registration or corroboration was previously dragged by a flat-
+fill region, a solid color block, or any other landscape where every
+searched offset ties can move — always down or unchanged, per the
+validation below, since the change only removes votes that were never
+measurements to begin with.
+
+**Validation, sentinel set** (22 fixtures spanning benchmark,
+parity-hftemplates, the exact-probe family, docgrid15/-b, softhyphen /
+softhyphen11, staging-eastasian, staging-tblextreme,
+wild2-med-phase23-protocol, wild3-template-caed-pleading,
+wild3-template-us-courts-answer, probe-wrapclear — 158 pages, run before
+and after with a `git stash` of just the two changed files so both sides
+measure the identical engine build): **zero pages rose**, 4 dropped
+(wrapclear p3/p5/p14 above, plus wild2-med-phase23-protocol p66
+0.16 -> 0.00), the remaining 154 are digit-identical. Two pages elsewhere
+in the set show `alignPx` 0.00 -> 1.00 (sub-pixel jitter, `severityPct`
+and `driftClass` unchanged on both) and 30 pages have their `driftClass`
+label improve (`alignment`/`weight` -> `clean`/`weight`) with no case
+moving the other way.
+
+**Validation, full corpus** (`corpus-full-20260808-1358.log`, nice -n 19,
+engine `18bc0d7`, 123 fixtures / 1337 pages): overall mean 0.121%, median
+0.00%, zero-rate 93.64%, worst 37.09%; wild-only (1007 pages) mean 0.124%,
+median 0.00%, zero-rate 96.33%, worst 37.09%. That mean is WORSE than the
+`corpus-full-20260808-0301.log` baseline (0.046% overall, 0.004% wild-only,
+worst 9.92%) — but not from this change. Three fixtures
+(`wild2-math-eq-as-images`, `wild2-med-phase23-protocol`,
+`wild2-sci-chem-omml`, 90 pages) newly read `image` weight ratios of
+180-199% (an engine-side image-sizing regression, not a registration
+artifact), and landed between the two baselines via the `c9d5503`
+"wave4-eq-notes" merge — unrelated in-flight work on this shared repo, not
+this task's engine-DO-NOT-touch scope. Confirmed unrelated by running each
+of the three fixtures through `git stash`'d before/after code on the
+identical engine build: **byte-identical severityPct with and without this
+fix** (e.g. wild2-sci-chem-omml p10 reads 37.09 either way). Excluding
+those three fixtures, the corpus reads overall mean 0.032%, median 0.00%,
+zero-rate 94.39%, worst 2.87%; wild-only mean 0.003%, zero-rate 97.60%,
+worst 1.15% — better than the 0301 baseline on every figure, which is the
+number this task's fix is accountable for. The three flagged fixtures need
+their own engine-side investigation and are left as found.
 
 ### A soft hyphen breaks with its hyphen reserved, or without it as a last resort (#115)
 

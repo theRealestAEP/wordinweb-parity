@@ -119,7 +119,7 @@ function niceStep(raw) {
 }
 
 const DRIFT_CLASSES = ["clean", "alignment", "weight", "color", "structural"];
-export const METRIC_VERSION = "ink-dilate-line-v5";
+export const METRIC_VERSION = "ink-dilate-line-v6";
 export const APPEARANCE_METRIC_VERSION = "semantic-rgba-v1";
 
 // ─── Category taxonomy ───────────────────────────────────────────────────────
