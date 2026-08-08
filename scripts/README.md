@@ -2726,3 +2726,55 @@ canvas measurer computes nominal advances. Word does not kern these runs
 paint positions land on Word to 0.03px, and p1's line-channel residual
 under the snapped capture drops 3.53 -> 1.55. The page closes without the
 engine fix, so the corpus baseline does not depend on it.
+
+### The uscourtsblock sweeps leave the corpus; wrapclear p14 stays and is engine-attributed (#113)
+
+The 2026-08-07T20:11 certification carried 14 pages above 10%, all on
+probe fixtures, in exactly two mechanisms.
+
+**probe-uscourtsblock11/15 and probe-uscourtsblock2-11/15 are removed from
+`apps/demo/public/fixtures`.** They are the #108a one-off sweep probes:
+each case tunes a shim against ONE engine's arithmetic, so wherever the
+two engines' thresholds differ the marks land on different offsets BY
+DESIGN — that disagreement is the measurement the campaign existed to
+take, and scored as corpus pages it reads as 70–99% "blank-vs-content"
+(uscourtsblock11 p2–8, uscourtsblock2-11 p2–6, uscourtsblock2-15 p4; 13
+of the 14 pages). They entered the corpus only because the #108a
+measurement copied them into `public/fixtures` and `parity-compare`
+enumerates every `parity/<name>-word.pdf` with a fixture of the same
+name; none of the four ever had a manifest entry. The campaign artifacts
+all stay filed: the generators under `internal/scripts/`, the packages
+under `fixtures-staging/`, and the four Word references under `parity/`.
+Restore a copy to `public/fixtures` only to re-run the sweep, and remove
+it again afterwards.
+
+**probe-wrapclear p14 (11.65%) is neither a stale reference nor a
+mis-adoption.** The fixture is the deliberately adopted float-clear
+regression pin (d82570c, manifest entry intact: source package hash,
+reference PDF hash and 20-page count all verify). The reference passed
+the self-reproduction control on the current build: two fresh exports of
+the fixture reproduce each other on 20 of 20 pages at 192 DPI, and page
+14 of both is byte-identical to the cached reference. (Pages 13/16/19
+differ from the cache by one nudged text band each, 0.01–0.08% of a page
+— drift-class churn, reference kept per the #58 rule.) So the divergence
+is ours: on the knife-edge case C-h50-b3.6 the text under the cleared
+square-wrap float sits ~3px off Word on a page sparse enough that the
+line channel reads it at ~10–12% (11.65 in the certification, 9.92 on a
+focused re-run). p3 (~4%) and p5 (~6%) are smaller residuals of the same
+family. Filed as an engine defect, not fixed here; the fixture stays in
+the corpus so the pin keeps pinning.
+
+Sub-10% probe leftovers named by #109c (repeathdr15 p10, mixedbound11/15
+p1, headeranchor2 p4, nih-rowheight p4) were adopted the same way the
+uscourtsblock sweeps were but score within the probe-scaffold range, and
+are left in place.
+
+The certification rerun (`corpus-full-20260808-0301.log`, engine
+b94144d, the wave-3 merge tip): 121 fixtures / 1329 pages, overall mean
+0.046%, median 0.00%, zero-rate 94.21%, worst 9.92% (wrapclear p14);
+wild-only (1007 pages) mean 0.004%, median 0.00%, zero-rate 97.32%,
+worst 2.10%. No page reaches 10%. One number in that list is NEW with
+wave 3 and is an engine observation, not housekeeping:
+`wild2-med-phase23-protocol` p14 read 0.00 at 49ef6be and reads 2.10
+(weight channel 2.20%, line 0.00, align 1px) at b94144d — whoever owns
+the wave-3 window should look.
