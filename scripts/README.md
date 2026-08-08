@@ -2778,3 +2778,43 @@ wave 3 and is an engine observation, not housekeeping:
 `wild2-med-phase23-protocol` p14 read 0.00 at 49ef6be and reads 2.10
 (weight channel 2.20%, line 0.00, align 1px) at b94144d — whoever owns
 the wave-3 window should look.
+
+### phase23 p14: a degenerate-radius arcTo dropped the bracket's arms (#116a)
+
+The wave-3 window is bisected and the mechanism is pinned to one commit and
+one line. p14's only ink delta against 49ef6be is the page's two bracket
+shapes, and only the `rightBracket` (id 88) moved: Word paints its square
+bracket — top arm right, vertical, bottom arm left — and the b94144d build
+paints a corner-to-corner DIAGONAL in its place. The `leftBracket` beside it
+(adj=796) still painted correctly, which is the discriminating clue: the
+fixture's rightBracket authors **`adj="0"`**, so its arms are
+`a:arcTo wR="w" hR="y1"` with y1 = 0 — a degenerate ellipse whose quarter
+sweep IS the straight arm.
+
+`a0ae254` (the wave-3 preset-geometry evaluator, which replaced the
+hand-painted bracket paths) returned from `arcTo` without moving the pen when
+either radius is <= 0, so the following `lnTo r y2` drew from the shape's
+top-LEFT corner instead of its top-right — the diagonal. The pre-wave-3 code
+never had the case because it emitted the degenerate radius INTO an SVG `A`
+command, and SVG's own rule for a zero radius is a straight line to the
+endpoint.
+
+Two halves to the engine fix (parwave2 77fa9cb), because the naive endpoint
+math has a float trap: the arc endpoint on a degenerate ellipse is computed
+through `atan2(rw·sin θ, rh·cos θ)`, and at θ = 2π the sin term is the float
+noise -2.4e-16 while the rh term is exactly 0 — the atan2 collapses to -π/2
+and the endpoint lands on the wrong end of the segment. `ellipsePoint` now
+snaps near-zero sin/cos to exact 0, and a degenerate-radius `arcTo` emits
+`L <endpoint>`.
+
+Numbers at the fix: **p14 2.10 -> 0.00 structural** (weight 0.95% against
+the 49ef6be baseline's own 1.05%), p13 holds at 0.04 (baseline 0.08 pin).
+Sentinels: 101 pages across the standard set + docgrid15 + every exact*
+probe + the shape-heavy fixtures (probe3-shape-autofit, staging-anchors2,
+parity-wrapmodes, parity2-textboxes, probe3-wordart-warps,
+probe3-text-effects, word-interop-smartart-only/-embedded), all
+digit-identical to `corpus-full-20260808-0301.log`. wild2-med-nccih-protocol
+23/23 digit-identical. Core suite green; edit round-trip 17/17 (field-update
+read 0.011/0.250 in this run against the log's 0.000/0.000 — edited-half
+capture jitter, not the fixture: the corpus scoring of nccih above is
+digit-identical, and the scenario passes with two orders of margin).
