@@ -2350,3 +2350,161 @@ Sentinels at the branch build, digit for digit against
 caed-pleading 0.00, benchmark 0.00/0.37/0.35/4.00, tblextreme 2x0.00;
 probe-exactmar/exactnil at 0.00. References:
 `parity/probe-exactouter11-word.pdf`, `probe-exactouter15-word.pdf`.
+
+### A repeated-header continuation top is the true outer top, nils included (#108a)
+
+`generate-repeathdr-probe.mjs` measures the edge the #100 exception was
+guarding: a tblHeader row repeated at the top of a continuation page, with
+the outer-top declarations varied one at a time — no border, a live sz-12
+top rule, the rule plus row-0 cell nils (the us-courts construct), sz-24 for
+width scaling — over exact-115, exact-495 and content header heights. Two
+packages differing only in compatibilityMode (15 / 11), each exported twice,
+marks digit-identical across exports AND across compat modes.
+
+Word's continuation page reads the FIRST page's arithmetic to the digit in
+every one of the eleven cases: a live rule charges the flow its full width
+above a content row 0 and nothing above an exact row 0 (full width as the
+exact row's content inset instead), and a row-0 all-nil zeroes it — at the
+continuation top exactly as at the true start. The engine's
+`nilSuppressedOuterTop` charge contradicted all four nil cases by exactly
+its own width and is removed; after the change all eleven land on Word to
+the 0.05px text constant.
+
+**What the fudge was hiding.** Removing it regressed us-courts p4 to 2.48%,
+and pulling that thread surfaced SIX latent defects, each of which had been
+canceling against another:
+
+- **p4's ten uniform blocks ran 0.69px/block short.**
+  `generate-uscourtsblock-probe.mjs` rebuilds the fixture's
+  content-row + atLeast-spacer block VERBATIM and strips one authored thing
+  per case; round 2 (`generate-uscourtsblock2-probe.mjs`) isolates
+  single-kind stacks. Word's pitch is INVARIANT to the tblBorders insideH
+  (V2), the spacer's sz-1 cell rule (V1), the tblPrEx (V3), the run mix (V5)
+  and the FORMTEXT (V6); it moves only with the leading empty paragraph (V4)
+  and the trHeight floor (V7). The mechanism: **a boundary resolves per grid
+  column, and the table-wide rule enters only through a side whose cell is
+  SILENT — a cell that declares its edge (nil or a width) replaces insideH
+  on its side** (SN 21.68 vs CN 21.67 under a live sz-8 insideH, where
+  charging insideH reads +1.33). And **the pre-15 atLeast floor is
+  trHeight + topPad + bottomPad, no haircuts** (S0: 624tw + 58 + 14tw reads
+  46.40px in compat 11 and 15 alike; the old topPad−0.25pt / drop-sub-1pt-
+  bottomPad haircuts carried no probe). With both, the fixture block reads
+  85.01px against Word's 84.69–85.04 quantization band, and p4 goes to 0.00.
+- **A cantSplit row gets ZERO overhang allowance.**
+  `generate-rowfit-probe.mjs` / `-rowfit2-` sweep the room under a cantSplit
+  row in 2px steps on the us-courts package: Word moves it at room 30 and
+  keeps it at 32 for a 32.00px row — exact-rule lines AND natural 11pt
+  lines, with and without a footer. The old allowance (the FOOTER HEIGHT,
+  compat-11 cantSplit only) was compensating the next defect exactly.
+- **A page-framed footer paragraph consumes no footer flow, and an
+  effectively empty footer still reserves its w:footer distance.** The
+  fixture's footer is a page-anchored 'Page N of M' frame (vAnchor="page",
+  y=15264tw) plus one empty paragraph; charging the frame clamped our body
+  at 986.9px where Word's row decisions bracket the bottom in [992, ~1005]
+  — margin bottom 1027.2, footer distance floor 1017.6, minus the empty
+  paragraph's line. The measure now excludes page-framed paragraphs, and a
+  footer PART floors the body at pageHeight − footerDistance − footerH even
+  when footerH is 0.
+- **The bottom cell margin is charged in full.** The signature rows
+  (trHeight 20tw atLeast, tcMar 58/43) measure 23.6px in Word = line + both
+  margins exactly; a compat-11 haircut (half over 2pt, quarter under, on
+  sub-2pt atLeast rows) was canceling the insideH overcharge.
+- **A run whose visible text is entirely w:sym-drawn takes the sym's font
+  metrics.** The fixture's Symbol-font minus signs make Word's 11pt Times
+  lines ~18.0px (Symbol's 1.225em box) where a plain line reads ~16.7;
+  we mapped the glyph but kept Times metrics, so sym-bearing pages drifted
+  ~1.3px/line.
+
+**Filed, not closed: the two-row repeated stack.** us-courts p6 reads 0.91%
+and p7 8.01% at the branch build — one knife-edge row fit (≤1px on BOTH
+engines' side of the decision) that traces to the fixture's TWO-row header
+stack (content caption + double sz-8 cell bottom + exact-144 all-nil row).
+`generate-repeathdr2-probe.mjs` measured it verbatim: Word's continuation
+stack equals its first-page stack exactly (contradicting the repeated-
+instance bottom-margin halving probe-exactpad read off the fixture — the
+discriminating variable is likely the following row's top margin, 58tw in
+the fixture and 0 in the probe), the double border charges NOTHING to flow
+(W1 = W0), margins enter at exactly 7.66px (W3), and the exact-144's base
+charge reads ~5.15px against the authored 9.6 — a number no model tried
+(trHeight, +margins, collapse) reproduces. The stack needs its own
+decomposition with instrumented line boxes before anything else moves.
+
+Other measured leftovers: Word splits a splittable two-line row 1+1 at
+rooms below its height (rowfit P26–P30) where splitLaidRow rejects one-line
+fragments; non-cantSplit rows of exact-rule lines keep a 1.78px overhang
+under ROW_OVERHANG_TOL=3 that Word moves (probe-repeathdr Y p1, 51 vs 50
+rows); and rowfit2's DI case reads +2.37 for a declared sz-12 against nil
+UNDER a live insideH sz-8 where DW (no insideH) reads exactly +2.00.
+
+Sentinels at the branch build: us-courts 0.00 ×5 / 0.91 / 8.01 (p4's
+longstanding deficit closes; p6–p7 blocked on the stack above), hftemplates
+4×0.00, caed-pleading 0.00, staging-eastasian 0.00, benchmark
+0.00/0.37/0.35/4.00, tblextreme 2×0.00, probe-exactmar/nil/nil11/nil11p
+0.00 — **including probe-exactnil11 p2, whose 67% any-build page-fit
+divergence closes to 0.00** — exactouter11/15 0.35/0.00 (weight channel
+only; line and align 0.00). References:
+`parity/probe-repeathdr11-word.pdf`, `probe-repeathdr15-word.pdf`,
+`probe-uscourtsblock11/15-word.pdf`, `probe-uscourtsblock2-11/15-word.pdf`,
+`probe-rowfit11-word.pdf`, `probe-rowfit2-11-word.pdf`,
+`probe-repeathdr2-11-word.pdf`.
+
+### A mixed exact/content boundary gives the whole rule to the row below (#108b)
+
+`generate-mixedbound-probe.mjs` varies the interior boundary one side at a
+time, both orders — exact-495 above / content below (EC), the inverse (CE),
+and same-kind controls (CC, EE) — under no rule, a live insideH sz-12,
+both-nil, each one-sided nil, and sz-24 width scaling. Two packages
+(compat 15 / 11), two exports each: marks digit-identical across exports
+and compat modes.
+
+    case          UP-REF   MK-UP   END-MK  END-REF     what it pins
+    EC0/ECR        16.00  33→35     16.00   65→67   full rule BELOW, flow +full
+    ECW            16.00   37.00    16.04   69.04   scales: sz-24 charges 4.00
+    ECU/ECL        16.00   35.00    16.00   67.03   one-sided nil suppresses nothing
+    ECN            16.00   33.00    16.00   65.00   both-nil charges zero
+    CE0/CER        16.00  16→18    33→31    65.00   exact row ABSORBS it: inset +full, flow ZERO
+    CEW            16.00   20.00    29.00   65.00   scales, still absorbed
+    CC0/CCR        16.00  16→18     16.00   48→50   content/content: half/half already right
+    EE0/EER        16.00  33→35    33→31    82.00   exact/exact: already right (#100)
+
+The rule: **an interior boundary's full painted width belongs to the row
+BELOW — inset into a content row (flow grows by it) and absorbed by an
+exact row's fixed height (flow unchanged). We charged half in both mixed
+orders**; `rowBorderShare` and the cell-inset path now take the full width
+below an exact row and nothing above one, and content/content keeps the
+measured half/half split. After the change every case lands on Word to
+0.04px. This closes the B1 leftover #100 filed (Word 26.25 / flow +1.52pt
+where we read 25.50 / +0.75).
+
+### list, process and hierarchy pinned to their caches by construction (#94 phase 2)
+
+The three non-cycle families shared a lin/roundRect layoutDef that
+contradicted their cached drawings exactly the way cycle's did. Rather than
+calibrate three more Word evaluation models, phase 2 uses what the cycle
+campaign proved — Word honors refType w/h constraint fractions to 0.01pt —
+plus one structural fact: the engine regenerates the layoutDef WITH the data
+on every insert and edit, so the node count is known. Each family now emits
+a COMPOSITE layoutDef whose per-node l/t/w/h constraints are fractions
+computed from the same `diagramShapes()` the cache is built from; the two
+descriptions agree by construction. `primFontSz` is pinned at 12 (no autofit
+rule), and process/hierarchy connectors are dropped from the caches — the
+layoutDef declares none, so Word draws none (cycle's one-sided-drop rule).
+
+Calibration: one document per family (3 nodes), each exported twice by
+desktop Word, byte-consistent (`internal/scripts/gen-smartart-cal2.mjs`,
+`export-smartart2.mjs`, `read-smartart2.py`). Word's re-evaluation
+reproduces every cache digit for digit:
+
+    family      cache node sizes (pt)        Word painted     offsets
+    list        345.00 x 50.00 (x3)          345.00 x 50.00   all (72, 88.97)
+    process     110.00 x 66.93 (x3)          110.00 x 66.93   all (72, 88.96)
+    hierarchy   125.98 x 44.09 root,         identical        all (72, 88.97)
+                168.75 x 48.82 children
+
+— the (72, 88.97)pt offset is the inline anchor (page margin + first line),
+constant across every node. Colors land per node with no cycle-meth
+blending, and the text is Calibri-Bold 12.0 white on every node in all
+three families. Sentinels: word-interop-smartart-only 0.21%,
+-embedded 0.00% — their recorded values; the cycle branch is untouched and
+the fixtures carry only the cycle family, so no fixture regeneration was
+needed.
