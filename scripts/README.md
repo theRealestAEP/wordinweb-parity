@@ -2890,3 +2890,62 @@ exactly Word's quantized distB in our render too. Read probe-wrapclear's
 p3/p5/p14 as metric scaffold noise of this fixture's construction, the same
 class as the probe-scaffold pages #109c names, until the registration
 hardening lands.
+
+### A soft hyphen breaks with its hyphen reserved, or without it as a last resort (#115)
+
+Layout ignored `<w:softHyphen/>` entirely — the element parsed to a plain
+U+00AD atom outside the in-word break set, and the atom's measured width
+was whatever canvas measureText returned for U+00AD, a host-dependent
+number silently embedded in line breaking (the filed determinism smell).
+Every claim the implementation needed is measured before being coded:
+
+`scripts/generate-softhyphen-probe.mjs` writes `fixtures-staging/
+probe-softhyphen.docx` (compat 15) and `probe-softhyphen11.docx` (compat 11,
+the one authored difference): 53 single-word cases whose available width is
+set by `w:ind w:right`, bracketing every knife edge in 1pt steps around the
+exact Calibri 11pt advances (hydro 26.17, hydro- 29.54, hydromatic 51.09,
+hydromatic- 54.46, hydromaticgraphs 81.23; the U family repeats the sweep at
+its own widths). References `parity/probe-softhyphen-word.pdf` and
+`probe-softhyphen11-word.pdf`; both packages exported twice,
+**byte-identical at 192 DPI across exports AND across compat modes** — the
+rule is compat-invariant.
+
+Word's rule, read straight off the case table:
+
+- **The fit demand at a soft break is prefix PLUS the hyphen glyph it will
+  paint.** Break at SH1 ("hydro-") starts at avail 30, not 27
+  (29.54 = w("hydro-")); break at SH2 starts at avail 55
+  (54.46 = w("hydromatic-")). At avail 49-54 Word passes over SH2 — whose
+  prefix ALONE fits from 52 up — and breaks at SH1: the winning opportunity
+  is the last one that fits WITH its hyphen.
+- **With no opportunity that fits hyphen-and-all, Word still breaks at the
+  soft hyphen and omits the hyphen.** H27-29: line 1 is "hydro" bare
+  (26.17 fits, 29.54 does not). The following line then paints ITS hyphen
+  only when it fits: H29's line 2 is "matic-" (28.29 ≤ 29) while H27's is
+  "matic" (28.29 > 27).
+- **A soft hyphen at the end of an emergency character wrap still takes the
+  break and its hyphen.** H24 (avail below every prefix): "hydr" | "o-" |
+  "mati" | "c-" | "grap" | "hs".
+- **Mid-line a soft hyphen measures zero.** M1's painted extent equals the
+  sum of the visible advances exactly.
+- **A raw U+00AD character in w:t stays the other construct**: R50/R58 paint
+  "hydro-matic" with an always-visible hyphen and character-wrap rather than
+  break there — the existing parse mapping to U+2011 stands.
+
+Engine (parwave2 dbc5f2e): U+00AD measures zero by explicit rule in BOTH
+measurers (the determinism fix — no canvas read); each U+00AD ends its
+fragment as a soft break-after opportunity; the packer demands
+prefix+hyphen at a soft break, falls back to the nearest passed-over soft
+hyphen with the hyphen omitted, re-breaks a moved head that ends at a
+fitting soft hyphen instead of character-wrapping (H52-54), and paints the
+synthetic "-" in the fragment's own font whenever a wrapped line ends at a
+soft hyphen and the glyph fits.
+
+probe-softhyphen and probe-softhyphen11: **8/8 pages 0.00** against Word.
+The corpus soft-hyphen carriers are digit-identical to the certification:
+wild2-sci-ieee-2col 0.05/0.00/0.02/0.00 (the fixture the matrix warned was
+calibrated against the inert behavior), probe2-hyphenation 3x0.00,
+staging-typography 0.00. Sentinels: 170/171 pages digit-identical to
+`corpus-full-20260808-0301.log` — the 171st is phase23 p14, which is
+#116a's own fix on the same branch. Both probes join the corpus with
+manifest entries.

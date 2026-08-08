@@ -568,7 +568,9 @@
       "referenceDocxPackageSha256": "2d7313b6e95bc4a9c48677643312a1d59175adc09ce37de49d9406022c5e3152",
       "referencePdfSha256": "c4adb95e443b124a2238519bd35129ae9e9b9d112b69680022d16964cec2e208",
       "pages": 38,
-      "bistablePages": [35],
+      "bistablePages": [
+        35
+      ],
       "bistableCeilingPct": 1,
       "bistableNote": "#71: desktop Word computes two different page 35s for this package on one build. Measured amplitude 0.274111% by this gate's metric; the ceiling is 3.6x that and half the gate's own 2% worst-page threshold."
     },
@@ -725,6 +727,20 @@
       "referenceDocxPackageSha256": "c50b1b8a302cdfe655e1247d3d0d918e36786767620ebe96f45903d491e5da7c",
       "referencePdfSha256": "99233b6fb1c1cd35ca668168b473db61cc11aa1582ca166962ba3fc022dc97f2",
       "pages": 1
+    },
+    "probe-softhyphen": {
+      "sourcePackageSha256": "06c562d998a1c2d843f55483050905e98226061097eb165000252f41d7465b92",
+      "referenceDocx": "apps/demo/public/fixtures/probe-softhyphen.docx",
+      "referenceDocxPackageSha256": "06c562d998a1c2d843f55483050905e98226061097eb165000252f41d7465b92",
+      "referencePdfSha256": "9f92dd1f03dbee343022b20edd515d9854a6366e0239239f0c43f04cc0ae1d64",
+      "pages": 4
+    },
+    "probe-softhyphen11": {
+      "sourcePackageSha256": "64a4212941ee861fdb23a9fe42a031ad14ffbc975db682096337c5db2c473c61",
+      "referenceDocx": "apps/demo/public/fixtures/probe-softhyphen11.docx",
+      "referenceDocxPackageSha256": "64a4212941ee861fdb23a9fe42a031ad14ffbc975db682096337c5db2c473c61",
+      "referencePdfSha256": "21bae0762cefbfcea80aa2022cd4376b7223d96cf2a63c162a8c247e3a84bdc7",
+      "pages": 4
     }
   }
 }
