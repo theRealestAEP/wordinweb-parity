@@ -2508,3 +2508,95 @@ three families. Sentinels: word-interop-smartart-only 0.21%,
 -embedded 0.00% — their recorded values; the cycle branch is untouched and
 the fixtures carry only the cycle family, so no fixture regeneration was
 needed.
+
+### us-courts p6/p7: the "~5.15px exact-row charge" was three charges canceling (#109a)
+
+The instrumented line-box decomposition #108a asked for was run (temporary
+per-component logging in the worktree engine: per-row contentH / borderShare /
+trHeight branch, per-line metric spans), and the mystery number dissolves
+without any new exact-row model. **Word's exact-144 row charges exactly what
+the pre-15 rule says — trHeight 9.6 + its 1.93px bottom cell margin.** The
+"~5.15px base charge" was an artifact of assuming the caption row's line is
+~16.9px (11pt): Word's caption line measures **12.37px = the 8pt Times
+natural (8 x 1.1597em = 9.2776pt) exactly**, and with that one number the
+whole probe-repeathdr2 table closes to 0.1px — W3 stack 22.00 = 12.37 + 9.63,
+W0 29.66 = (3.87 + 12.37 + 1.93) + (9.6 + 1.93), W2's border-to-content
+control 41.02 = row0 18.17 + (3.87 + 17.0 + 1.93), and the double border's
+painted band top sits at row0's bottom edge on every case.
+
+Three engine charges were mutually canceling on this fixture, and each is now
+replaced by a measured rule:
+
+1. **A hidden field's zero-width strut sized the line.** The caption
+   paragraph opens with `SEQ CHAPTER \h` (hidden, empty result), whose
+   metricsStrut atom carried the default-12pt font and sized the line at
+   18.40px against Word's 12.37. The strut now sizes a line only when
+   nothing visible shares it — same shape as the existing whitespace-run
+   rule.
+2. **The repeated exact row's bottom-margin halving is refuted.**
+   `generate-repeathdr3-probe.mjs` sweeps the follower row's tcMar top
+   (0/29/58tw) against the exact row's tcMar bottom (0/29/58tw) on the
+   fixture's own stack; both exports ink-identical. Word's continuation
+   stack equals its first-page stack **to 0.03px in all five cases**, and
+   B58-F58 pins the bottom margin charged in FULL (+2.00px for +29tw). The
+   halving read off the fixture (probe-exactpad p1 vs p2/p7) was a
+   confound: the continuation page's first data row is a different row from
+   p1's. Reference: `parity/probe-repeathdr3-11-word.pdf`.
+3. **The flat 7pt empty-header body-top charge carried no probe.** Word's
+   us-courts body top is 70.87 - 3.87 (tcMar) - 0.54 (8pt glyph offset) =
+   66.5 = headerDistance 48 + the empty header paragraph's FULL 18.55px
+   default-12pt line, to 0.1pt. compat<15 all-empty-paragraph headers now
+   charge their measured height like every other header. (nccih and
+   chem-omml, the other compat<15 empty-header fixtures, have top margins
+   that govern either way — the branch was live only on us-courts.)
+
+wild3-template-us-courts-answer: **7 x 0.00** (p6 0.91 -> 0.00, p7 8.01 ->
+0.00 from the 25d7298 baseline). The p7 shape was one knife-edge cantSplit
+signature row ("Tosutuveh Manive") we kept at the p6 foot where Word moves
+it; with the stack corrected it moves. probe-repeathdr2 reads 8 x 0.00 and
+probe-repeathdr3 lands on Word within 0.2px in every case, first page and
+continuation. The two #108a side-filings (the 1+1 two-line row split, the
+1.78px non-cantSplit overhang) were NOT reached by this decomposition and
+remain filed. probe-uscourtsblock/rowfit/mixedbound severities are
+digit-identical to the untouched 25d7298 build (their nonzero pages are
+pre-existing sweep scaffolding), and the full sentinel set holds.
+
+### Word's MS Mincho snap natural is 1.296em; ja lines now take the compat-15 grid snap (#109b)
+
+`generate-docgrid15b-probe.mjs` -> `fixtures-staging/probe-docgrid15b.docx`
+(reference `parity/probe-docgrid15b-word.pdf`, two exports ink-identical)
+brackets the quantity the lines-grid snap tests: one 3-line MS Mincho
+paragraph per case, ja 10/11/12/16pt over pitches 240/300/330..480tw, each
+case's 1-vs-2-row answer bracketing Word's natural em against
+pitchPx/sizePx:
+
+    case      threshold   Word      case      threshold   Word
+    J11P240     1.091     2 rows    J11P300     1.364     1 row
+    J16P360     1.125     2 rows    J10P300     1.500     1 row
+    J10P240     1.200     2 rows    J12P360     1.500     1 row
+    J12P300     1.250     2 rows    J16P480     1.500     1 row
+    J16P420     1.3125    1 row     J11P360     1.636     1 row
+
+**Every threshold <= 1.25 snaps and every threshold >= 1.3125 does not, so
+Word's MS Mincho snap natural lies in (1.25, 1.3125)** — consistent with the
+1.296em the natural-pitch contexts measured (probe2-ruby-vertical's 20.5px
+vertical columns = 1.296 x 1.0792 at 11pt) and excluding both our raw
+hiragino profile's 1.643em and the 1.4em a vertical reading would suggest.
+The 1.643 was reverse-engineered from staging-eastasian's 19.5pt/line
+advance, which is that fixture's grid pitch (360tw x 1.0792), not a natural
+— the browser's true Hiragino fontBoundingBox reads ~1.0em, so the
+overstatement lived entirely in the calibrated profile.
+
+Engine (close-wave): the hiragino profiles now carry 1.296em directly
+(split proportional), the ja targetEm rescale goes (identity), and the
+textSnap EA carve-out narrows to the unmeasured zh/ko fallback faces. The
+vertical (tbRl) lines-grid flow is pinned at the old 1.643em column pitch —
+probe2-ruby-vertical p2 was measured good there and vertical remains
+unprobed. Verified: **probe-docgrid15 F360 38.57% -> 0.00** (the filed EA
+false-snap case), all 10 docgrid15b cases land on Word's row counts in the
+browser, staging-eastasian 0.00, ruby-vertical 0.16/0.00 against the corpus
+0.15/0.02.
+
+Still open (unchanged): the zh fallback's snap metric. PingFang/Songti keep
+both the 1.733em natural-pitch rescale and the snap carve-out; a
+docgrid15b-shaped sweep with zh text would pin them the same way.
