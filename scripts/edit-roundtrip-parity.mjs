@@ -242,7 +242,11 @@ async function downloadDocx(page, destination) {
  * deviceScaleFactor 2 puts the web raster at 192 DPI — the same grid pdftoppm
  * writes for Word's PDF, so pages compare pixel for pixel. */
 async function renderWebPages(browser, scenario, docx, directory) {
-  const page = await browser.newPage({ viewport: { width: 1700, height: 1200 }, deviceScaleFactor: SCALE });
+  // 1400, not 1200: an A4 page needs more room than 1200 leaves below the
+  // demo's control bar; short of it, the bar's chrome is captured as page ink
+  // (see parity-compare.mjs - wild-hamburg read a 9.6% mean from exactly
+  // this). Letter pages always fit clear, so their rasters are unchanged.
+  const page = await browser.newPage({ viewport: { width: 1700, height: 1400 }, deviceScaleFactor: SCALE });
   try {
     await page.goto(`${base}/?doc=/fixtures/${scenario.fixture}.docx&editable=0&comments=0`, {
       waitUntil: "domcontentloaded",
@@ -374,7 +378,7 @@ async function runScenario(browser, metricPage, scenario) {
     return { ...result, passed: false, durationMs: Date.now() - startedAt };
   }
 
-  const editPage = await browser.newPage({ viewport: { width: 1700, height: 1200 } });
+  const editPage = await browser.newPage({ viewport: { width: 1700, height: 1400 } });
   const editedDocx = join(editedDir, `${scenario.name}.docx`);
   try {
     await editPage.goto(`${base}/?doc=/fixtures/${scenario.fixture}.docx&apihook=1`, { waitUntil: "domcontentloaded" });

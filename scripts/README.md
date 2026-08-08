@@ -2600,3 +2600,70 @@ browser, staging-eastasian 0.00, ruby-vertical 0.16/0.00 against the corpus
 Still open (unchanged): the zh fallback's snap metric. PingFang/Songti keep
 both the 1.733em natural-pitch rescale and the snap carve-out; a
 docgrid15b-shaped sweep with zh text would pin them the same way.
+
+### wild-hamburg's whole "hard set" was the capture, and so was a slice of every A4 fixture (#109c)
+
+The attribution survey the hard set was queued for is done, and the asymmetry
+map has ONE entry. Every wild-hamburg page at or above 2% — p4-p9, p13,
+p14-p16, ten pages, 9.56% fixture mean — classifies as the same mechanism,
+and it is not in the engine: **the demo's 52px control bar overlaps the top
+of any page taller than the room the capture viewport leaves below it, and
+`el.screenshot()` records the bar's chrome as page ink.** At the old
+1700x1200 viewport the bar ends 100.6px down, leaving 1099px; an A4 page is
+1122.5px, so `scrollIntoViewIfNeeded` parked every A4 page's top under the
+bar. On a sparse page the strip dominates the ink mass: p14 (a heading and a
+footer "6") read 30.45% structural from it. The tell in the triptychs is a
+248,250,252 band with two 198,207,219 chips across the top of the web panel
+— present in the ACCEPTED corpus captures of benchmark p2/p4 too, absent
+from Word's.
+
+The mechanism was pinned in the DOM, not inferred: `elementsFromPoint` at
+the page's top rows returns `DIV.control-bar` at every x, and the bar's
+rect (y 48.6..100.6) overlaps the page rect (y 89.5) by 11px. Hiding the
+bar with injected CSS made scores WORSE (the app-shell background behind it
+is the same color, and the capture geometry shifted); the correct fix is
+room: **viewport height 1400 in `parity-compare.mjs` and
+`edit-roundtrip-parity.mjs`**. Clean pages are raster-identical under the
+change (hamburg p1 and benchmark p1 hold their channel digits), so it moves
+only contaminated pages.
+
+What the corpus reads at the close-wave engine build under the clean
+capture, full `parity-parallel` run, all references untouched:
+
+| quantity | contaminated capture | clean capture |
+| --- | --- | --- |
+| wild-hamburg fixture mean | 9.56% | **0.003%** (16x0.00 + p3 0.05) |
+| non-probe corpus mean (1129 pages) | 0.259% | **0.019%** |
+| benchmark | 0.00/0.37/0.35/4.00 | **4x0.00** |
+| wild2-math-eq-as-images | 0.00..1.69 | 7x0.00 + p2 0.01 |
+| edit round-trip gate | 17/17, header-footer 0.40/0.80 | **17/17, every scenario 0.000/0.000** |
+
+benchmark p4's long-standing 4.00%, eq-as-images' ~1.2-1.7% residuals, and
+header-footer's 0.40% "rasterization noise" were all this artifact. 37
+corpus fixtures are A4 and were exposed on every page; Letter fixtures were
+exposed on any page whose scroll position happened to park it under the bar.
+**Treat any historical per-page number from these two scripts as suspect
+unless the page was clean-capture re-measured**; the accepted results.json
+and history line from this run are the new baseline.
+`word-download-parity.mjs` never screenshots the browser and is unaffected.
+
+The hard set that remains after the survey, whole corpus, non-probe pages
+above 2%:
+
+- **wild-doerfp p36 13.02** — pre-existing to the digit; the corpus's known
+  bistable fixture (#71), unhandled in parity-compare (the bistable ceiling
+  keys live only in the saved-DOCX gate's manifest reader).
+- **wild3-template-uspto-follow-on p1 4.02** — pre-existing to the digit,
+  undecomposed; the only genuinely unattributed corpus page left.
+
+Sub-2% leftovers, also digit-identical to the old log: probe-wrapclear
+p14 19.45 and probe-headeranchor2 p4 2.29 (probe scaffold pages),
+probe-nih-rowheight p4 2.06, probe-repeathdr15 p10 7.33,
+probe-mixedbound11/15 p1 ~2.9, and the uscourtsblock sweeps' by-design
+knife-edge pages. Nothing else in 1357 pages exceeds 2%. wild-hamburg p3's
+0.05% (TOC dot-leader weight, 3.50% weight channel) is the fixture's entire
+remaining signal.
+
+No engine change was made for this task: no hamburg page carried an
+engine-attributable asymmetry above the survey threshold once the capture
+was clean.

@@ -340,7 +340,14 @@ for (const name of refs) {
   renderFullReference(pdf, work, requestedPages);
 
   const page = await browser.newPage({
-    viewport: { width: 1700, height: 1200 },
+    // 1400, not 1200: the demo's control bar ends 100.6px down, and an A4
+    // page (1122.5px) needs more room than 1200 leaves below it -
+    // scrollIntoViewIfNeeded then parks the page top UNDER the bar and
+    // el.screenshot() records the bar's chrome as page ink. On a sparse A4
+    // page that strip dominates the score (wild-hamburg p14, a heading and
+    // a footer, read 30.45% structural from it; Letter pages always fit
+    // clear, so their rasters are unchanged by this).
+    viewport: { width: 1700, height: 1400 },
     deviceScaleFactor: SCALE,
   });
   // DATE/TIME fields: Word bakes the EXPORT moment into the reference PDF,
