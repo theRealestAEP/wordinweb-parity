@@ -3044,3 +3044,106 @@ staging-typography 0.00. Sentinels: 170/171 pages digit-identical to
 `corpus-full-20260808-0301.log` — the 171st is phase23 p14, which is
 #116a's own fix on the same branch. Both probes join the corpus with
 manifest entries.
+
+### The three wild2 fixtures were never an engine regression: a stale vite dependency optimization for `emf-converter` (#118)
+
+#117 flagged `wild2-math-eq-as-images`, `wild2-med-phase23-protocol`, and
+`wild2-sci-chem-omml` as newly reading `image` weight ratios of 180-199%
+between `corpus-full-20260808-0301.log` (engine b94144d) and
+`corpus-full-20260808-1358.log` (engine 18bc0d7), and attributed it to "the
+c9d5503 wave4-eq-notes merge — unrelated in-flight work... an engine-side
+image-sizing regression." It was neither wave4-eq-notes nor an engine
+defect.
+
+**Bisected first, not assumed.** Built the engine at b94144d itself — the
+literal commit that produced the clean 0301 baseline — in a fresh worktree
+(`wordinweb-fix118`) and re-measured the three fixtures through a fully
+restarted demo dev server. The "clean" baseline commit reproduced the
+"regressed" numbers bit for bit (wild2-sci-chem-omml p10: 37.09% structural,
+198.84% image, matching 1358 exactly), which rules out every commit after
+it — dbc5f2e (soft hyphens), 77fa9cb (preset-geometry), and everything in
+the wave4/lane-C merge — before reading a single line of their diffs.
+
+**The pixels said why.** wild2-sci-chem-omml p10's web render was a blank
+box with Chrome's broken-image glyph where Word paints a CIE chromaticity
+diagram; wild2-math-eq-as-images' regressed pages showed literal
+"Double-click to open Embedded object" text (Chrome's fallback label —
+`title` substituting for a missing `alt` on a failed `<img>`) where Word
+paints the WMF-backed OLE equation preview. Both go through
+`packages/core/src/render/dom.ts`'s existing (pre-b94144d, from c434833)
+async path for non-web-native image formats: on a cache miss it
+synchronously sets `img.src` to a blob of the RAW wmf/emf bytes (mime
+`image/wmf` / `image/emf`, which no browser decodes) while a `void
+import("emf-converter")` / `import("./wmf.js")` resolves the real
+conversion in the background and patches `img.src` once done — correct for
+a live editing session, where the DOM node just repaints in place once the
+promise settles.
+
+**The browser console had the real error**, on every single load:
+`Failed to load resource: the server responded with a status of 504
+(Outdated Optimize Dep)` for `emf-converter.js`, repeating identically
+across three independent full-page navigations with no self-heal.
+`emf-converter` is reached only through that runtime dynamic `import()`,
+buried inside the engine's pre-built dist bundle served through the
+worktree symlink `use-engine.mjs` sets up — invisible to vite's static
+dependency crawler, so a freshly (re)started dev server never pre-bundles
+it. The first document with an EMF image — or an EMF-backed repeating
+header, explaining phase23-protocol's identical 180.55%/9.36% swing on
+every page it appears on — hits vite's cold-dependency-discovery path,
+which 504s and never recovers within a single test run. Every
+`use-engine.mjs` swap in this shared-dev-server campaign (this task's own,
+and the many concurrent agents') clears `apps/demo/node_modules/.vite` and
+re-arms this exact trap on the next server restart.
+
+**The fix is one line in `apps/demo/vite.config.ts`**, not the engine:
+
+```ts
+optimizeDeps: { include: ["emf-converter"] },
+```
+
+Forces vite to eagerly pre-bundle the package instead of discovering it
+cold. Verified at engine tip 18bc0d7 (unmodified — no engine commit was
+needed): all 90 pages across the three fixtures are digit-identical to
+`corpus-full-20260808-0301.log`, except the two already-landed,
+already-understood improvements in flight — phase23-protocol p14
+2.10 -> 0.00 (#116a's arcTo fix) and p66 0.16 -> 0.00 (#117's registration
+fix). The sentinel set (benchmark, chronology, parity-hftemplates, the
+exact-probe family, docgrid15/-b, softhyphen/softhyphen11,
+staging-eastasian, staging-tblextreme, wild3-template-caed-pleading,
+wild3-template-us-courts-answer, probe-wrapclear — 138 pages) is
+digit-identical apart from the same two pages plus probe-wrapclear
+p3/p5/p14 (#117, already known). probe-softhyphen/-11: 8/8 pages 0.00.
+Diffing the two full corpus logs end to end turned up nothing else beyond
+these plus wild2-sci-ieee-2col's expected softhyphen-fix deltas (#115) — no
+other fixture was silently affected. Core suite green (54 files / 631
+passed / 2 skipped / 0 failed at 18bc0d7). Edit round-trip gate 17/17.
+
+Per-page before (vite cold-dep 504 state, reproduced at b94144d, dbc5f2e,
+and unmodified 18bc0d7 alike) / after (fixed vite config, unmodified
+18bc0d7 engine):
+
+| fixture | page | before | after |
+| --- | --- | --- | --- |
+| wild2-math-eq-as-images | 1 | 0.15% | 0.00% |
+| wild2-math-eq-as-images | 3 | 16.33% | 0.00% |
+| wild2-math-eq-as-images | 4 | 17.65% | 0.00% |
+| wild2-math-eq-as-images | 5 | 12.33% | 0.00% |
+| wild2-math-eq-as-images | 6 | 8.71% | 0.00% |
+| wild2-math-eq-as-images | 7 | 3.58% | 0.00% |
+| wild2-med-phase23-protocol | 1 | 1.59% | 0.00% |
+| wild2-med-phase23-protocol | 2 | 8.42% | 0.00% |
+| wild2-med-phase23-protocol | 3 | 2.13% | 0.00% |
+| wild2-med-phase23-protocol | 4 | 2.23% | 0.00% |
+| wild2-med-phase23-protocol | 5 | 11.23% | 0.00% |
+| wild2-sci-chem-omml | 10 | 37.09% | 0.00% |
+
+The other 78 of 90 pages across the three fixtures were already 0.00-0.05%
+on both sides — the collateral only ever hit pages that actually carry a
+metafile image or an EMF-backed header. Suspects (1)-(4) from the original
+bisection brief — the soft-hyphen breakAfter machinery, footnote eachSect
+numbering, w14 text-effects run painting, the preset-geometry
+degenerate-arc fix — are all exonerated for this regression; none of them
+touch `render/dom.ts`, `render/wmf.ts`, or any image-conversion path.
+
+Engine branch `fix-118` (worktree `wordinweb-fix118`, off `origin/likeoffice`
+at 18bc0d7) carries no commits: there was no engine defect to fix.

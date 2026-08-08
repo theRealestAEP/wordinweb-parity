@@ -97,4 +97,5 @@ export default defineConfig({
   server: {
     fs: { allow: [searchForWorkspaceRoot(process.cwd()), ...realNodeModules] },
   },
+  optimizeDeps: { include: ["emf-converter"] },
 });
