@@ -2818,3 +2818,75 @@ digit-identical to `corpus-full-20260808-0301.log`. wild2-med-nccih-protocol
 read 0.011/0.250 in this run against the log's 0.000/0.000 — edited-half
 capture jitter, not the fixture: the corpus scoring of nccih above is
 digit-identical, and the scenario passes with two orders of margin).
+
+### wrapclear's "~3px under a cleared float" was the metric's registration, and the paint is right (#116b)
+
+#113 filed p14 (9.92%), p3 (~4%) and p5 (~6%) as an engine float-clear
+defect — "the text under the cleared square-wrap float sits ~3px off Word".
+The decomposition retracts that attribution completely. **The engine's
+cleared-float geometry matches Word on every one of the 20 pages**, and the
+three scores are the metric's own registration failing on this fixture's
+peculiar ink: one huge flat-filled box and a handful of lorem lines.
+
+**Word's rule, read from the reference PDF vectors:** the cleared text
+resumes at box-rect-bottom + 3.08px + distB, with the 3.6pt distB entering
+as 4.67px (Word quantizes it to 3.5pt). Verified across families A/B/C and
+heights h50-h59: the b0 pages all read the +3.08 gap and every b3.6 sibling
+sits exactly 4.67px lower.
+
+**Our paint, measured as sub-pixel ink-band centroids (raster, not DOM):**
+on ALL 20 pages every text band — the CASE header, the box label, and every
+cleared line — sits a uniform 0.5 to 1.0 CSS px above Word's, and the box
+borders land on identical device rows. The failing and passing pages carry
+the IDENTICAL signature: p3's bands read -1.0/-0.5/-1.0 css against Word and
+0.00-scoring p4's read -1.0/-1.0/-0.5. There is no 3px offset anywhere, and
+no offset specific to the cleared text. The "~3px" was two artifacts
+stacked:
+
+- DOM span top (196.69) vs PDF line-bbox top (199.73) differ by 3.04px =
+  the fontBoundingBox ascent (0.952em) against the PDF ascender (0.75em) at
+  14.667px — the exact span-box-is-not-a-baseline trap the ink-bands note
+  already warns about. Baselines agree to 0.1px.
+- the reported `alignPx` 2-4px measures the metric's per-tile offsets on
+  this fixture, and those are broken by registration, below.
+
+**The metric mechanism, pinned by instrumentation (`DXW_LINE_DEBUG` plus a
+scratch build of the metric):**
+
+1. The box's FFF2CC fill gives ~40 interior tiles ink mass (~21/px) with a
+   near-FLAT SAD landscape: any offset that keeps fill-on-fill scores ~0, so
+   the strictly-less search keeps its FIRST candidate — scan order starts at
+   (-4,-4) — and whole rows of fill tiles vote an arbitrary corner offset.
+2. Those votes drag the page-global registration off the text. Three
+   near-identical pages fit three different globals — p13 (-4,0),
+   p14 (-4,-1), p16 (0,0) — for renders whose ink bands agree to a device
+   pixel. A 4-6px misregistered base leaves every text tile at base
+   SAD/mass 0.34-0.55, over the line channel's 20% bar.
+3. The misregistered text then finds "better" matches a line-pitch away
+   among SELF-SIMILAR lorem lines (p14: nine tiles vote d=+18 ≈ the 19.33px
+   pitch, improvements 0.26-0.37; p3's votes are incoherent d=8..28 — the
+   parity-math p1 shape the LINE_NOISE_FLOOR comment names).
+4. Corroboration (misalignedPct >= 48) is auto-satisfied on every page of
+   the fixture — including the seventeen 0.00 pages, which read 51-100%
+   misaligned — because the matched-tile offsets scatter around the dragged
+   global. The gate that was built to stop self-similar false positives has
+   nothing to gate with here.
+
+**Counterfactual, run on a scratch metric and then reverted:** excluding
+flat-landscape tiles (best-to-worst SAD spread < 10% of tile mass) from the
+registration median and the alignment stats sends p3 4.17 -> 0.00 and
+p5 6.06 -> 0.00 with align falling to ~1px; p14 stays 9.92 because its box
+(h50) leaves no tile's ±4px search window clear of a border, so nothing is
+"flat" by that test and the tie-break still decides. The real hardening is
+to seed the registration only with tiles whose best offset is
+DISCRIMINATED (a positive second-best margin), which is a metric change
+with corpus-wide recalibration and a METRIC_VERSION bump — filed here, not
+made.
+
+No engine change for this task, and the certified corpus numbers stand.
+The fixture keeps pinning what d82570c adopted it for — resume at
+floatBottom + distB — and it does pin it: the b0/b3.6 siblings differ by
+exactly Word's quantized distB in our render too. Read probe-wrapclear's
+p3/p5/p14 as metric scaffold noise of this fixture's construction, the same
+class as the probe-scaffold pages #109c names, until the registration
+hardening lands.
