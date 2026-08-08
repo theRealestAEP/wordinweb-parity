@@ -2667,3 +2667,62 @@ remaining signal.
 No engine change was made for this task: no hamburg page carried an
 engine-attributable asymmetry above the survey threshold once the capture
 was clean.
+
+### uspto-follow-on p1: a fractional page origin snaps rules and not glyphs (#110)
+
+The last unattributed non-probe page. The screen came first and was clean
+twice over: two fresh exports of the fixture (compat 15, one table, zero
+pagination hints) reproduce each other AND the cached reference byte for
+byte on all 7 pages at 192 DPI. The reference is ground truth; the 4.02%
+was ours.
+
+The ink-band map was nearly clean — every text band within 0.5px — and the
+whole signal was the caption table's six horizontal rules reading +0.6..
++1.1px below Word's while the text between them held still. At a ~19px row
+pitch the line channel then scores every 1px-off rule tile as "matches
+better one row away": line 4.02% with misaligned 62.84% as the
+corroborator. The DOM refutes an engine defect: our rule boxes sit at
+96.00/115.07/134.13/153.20/172.26/191.33 against Word's PDF rules at
+96.04/115.04/134.04/153.37/172.40/191.40 — 0.1px agreement.
+
+The mechanism is the CAPTURE, in three composing parts:
+
+- the demo parks `.dxw-page` at a fractional viewport y (124.609375 at the
+  1400 viewport — app chrome above `editor-stage`, same fraction at every
+  page since the page pitch is integral);
+- Chromium pixel-snaps composited boxes — the renderer's 1px-high
+  scaled-transform rule boxes — but paints glyphs unsnapped, so at a
+  fractional origin the rules drift up to a CSS pixel from the text. A
+  minimal reproduction confirms both halves: at an integral origin the
+  scaleY(0.667) rule paints exactly on its layout position;
+- `el.screenshot()` rounds the fractional crop origin on top.
+
+Word's raster starts at the exact PDF page origin, so all of this reads as
+a rules-vs-text asymmetry the engine does not have. Scrolling cannot
+remove the fraction — the demo scroller's scrollTop is integer-quantized —
+so both capture scripts now shift the pages container by the fractional
+part (a layout change: everything repaints at the integral position, no
+resampling) before every `el.screenshot()`.
+
+**wild3-template-uspto-follow-on p1: 4.02% -> 0.00 structural** (all 7
+pages 0.00) at the UNTOUCHED corpus engine build. Sentinels digit-identical
+to the accepted clean-capture baseline on every severity except
+probe-exactouter11/15 p1 0.35 -> 0.41 (weight-channel scaffold page; the
+snapped capture registers align 1.00 where the fractional one read 0), with
+several channels cleaner (docgrid15b p1 line 2.85 -> 0, exactouter15 p2
+line 5.92 -> 0, us-courts p4/p7 align 3/4 -> 0).
+
+The decomposition also caught a real engine paint defect, fixed on the
+`last-page` engine branch (d159db7), worth its own note because the
+guarding rule was already in the tree and dead: the DOM painter sets the
+`font` SHORTHAND inline, which resets `font-kerning` and
+`font-variant-ligatures` to their initial values — and an inline style
+outranks the `.dxw-page span { font-kerning: none; ... }` stylesheet rule,
+so every span painted with Chrome's kerning and ligatures ON while the
+canvas measurer computes nominal advances. Word does not kern these runs
+(no `w:kern`; its per-char advances are exact TNR-Bold hmtx values, e.g.
+'T' 0.667em), and our painted 'T' before 'A' read 9.49px against Word's
+10.672. The off state is now set inline next to the shorthand; per-char
+paint positions land on Word to 0.03px, and p1's line-channel residual
+under the snapped capture drops 3.53 -> 1.55. The page closes without the
+engine fix, so the corpus baseline does not depend on it.

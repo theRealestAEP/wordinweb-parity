@@ -405,6 +405,31 @@ for (const name of refs) {
     if (i < pageCount) {
       const el = page.locator(".dxw-page").nth(i);
       await el.scrollIntoViewIfNeeded();
+      // Snap the page to a whole-pixel viewport position. The demo parks
+      // .dxw-page at a fractional y (100.609375 at this viewport), and
+      // Chromium pixel-snaps composited boxes — the renderer's 1px-high
+      // scaled table rules — while glyphs paint unsnapped, so rules land up
+      // to a CSS pixel below their layout position relative to the text.
+      // el.screenshot() then also rounds the fractional crop origin. Word's
+      // raster starts at the exact PDF page origin, so a fractional page
+      // origin reads as a rules-vs-text asymmetry the engine does not have
+      // (uspto-follow-on p1: 4.02% structural entirely from this).
+      await el.evaluate((node) => {
+        // Scrolling cannot remove the fraction (scrollTop is integer-quantized
+        // here), so shift the pages container by the fractional part instead —
+        // a layout change, so everything repaints at the new integral position
+        // with no resampling. Page pitch (page height + gap) is integral, so
+        // one adjustment snaps every page at once.
+        const wrap = node.parentElement;
+        for (let pass = 0; pass < 3; pass++) {
+          const r = node.getBoundingClientRect();
+          const fx = r.x - Math.round(r.x);
+          const fy = r.y - Math.round(r.y);
+          if (Math.abs(fx) < 0.01 && Math.abs(fy) < 0.01) return;
+          wrap.style.marginTop = `${parseFloat(wrap.style.marginTop || "0") - fy}px`;
+          wrap.style.marginLeft = `${parseFloat(wrap.style.marginLeft || "0") - fx}px`;
+        }
+      });
       await page.waitForTimeout(100);
       webShot = await el.screenshot();
       const semantic = await captureSemanticPage(page, i);

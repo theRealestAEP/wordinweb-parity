@@ -265,6 +265,26 @@ async function renderWebPages(browser, scenario, docx, directory) {
     for (let index = 0; index < count; index++) {
       const element = page.locator(".dxw-page").nth(index);
       await element.scrollIntoViewIfNeeded();
+      // Snap the page to a whole-pixel viewport position before capturing —
+      // same fix as parity-compare.mjs: a fractional page origin makes
+      // Chromium pixel-snap composited 1px rule boxes while glyphs paint
+      // unsnapped, and el.screenshot() rounds the crop origin on top.
+      await element.evaluate((node) => {
+        // Scrolling cannot remove the fraction (scrollTop is integer-quantized
+        // here), so shift the pages container by the fractional part instead —
+        // a layout change, so everything repaints at the new integral position
+        // with no resampling. Page pitch (page height + gap) is integral, so
+        // one adjustment snaps every page at once.
+        const wrap = node.parentElement;
+        for (let pass = 0; pass < 3; pass++) {
+          const r = node.getBoundingClientRect();
+          const fx = r.x - Math.round(r.x);
+          const fy = r.y - Math.round(r.y);
+          if (Math.abs(fx) < 0.01 && Math.abs(fy) < 0.01) return;
+          wrap.style.marginTop = `${parseFloat(wrap.style.marginTop || "0") - fy}px`;
+          wrap.style.marginLeft = `${parseFloat(wrap.style.marginLeft || "0") - fx}px`;
+        }
+      });
       await page.waitForTimeout(100);
       const file = join(directory, `web-${index + 1}.png`);
       writeFileSync(file, await element.screenshot());
