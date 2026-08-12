@@ -3147,3 +3147,94 @@ touch `render/dom.ts`, `render/wmf.ts`, or any image-conversion path.
 
 Engine branch `fix-118` (worktree `wordinweb-fix118`, off `origin/likeoffice`
 at 18bc0d7) carries no commits: there was no engine defect to fix.
+
+### Margin line numbering (w:lnNumType): what Word counts as a line, and the w:start off-by-one (#119)
+
+Reported symptom: an AI-authored California pleading showed margin line
+numbers running 1..48 down a page, where the pleading convention expects
+28 numbered double-spaced lines per page aligned to the text grid.
+`wild3-template-caed-pleading` (corpus, scores 0.00 already) turned out not
+to use `w:lnNumType` at all — its `word/header2.xml` bakes the digits 1-28
+into a literal table positioned by negative page margins, exactly what the
+app's own human-facing help recipe ("California pleading paper",
+`packages/react/src/help.tsx`) already documents. So the arriving-fixture
+score says nothing about whether our `w:lnNumType` renderer is right; the
+bug had to be chased on the AI-authoring side, which drives the native
+feature through `setLineNumbering`.
+
+`generate-linenum-probe.mjs` -> `fixtures-staging/probe-linenum.docx`
+(reference `parity/probe-linenum-word.pdf`, all 13 pages ink-identical
+across two exports) is eight sections, each its own `w:lnNumType`, isolating
+one question per case: single (auto) vs. exact-480tw (24pt) double spacing,
+countBy=5, restart=continuous across a page/section boundary, empty
+paragraphs, one long wrapped paragraph, one table, and `w:start=10`. A
+follow-up pair, `generate-linenum2-probe.mjs` -> `probe-linenum2a/b.docx`
+(references `parity/probe-linenum2a-word.pdf`, `parity/probe-linenum2b-word.pdf`,
+both self-reproducing), isolates `w:start` alone with no preceding content,
+to rule out contamination from the table case immediately before it in the
+main probe.
+
+Measured against the engine PRE-fix (browser render vs. the Word PDFs, text
+position by text position):
+
+- **Everything except `w:start` already matched Word exactly.** Auto
+  spacing fits far more than 28 real lines on a page (40 in the probe's
+  geometry) and Word numbers every one of them sequentially from 1 — the
+  "1..48" shape is what an under-spaced document is SUPPOSED to look like
+  under correct per-line counting, not evidence of a counting bug. Exact
+  480tw spacing fits 27 lines/page, matching the pleading grid. `restart`
+  behaves exactly as documented: `newPage` resets at the top of every
+  physical page (even mid-section), `continuous` never resets — and
+  carries the running total across a restart-MODE boundary too (a
+  `continuous` section immediately following a `newPage` section picks up
+  where the previous page's local count left off, not from 0). `countBy`
+  keeps advancing the underlying counter on every line and only paints
+  multiples. An empty paragraph consumes a line number. A table consumes
+  ZERO line numbers — not counted, not displayed — and the paragraph after
+  it resumes exactly where the paragraph before it left off. Every visual
+  line of a wrapped/broken paragraph is numbered individually, not once per
+  paragraph. The default 0.25in (360tw) `w:distance` gap matches Word's
+  x-position exactly.
+- **`w:start` is a raw OFFSET added to the running count, not the first
+  printed number.** Word prints `(start + 1)` on a scope's first line
+  whenever `w:start` is WRITTEN AT ALL — even `w:start="1"` prints 2, 3, 4,
+  5, 6, not 1, 2, 3, 4, 5 (probe-linenum2b). `w:start="10"` prints
+  11, 12, 13... (probe-linenum2a, and case H of the main probe, isolating
+  the same answer with and without a table immediately before it). Only an
+  ABSENT `w:start` prints the bare count starting at 1.
+
+Engine (branch `linenum-conformance`, worktree `wordinweb-linenum`, off
+`origin/likeoffice` 18bc0d7, not pushed): `parse/section.ts` now parses
+`w:start` with an implicit default of 0 (the raw offset) instead of 1, and
+`layout/engine.ts`'s `emitLineNumber` prints `ln.start + counter` (was
+`ln.start - 1 + counter`, which could not distinguish an omitted attribute
+from an explicit `w:start="1"`). The edit-side API keeps its
+human-meaningful contract: `setLineNumbering`'s `patch.start` is still "the
+first line's own displayed number" and now writes `patch.start - 1` to the
+XML (still omitting the attribute for `patch.start === 1`); `lineNumberingAt`
+and the agent's `overview` inspection (`packages/agent/src/inspect.ts`) both
+report `rawOffset + 1` back, so round-tripping a value through the API
+shows what a human asked for. Reverified post-fix: probe-linenum case H and
+both probe-linenum2 cases print exactly Word's sequence; every other case
+is byte-for-byte unchanged (verified via diff of the full browser dump).
+
+Root cause of the reported bug is judged to be authoring, not rendering:
+`setLineNumbering` only ever touches `w:lnNumType` and has no way to also
+set paragraph spacing, and nothing in the agent's skill reference told the
+model that hitting a fixed lines-per-page count requires pairing it with
+exact spacing. `skills/wordinweb-documents/references/interface.md`'s
+`setLineNumbering` catalog row now says so directly (counts every real
+line including wrapped continuations and blanks, skips tables entirely,
+and needs `setSpacing` `exactLinePt`/`beforePt`/`afterPt: 0` alongside it
+for a fixed per-page count) — worded generically since
+`packages/agent/test/skill.test.ts` asserts the skill text never mentions
+"pleading" by name.
+
+Sentinels (`pleading-anon` 7p, `wild3-template-caed-pleading` 1p,
+`wild3-template-us-courts-answer` 7p — 15 pages total): all 0.000% severity,
+matching or improving on `parity/corpus-full-20260808-1358.log`'s existing
+0.00% baseline. `npm run parity:edit-roundtrip`: 17/17. Full engine suite
+(`npm run test:unit` in `wordinweb-linenum`, plus `typecheck`): green,
+including five new regression tests in `packages/core/test/layout.test.ts`
+covering the `w:start` offset, table-skipping, empty-paragraph counting,
+and multi-line-paragraph numbering.
