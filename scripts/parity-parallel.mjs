@@ -15,8 +15,13 @@
  * rasters come from parity/.raster-cache after the first run, so workers
  * spend their time on rendering + comparison only.
  *
- *   node scripts/parity-parallel.mjs            # all fixtures
- *   DXW_PARITY_JOBS=8 node scripts/parity-parallel.mjs
+ *   npm run parity                              # all fixtures (this file)
+ *   npm run parity -- wild2-sci-chem-omml       # selected fixtures
+ *   DXW_PARITY_JOBS=8 npm run parity
+ *   npm run parity -- --base http://localhost:5174
+ *
+ * The demo must be serving at --base (default http://localhost:5299) before
+ * this runs; it is checked once up front.
  *
  * DXW_PARITY_FAST is passed through. Scores were validated shard-vs-serial
  * (identical per-page severities) before this became the default path.
@@ -33,7 +38,14 @@ const fixturesDir = join(root, "apps/demo/public/fixtures");
 const outDir = join(parityDir, "out");
 mkdirSync(outDir, { recursive: true });
 
-const requested = process.argv.slice(2);
+const argv = process.argv.slice(2);
+const baseIdx = argv.indexOf("--base");
+const base = baseIdx >= 0 ? argv[baseIdx + 1] : "http://localhost:5299";
+// Flags and the --base value are not fixture names. Without this a run passing
+// --base filters every fixture out and dies as "No matching parity references".
+const requested = argv.filter(
+  (a, i) => !a.startsWith("--") && !(baseIdx >= 0 && i === baseIdx + 1),
+);
 const refs = readdirSync(parityDir)
   .filter((f) => f.endsWith("-word.pdf"))
   .map((f) => basename(f, "-word.pdf"))
@@ -42,6 +54,21 @@ const refs = readdirSync(parityDir)
   .sort();
 if (refs.length === 0) {
   console.error("No matching parity references.");
+  process.exit(1);
+}
+
+// Check the demo once here rather than letting every worker discover it. A
+// dev server whose port was taken falls through to 5174 and answers nothing on
+// 5299, which otherwise reads as a whole run of failed workers.
+try {
+  await fetch(base, { signal: AbortSignal.timeout(5000) });
+} catch {
+  console.error(
+    `Demo server not reachable at ${base}.\n` +
+      "  Start it on the port this runner expects:\n" +
+      "    npm run dev -w demo -- --port 5299 --strictPort\n" +
+      "  or point the run elsewhere with --base http://localhost:<port>",
+  );
   process.exit(1);
 }
 
@@ -105,7 +132,7 @@ const runShard = (sh, i, attempt) => {
       .join(",");
     env.DXW_PARITY_PAGES = wholeSel ? `${pageSel},${wholeSel}` : pageSel;
   }
-  const child = spawn("node", [join(root, "scripts/parity-compare.mjs"), ...names], {
+  const child = spawn("node", [join(root, "scripts/parity-compare.mjs"), "--base", base, ...names], {
     cwd: root,
     env,
     stdio: ["ignore", "pipe", "pipe"],

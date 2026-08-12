@@ -56,6 +56,21 @@ const isFullRun = only.length === 0;
 // PNGs - the orchestrator owns the accepted results.json for the whole run.
 const outcome = isFullRun || acceptRun || process.env.DXW_PARITY_SHARD_OUT ? "accepted" : "candidate";
 
+// A bare run of this file is the whole corpus on ONE worker: ~2.5h where
+// parity-parallel.mjs takes ~8min. Nothing about the output says so, so the
+// mistake only shows up as a run that never seems to finish. Shard workers are
+// exempt because the orchestrator always passes them fixture names, and
+// --serial keeps the shard-vs-serial score comparison available.
+if (isFullRun && !process.env.DXW_PARITY_SHARD_OUT && !args.includes("--serial")) {
+  console.error(
+    "Refusing a full-corpus run on a single worker.\n" +
+      "  Use the parallel runner:  npm run parity\n" +
+      "  Selected fixtures:        node scripts/parity-compare.mjs <name> [name ...]\n" +
+      "  Deliberately serial:      node scripts/parity-compare.mjs --serial",
+  );
+  process.exit(1);
+}
+
 // Optional candidate-page subset for bounded calibration runs. Entries are
 // `fixture:page`, comma-separated. A fixture argument is still required, so a
 // page subset can never accidentally become an accepted full-corpus run.

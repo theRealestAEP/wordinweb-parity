@@ -85,16 +85,32 @@ previews consumed by the Google Docs and LibreOffice tabs on `/report/`.
   when intentionally updating source-of-truth references.
 - `word-parity-all.sh` intentionally updates the standard reference set.
 
-Run a complete parity check with the parallel runner, then publish its finished
-report to the demo only when the `/report/` artifacts should be refreshed:
+**Every full or large run goes through `npm run parity`.** Start the demo on
+5299 first — the runner checks it once and stops if nothing answers there:
 
 ```bash
-node scripts/parity-parallel.mjs
-npm run report:snapshot
+npm run dev -w demo -- --port 5299 --strictPort      # in another shell
+npm run parity                                       # whole corpus, sharded
+npm run parity -- wild2-sci-chem-omml probe-linenum  # selected fixtures
+npm run report:snapshot                              # only to refresh /report/
 ```
 
-Set `DXW_PARITY_JOBS` to override the default worker count when needed. Direct
-`parity-compare.mjs` runs are reserved for focused fixture work.
+`npm run parity` is `parity-parallel.mjs`. It shards fixtures and large page
+ranges across `min(6, cpus - 2)` workers; override with `DXW_PARITY_JOBS`.
+Point it at another port with `--base http://localhost:<port>`, which it
+forwards to every worker.
+
+The single-worker path is a trap worth naming, because it costs hours and
+announces nothing. `parity-compare.mjs` with no fixture arguments is the whole
+corpus on ONE worker — measured at ~2.5h against 477s for the same 1359 pages
+sharded. It now refuses that run and points here. Two escape hatches remain:
+fixture names for focused work, and `npm run parity:serial` for the
+shard-vs-serial score comparison that validated sharding in the first place.
+
+The port matters as much as the runner. Vite falls through to the next free
+port when 5299 is taken, prints the new one, and exits 0 — so a second dev
+server on 5174 leaves the corpus measuring nothing at all. `--strictPort` makes
+that a failure instead of a silent one.
 
 Run the candidate-only gate while the demo is available at port 5299:
 

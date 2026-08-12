@@ -14,9 +14,10 @@
     "test:e2e": "playwright test",
     "test:interop": "node scripts/interop-smoke.mjs",
     "test:interop:google": "node scripts/interop-smoke.mjs --google",
-    "parity": "node scripts/parity-compare.mjs",
+    "parity": "node scripts/parity-parallel.mjs",
     "parity:edit-roundtrip": "node scripts/edit-roundtrip-parity.mjs",
-    "report:snapshot": "node scripts/snapshot-report.mjs"
+    "report:snapshot": "node scripts/snapshot-report.mjs",
+    "parity:serial": "node scripts/parity-compare.mjs --serial"
   },
   "devDependencies": {
     "@playwright/test": "^1.61.1",
