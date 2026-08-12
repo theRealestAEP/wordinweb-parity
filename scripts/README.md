@@ -3319,3 +3319,42 @@ one: a probe's HOST geometry must not be able to answer a question the probe
 is not asking.
 
 probe-shapefit joins the corpus (7 pages, all 0.00%).
+
+### Certification at engine 209c182 — the first clean full corpus under v6
+
+`parity/corpus-full-20260812-1350.log`, 1359 pages in 477s, six shards,
+`ink-dilate-line-v6`. Run because 38 engine commits had landed since the last
+full corpus and six of them touch `packages/core/src/{layout,render,parse}`
+(soft hyphens, footnote numbering, `w:lnNumType` start, fit inspection, NUL
+escapes, the mail-merge layout resolver). Unit suites do not measure pixels,
+so none of them could stand in for this.
+
+|  | corpus | wild only |
+| --- | --- | --- |
+| pages | 1359 | 1007 |
+| mean | 0.029% | 0.0019% |
+| exact zero | 94.63% | 97.52% |
+| worst | 2.87% | 0.42% |
+| pages >= 1% | 13 | 0 |
+
+Against the previous v6 baseline (`18bc0d7`, 1337 pages, mean 0.121%): on the
+1337 shared pages, **zero regressed**, 13 improved, mean 0.1210% -> 0.0293%.
+The 22 new pages (probe-linenum x13, -2a, -2b, probe-shapefit x7) are all
+0.00%. All 13 improvements are the EMF/WMF decode fix taking effect
+(`wild2-sci-chem-omml` p10 37.09% -> 0.00%, `wild2-math-eq-as-images`,
+`wild2-med-phase23-protocol`) plus `wild2-sci-ieee-2col` p3 1.15% -> 0.02%
+from #115. So the six layout-touching commits cost nothing measurable.
+
+Every remaining page at or above 1% is a synthetic probe — the
+`probe-repeathdr`, `probe-headeranchor2`, `probe-mixedbound` and
+`probe3-lo-provenance` families, unchanged digit for digit. No real-world
+document has a page above 0.42%, and the worst is `wild2-lit-yiddish-rtl` p47.
+
+**Do not compare this to the 0.046% number.** That was `ink-dilate-line-v5`,
+retired by #117. Only v6 runs are comparable to each other.
+
+**Two traps re-armed and cost time here.** `scripts/parity-compare.mjs` run
+directly is single threaded and was on pace for ~2.5h; `parity-parallel.mjs`
+is the canonical entry point and did the same corpus in 477s. And the demo
+must be on **5299** — the parallel driver passes no `--base`, so a server that
+fell through to another port silently measures nothing.
