@@ -3238,3 +3238,84 @@ matching or improving on `parity/corpus-full-20260808-1358.log`'s existing
 including five new regression tests in `packages/core/test/layout.test.ts`
 covering the `w:start` offset, table-skipping, empty-paragraph counting,
 and multi-line-paragraph numbering.
+
+### `a:normAutofit` is a cache Word carries and never applies (#120)
+
+The engine was about to gain `setDrawingTextFit`, whose `shrinkText` mode
+writes `a:normAutofit fontScale / lnSpcReduction`. The plan assumed Word
+quantizes that scale onto a ladder and that the layout should honor it by
+shrinking the shape's run measurement. Both halves were claims about Word, so
+both were measured first.
+
+`scripts/generate-shapefit-probe.mjs` -> `fixtures-staging/probe-shapefit.docx`
+(7 pages, 21 shapes, one row per page). Three columns of 2.0in boxes:
+
+- **A** bare `<a:normAutofit/>`, box 2.0 x 1.4 in
+- **B** bare `<a:normAutofit/>`, box 2.0 x 0.7 in
+- **C** `<a:noAutofit/>`, box 2.0 x 1.4 in — the full-size clip control
+
+Rows 1-6 hold 6 / 12 / 20 / 30 / 45 / 70 lorem words, from "fits" to three
+times overfull, so twelve independent shrink demands land on the same rule at
+two box heights. Row 7 swaps in caches Word did not compute: `fontScale=90000`,
+`fontScale=62500 lnSpcReduction=20000`, and `<a:spAutoFit/>`.
+
+Exported twice (`internal/scripts/export-shapefit.mjs`, the self-reproduction
+control) and re-saved through Word as DOCX by the same driver — the probe
+carries no fields, so `wordUpdateFieldsAndSave` degenerates into open-and-save,
+which is what makes Word rewrite `bodyPr`. Read with
+`internal/scripts/read-shapefit.py` (PyMuPDF, clip-honoring).
+
+**What Word paints** — every one of the 21 shapes at the authored 11pt, with
+column A clipping line for line with the noAutofit control C:
+
+    row   words   A (1.4in)   B (0.7in)   C (1.4in, noAutofit)
+    1     6       2 lines     2           2
+    2     12      3           3           3
+    3     20      5           3           5
+    4     30      7           3           7
+    5     45      7           3           7
+    6     70      7           3           7
+    7     30      7 (fs 90%)  7 (fs 62.5%/lsr 20%)   8 (spAutoFit)
+
+Row 7 is the second half of the answer: the two authored caches paint at 11pt
+and clip at seven lines exactly like the bare ones, while `a:spAutoFit` grows
+the box past its cached `cy` and paints all eight.
+
+**What Word writes** — every `wps:bodyPr` came back byte-identical. All twelve
+bare `<a:normAutofit/>` elements are still bare: Word computed no `fontScale`
+for any of them. Both authored caches survived unchanged, and `spAutoFit`'s
+`wp:extent` cy was not refreshed either.
+
+**So there is no quantization ladder, because Word's file path never computes
+a scale at all.** `a:normAutofit` is a cache Word fills from its own
+interactive layout and otherwise only carries; on open, save and export it
+behaves as a clip, identically to `a:noAutofit`. This extends the single
+authored case `probe3-shape-autofit` already pinned to fourteen cases across
+two box heights and three cache states.
+
+Implemented to that: the engine keeps rendering `normAutofit` at full size and
+clipping (unchanged), `setDrawingTextFit` writes the caller's percentage
+straight through in ECMA-376 thousandths, and `a:spAutoFit` stays the mode the
+layout grows the frame for. The agent's `kind:"fit"` inspection reports the
+mode per drawing so a model can see that `resizeShape` resolves an overflow
+and `shrinkText` does not.
+
+**Self-reproduction control.** Exports a and b raster byte-identically at
+192 dpi on pages 1, 2, 5 and 6. Pages 3, 4 and 7 differ in 332 / 651 / 333
+pixels of 3,446,784 (0.010% / 0.019% / 0.010%), each confined to one
+word-sized bbox (~110 x 25 px). Text spans agree to 0.001pt and
+`get_drawings()` rects are identical on those pages, so this is glyph
+rasterization jitter in one word per page, not layout drift — and every
+quantity the probe measures (painted size, painted line count, span positions,
+bodyPr bytes) is identical between the two exports.
+
+**Probe geometry note, paid for once.** The first cut gave each row an
+exact-height 1.65in host paragraph instead of a page. Word put six of those
+rows on page 1 where we put five, which scored the probe 9.07% / 41.57% and
+had nothing whatever to do with autofit. A page per row removes the flow from
+the probe; the exact-line-height pagination divergence it exposed is a real
+and separate finding, filed rather than chased here. The lesson is the general
+one: a probe's HOST geometry must not be able to answer a question the probe
+is not asking.
+
+probe-shapefit joins the corpus (7 pages, all 0.00%).

@@ -741,6 +741,13 @@
       "referenceDocxPackageSha256": "64a4212941ee861fdb23a9fe42a031ad14ffbc975db682096337c5db2c473c61",
       "referencePdfSha256": "21bae0762cefbfcea80aa2022cd4376b7223d96cf2a63c162a8c247e3a84bdc7",
       "pages": 4
+    },
+    "probe-shapefit": {
+      "sourcePackageSha256": "cc217f07cc2df5a9381fc13f4fb5952bdc3f78ef2c12dd1f0f1c16a05eaaf50d",
+      "referenceDocx": "apps/demo/public/fixtures/probe-shapefit.docx",
+      "referenceDocxPackageSha256": "cc217f07cc2df5a9381fc13f4fb5952bdc3f78ef2c12dd1f0f1c16a05eaaf50d",
+      "referencePdfSha256": "05ec983d90c634d5afe65c28f42f4c4e32c171d89cb30ff062c59548b750cac8",
+      "pages": 7
     }
   }
 }
