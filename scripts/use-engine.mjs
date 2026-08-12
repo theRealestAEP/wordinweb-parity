@@ -22,6 +22,7 @@ import { execFileSync } from "node:child_process";
 import {
   cpSync,
   existsSync,
+  writeFileSync,
   lstatSync,
   mkdirSync,
   mkdtempSync,
@@ -31,12 +32,17 @@ import {
   rmSync,
   symlinkSync,
 } from "node:fs";
-import { tmpdir } from "node:os";
+import { tmpdir, userInfo } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { describeBuild, repoRoot, wordinwebBuild } from "./engine-provenance.mjs";
 
 const linkDirs = [join(repoRoot, "node_modules/wordinweb"), join(repoRoot, "apps/demo/node_modules/wordinweb")];
 const viteCache = join(repoRoot, "apps/demo/node_modules/.vite");
+// The engine selection is repo-GLOBAL: two agents measuring at once thrash it
+// and each silently gets the other's engine. This marker says who selected the
+// current one and when, so the next holder can see that without asking. It is
+// a note, not a lock — parity/* is gitignored, so it never leaves the machine.
+const holderFile = join(repoRoot, "parity/.engine-holder");
 
 const spec = process.argv[2];
 if (!spec || spec === "--help") {
@@ -44,6 +50,7 @@ if (!spec || spec === "--help") {
   console.log("  node scripts/use-engine.mjs ../wordinweb-likeoffice/packages/react");
   console.log("  node scripts/use-engine.mjs npm:0.1.22");
   console.log(`\nCurrently:\n${describeBuild(wordinwebBuild())}`);
+  if (existsSync(holderFile)) console.log(`  selected by ${readFileSync(holderFile, "utf8").trim()}`);
   process.exit(spec ? 0 : 1);
 }
 
@@ -106,4 +113,5 @@ for (const dir of linkDirs) {
   const kind = lstatSync(dir).isSymbolicLink() ? "symlink" : "directory";
   console.log(`  ${kind.padEnd(9)} ${dir}`);
 }
+writeFileSync(holderFile, `${userInfo().username} at ${new Date().toISOString()} (${spec})\n`);
 console.log("\nRestart the demo dev server so vite re-optimizes against this engine.");
