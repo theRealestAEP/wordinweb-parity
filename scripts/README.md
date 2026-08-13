@@ -3424,3 +3424,29 @@ tail survives as a file. The durable record is the `isFullRun` entry in
 (`targetGitSha: bb8bd58…`, clean tree) plus `parity/out/results.json`, and the
 per-page comparison above was made from the history entries, not the log.
 Redirect the whole stream next time.
+
+### What a capture cannot see: `editable=0`
+
+`parity-compare.mjs` loads every fixture as
+`/?doc=/fixtures/<name>.docx&editable=0&comments=0`. Captures are therefore
+READ-ONLY renders, and anything the engine gates on `interactive` never runs in
+one. The corpus cannot measure it, and adding a fixture will not change that.
+
+The case that made this concrete (#140): a 3D model paints a live
+`<model-viewer>` only when `interactive` is true. The interactive render was
+stacking that viewer on top of the poster bitmap — two copies of the same
+object, plainly visible on screen — while the corpus scored the same document
+at 0.00%, because a capture renders the poster alone and the poster was
+correct. No parity number was wrong. The bug was simply outside what parity
+measures.
+
+So do not reach for a new fixture when a defect lives behind `interactive`.
+`coverletter-anon.docx` already carries a real `am3d:model3d` drawing plus a
+Word reference and scores 0.00%, which is the whole of the poster path. The
+guard for the rest is a render test —
+`packages/react/test/model3d-open.test.tsx` in the engine holds this one.
+
+A related trap for auditing coverage: `ls parity/*-word.pdf | grep -iE "3d"`
+tests FILENAMES, and a fixture named `coverletter-anon` holding a GLB is
+invisible to it. Grep the package CONTENTS when you want to know what the
+corpus covers.
