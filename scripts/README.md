@@ -3374,3 +3374,45 @@ directly is single threaded and was on pace for ~2.5h; `parity-parallel.mjs`
 is the canonical entry point and did the same corpus in 477s. And the demo
 must be on **5299** — the parallel driver passes no `--base`, so a server that
 fell through to another port silently measures nothing.
+
+### Re-certification at engine bb8bd58 — the caret fixes cost nothing
+
+`parity/corpus-full-20260812-1853-tail.log`, 1359 pages in 470s, six shards,
+`ink-dilate-line-v6`. Run because two engine commits landed after the 209c182
+certification and one of them, `32d53da`, touches
+`packages/core/src/layout/engine.ts` and `packages/core/src/render/dom.ts`.
+Both are pixel-affecting files, the certification above was measured at
+209c182, and unit suites do not measure pixels — a green core/react run says
+nothing about what the corpus renders.
+
+|  | corpus | wild only |
+| --- | --- | --- |
+| pages | 1359 | 1007 |
+| mean | 0.029% | 0.0019% |
+| exact zero | 94.63% | 97.52% |
+| worst | 2.87% | 0.42% |
+| pages >= 1% | 13 | 0 |
+
+**Identical to the 209c182 certification, digit for digit.** Compared per page
+over the shared set keyed `fixture|page`, not on the means: 1359 of 1359 pages
+carry the same `severityPct`, zero regressed, zero improved. Widened from
+`severityPct` to every recorded measurement — all 32 fields, `mismatchPct`,
+`lineShiftPct`, `alignPx`, the weight/colour ratios, the table rule and image
+metrics — and not one of them moved on a single page. The 13 pages at or above
+1% are the same `probe-headeranchor2`, `probe-mixedbound`, `probe-repeathdr`
+and `probe3-lo-provenance` families, unchanged.
+
+That is the predicted result rather than a lucky one, and the prediction is
+what makes it worth recording. `32d53da` routes a text-box line the box clips
+into a new `page.hiddenText` instead of dropping it, and mounts it
+`display:none` so the editor can bind a caret to it. The line stays out of
+`page.items`, stays counted in `clippedLines`, and paints nothing, so no
+consumer that measures or draws a page can see it. `bb8bd58` only deletes a
+caret assignment, and the caret is not painted into a corpus capture at all.
+
+**A caveat on the log.** The run was captured through `| tail -60`, so only the
+tail survives as a file. The durable record is the `isFullRun` entry in
+`parity/history.jsonl` at `2026-08-13T02:00:53.769Z`
+(`targetGitSha: bb8bd58…`, clean tree) plus `parity/out/results.json`, and the
+per-page comparison above was made from the history entries, not the log.
+Redirect the whole stream next time.
