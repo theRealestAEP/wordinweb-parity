@@ -3396,11 +3396,19 @@ nothing about what the corpus renders.
 **Identical to the 209c182 certification, digit for digit.** Compared per page
 over the shared set keyed `fixture|page`, not on the means: 1359 of 1359 pages
 carry the same `severityPct`, zero regressed, zero improved. Widened from
-`severityPct` to every recorded measurement — all 32 fields, `mismatchPct`,
-`lineShiftPct`, `alignPx`, the weight/colour ratios, the table rule and image
-metrics — and not one of them moved on a single page. The 13 pages at or above
-1% are the same `probe-headeranchor2`, `probe-mixedbound`, `probe-repeathdr`
-and `probe3-lo-provenance` families, unchanged.
+`severityPct` to every recorded measurement — `mismatchPct`, `lineShiftPct`,
+`alignPx`, the weight/colour ratios, the table rule and image metrics — and
+not one of them moved on a single page. The 13 pages at or above 1% are the
+same `probe-headeranchor2`, `probe-mixedbound`, `probe-repeathdr` and
+`probe3-lo-provenance` families, unchanged.
+
+Exactly two of the 35 scalar fields per page DO differ, and they are the two
+that should: `appearanceMetricMs` on 1341 pages and `categoryMetricMs` on
+1200. Those are wall-clock timings of the metric computation itself — how long
+this machine took to score the page, not anything it scored — and they vary
+run to run under load. Stated precisely because "not one field moved" was the
+first wording here and it was wrong: every field that measures OUTPUT is
+identical, which is the claim that matters.
 
 That is the predicted result rather than a lucky one, and the prediction is
 what makes it worth recording. `32d53da` routes a text-box line the box clips
