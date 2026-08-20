@@ -572,6 +572,28 @@ label {
   font-size: 12px;
 }
 
+.document-loading-stalled {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin-top: 10px;
+  max-width: 34em;
+  text-align: center;
+  color: #8a6d1f;
+}
+.document-loading-stalled button {
+  border: 1px solid #d9c78a;
+  border-radius: 6px;
+  background: #fff8e6;
+  color: #6b5518;
+  padding: 3px 10px;
+  font: inherit;
+  cursor: pointer;
+}
+.document-loading-stalled button:hover { background: #fdf1cf; }
+
 .document-loading-spinner {
   width: 28px;
   height: 28px;

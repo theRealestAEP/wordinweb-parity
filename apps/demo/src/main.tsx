@@ -175,6 +175,12 @@ const WORKSPACE_DB = "wordinweb-demo";
 const WORKSPACE_STORE = "workspace";
 const WORKSPACE_KEY = "current";
 const AUTOSAVE_MS = 60_000;
+/**
+ * How long a load may show nothing before the demo offers a way out. Generous
+ * on purpose: it is not a deadline on the load, only on the SILENCE, and a
+ * document that arrives after it still opens normally.
+ */
+const SLOW_LOAD_MS = 12_000;
 
 type SavedWorkspace = {
   id: string;
@@ -423,6 +429,8 @@ function App() {
   const findInput = useRef<HTMLInputElement | null>(null);
   const [missingFonts, setMissingFonts] = useState<{ family: string }[]>([]);
   const [fontWarnDismissed, setFontWarnDismissed] = useState(false);
+  /** Bumped per retry so each attempt asks for a url nothing has answered yet. */
+  const [loadRetry, setLoadRetry] = useState(0);
   workspaceMetaRef.current = { fileName, preset, savedDocumentId };
 
   useEffect(() => {
@@ -572,12 +580,38 @@ function App() {
     }
   }, []);
 
-  const loadPreset = (id: string) => {
+  /**
+   * How long the current "Loading …" state has been showing.
+   *
+   * A template that FAILS — aborted, 404, or not a docx — surfaces an error and
+   * clears the overlay. A request that is never ANSWERED does neither: the
+   * demo waits on it forever, showing "Loading Résumé… Preparing pages for
+   * editing…" with no error and no way out (#138). Measured by stalling the
+   * fixture request: the overlay was still up after six seconds and would have
+   * stayed up indefinitely.
+   *
+   * This does not cancel anything and is not a deadline on the load. It is an
+   * escape hatch: if the bytes do arrive late, the document still opens.
+   */
+  const [loadingSince, setLoadingSince] = useState<number | null>(null);
+  const [loadingSlow, setLoadingSlow] = useState(false);
+  useEffect(() => {
+    setLoadingSlow(false);
+    if (!status.startsWith("Loading ")) { setLoadingSince(null); return; }
+    const started = Date.now();
+    setLoadingSince(started);
+    const timer = window.setTimeout(() => setLoadingSlow(true), SLOW_LOAD_MS);
+    return () => window.clearTimeout(timer);
+  }, [status]);
+
+  const loadPreset = (id: string, attempt = 0) => {
     const next = PRESETS.find((item) => item.id === id);
     if (!next) return;
     setPreset(next.id);
     setSavedDocumentId(null);
-    setSource(next.path ?? blankDocumentBuffer());
+    // A retry asks for a DIFFERENT url, so neither the browser's cache nor a
+    // connection that is already stuck can answer it with the same silence.
+    setSource(next.path ? (attempt ? `${next.path}?retry=${attempt}` : next.path) : blankDocumentBuffer());
     setFileName(next.path ? next.path.split("/").pop()! : "Untitled document.docx");
     setSaveState("idle");
     setPageCount(null);
@@ -1066,6 +1100,18 @@ function App() {
             <span className="document-loading-spinner" aria-hidden="true" />
             <strong>{status}</strong>
             <span>Preparing pages for editing…</span>
+            {loadingSlow && (
+              <span className="document-loading-stalled" data-dxw-loading-stalled="">
+                This is taking longer than it should — the file may not have arrived.
+                <button
+                  type="button"
+                  onClick={() => { setLoadRetry((n) => n + 1); loadPreset(preset, loadRetry + 1); }}
+                >
+                  Try again
+                </button>
+                <button type="button" onClick={() => loadPreset("blank")}>Start blank</button>
+              </span>
+            )}
           </div>
         )}
         {source && (
