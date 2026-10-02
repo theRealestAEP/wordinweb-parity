@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="How the Word plugin processes documents, communicates with chat, and handles support messages.">
+  <title>Word plugin privacy draft | WordInWeb</title>
+  <link rel="stylesheet" href="site.css">
+</head>
+<body>
+  <header><a class="brand" href="index.html">Word · WordInWeb</a><nav aria-label="Plugin pages"><a href="support.html">Support</a><a href="privacy.html" aria-current="page">Privacy</a><a href="terms.html">Terms</a></nav></header>
+  <main>
+    <p class="invitation">If you’re interested in this work, reach out at <a href="mailto:alex@cobbery.com">alex@cobbery.com</a>.</p>
+    <p class="eyebrow">Draft prepared October 1, 2026</p>
+    <h1>Privacy, in plain English.</h1>
+    <aside class="draft" aria-label="Draft status"><p><strong>Draft:</strong> the publisher still needs to confirm support-email retention before this notice is published.</p></aside>
+    <p>I’m Alex Pickett, the developer of the Word plugin. I use document data only to provide the editing actions you request. These information pages contain no analytics, cookies, or tracking scripts.</p>
+    <h2>Your document and chat.</h2>
+    <p>The editor opens the .docx file you choose, processes it in the editor panel, and saves changes through ChatGPT or Codex when the host permits writing.</p>
+    <p>When you ask chat to read or edit your document, tool results may include text, formatting, comments, and document references. Choosing <strong>Add to chat</strong> sends the highlighted text and its references into the conversation. Reading or searching can return other parts of the document too.</p>
+    <h2>The hosted connection.</h2>
+    <p>Cloudflare hosts the connection between chat and the editor. Commands and results pass through it and may contain document text. The connection holds active session state in memory and removes it when the editor disconnects or after about 90 seconds without editor polling.</p>
+    <p>OpenAI processes your conversation and tool results under its policies and your account settings. Cloudflare processes hosting traffic under its applicable policies. Their records and retention are separate from the plugin’s temporary session state. See <a href="https://openai.com/policies/privacy-policy/">OpenAI’s privacy policy</a> and <a href="https://www.cloudflare.com/privacypolicy/">Cloudflare’s privacy policy</a>.</p>
+    <h2>Support and privacy requests.</h2>
+    <p>Email sent to <a href="mailto:alex@cobbery.com">alex@cobbery.com</a> reaches my support mailbox with your address, message, and attachments. I use that information to respond to your request. Remove private document details from anything you send.</p>
+    <p>You can contact me at the same address to ask about access, correction, or deletion of information held by me. Use your ChatGPT or Codex account controls to manage conversation history and data held by OpenAI.</p>
+    <h2>Scope and updates.</h2>
+    <p>This notice covers the Word plugin and its information pages. Other WordInWeb services have their own data flows. Updates to this notice will appear here with a revised date.</p>
+  </main>
+  <footer><p>Alex Pickett · <a href="support.html">Support</a> · <a href="mailto:alex@cobbery.com">alex@cobbery.com</a></p></footer>
+</body>
+</html>

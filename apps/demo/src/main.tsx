@@ -755,6 +755,7 @@ function App() {
           <a href="https://github.com/theRealestAEP/wordinweb" target="_blank" rel="noreferrer">GitHub</a>
           <a href="https://www.aepick.me/blog" target="_blank" rel="noreferrer">Blog</a>
           <a href="/report" target="_blank" rel="noreferrer">Parity report</a>
+          <a href="/word-plugin/index.html">Word plugin</a>
         </nav>
       </header>
       <div className="control-bar">
