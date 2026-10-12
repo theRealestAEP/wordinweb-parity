@@ -28,6 +28,7 @@ label {
 
 .app-header {
   display: flex;
+  flex-shrink: 0;
   min-height: 48px;
   align-items: center;
   justify-content: space-between;
@@ -111,6 +112,7 @@ label {
 
 .control-bar {
   display: flex;
+  flex-shrink: 0;
   align-items: center;
   gap: 9px;
   min-height: 52px;
@@ -518,6 +520,7 @@ label {
 
 .document-toolbar {
   position: relative;
+  flex-shrink: 0;
   z-index: 50;
   border-bottom: 1px solid #d5dbe4;
   background: #fff;
@@ -646,6 +649,8 @@ label {
   .app-header {
     min-height: 52px;
     padding: 7px 10px;
+    flex-wrap: wrap;
+    gap: 4px 12px;
   }
 
   .brand-copy span,
@@ -655,6 +660,7 @@ label {
 
   .app-links {
     gap: 1px;
+    flex-wrap: wrap;
   }
 
   .app-links a {
@@ -668,12 +674,53 @@ label {
   }
 
   .preset-control {
-    width: 100%;
+    flex: 1 1 calc(100% - 86px);
+    min-width: 0;
   }
 
   .preset-control .dxw-menu-select {
     flex: 1;
     min-width: 0;
+  }
+
+  /* Keep tabs and tools in separate scrollable rows on phones. */
+  .document-toolbar [data-dxw-toolbar-tabs] {
+    flex: 1 1 0%;
+    min-width: 0;
+    flex-wrap: nowrap !important;
+    overflow-x: auto;
+  }
+
+  .document-toolbar [data-dxw-toolbar-tabs] > button {
+    flex-shrink: 0;
+  }
+
+  .document-toolbar [data-dxw-toolbar-mode] > div:has(> [data-dxw-toolbar-ribbon]) {
+    flex: 1 1 100% !important;
+    order: 2 !important;
+  }
+
+  .document-toolbar [data-dxw-toolbar-ribbon],
+  .document-toolbar .dxw-layout-ribbon {
+    flex-wrap: nowrap !important;
+    overflow-x: auto !important;
+  }
+
+  .document-toolbar [data-dxw-folded="1"] {
+    display: inline-flex !important;
+  }
+
+  .document-toolbar [data-dxw-toolbar-expand],
+  .document-toolbar [data-dxw-ribbon-break] {
+    display: none !important;
+  }
+
+  .find-bar {
+    flex-wrap: wrap;
+  }
+
+  .save-indicator {
+    min-width: 128px;
   }
 
   .control-label,
