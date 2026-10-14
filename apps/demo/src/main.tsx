@@ -18,7 +18,7 @@ import "./fonts-local.css";
 import "./app.css";
 import { createRoot } from "react-dom/client";
 import { gzip, gunzip, strToU8, zipSync } from "fflate";
-import { DocxView, DocxToolbar, DocxViewApi, ToolbarMenuSelect, printPages } from "wordinweb";
+import { DocxView, DocxToolbar, DocxViewApi, ToolbarMenuSelect, compareWithFile, comparedName, pickDocx, printPages } from "wordinweb";
 
 // Tracked-change insertion ink (see packages/core/src/parse/document.ts) — the
 // color your suggestions render in, echoed by the mode control + author chip.
@@ -563,7 +563,12 @@ function App() {
     return () => document.removeEventListener("keydown", saveShortcut);
   }, [saveLocally]);
 
+  // What the last comparison could not track, shown beside the review pill
+  // until another document is opened.
+  const [compareNote, setCompareNote] = useState("");
+
   const onFile = useCallback(async (file: File) => {
+    setCompareNote("");
     setStatus(`Loading ${file.name}…`);
     setPageCount(null);
     setApi(null);
@@ -703,6 +708,37 @@ function App() {
     await writeSavedWorkspace({ ...saved, id: WORKSPACE_KEY, savedDocumentId });
   };
 
+  /**
+   * Compare the open document (the original) with a picked .docx (the
+   * revised one) and open the result in place. Its differences are tracked
+   * changes attributed to the current author, so they show as suggestions and
+   * review with the same Accept / Reject controls.
+   */
+  const compareWithPicked = useCallback(async () => {
+    setFileMenuOpen(false);
+    if (!api) return;
+    const original = api.save();
+    const file = await pickDocx();
+    if (!file) return;
+    setStatus(`Comparing with ${file.name}…`);
+    try {
+      const result = await compareWithFile(original, file, { author });
+      setPageCount(null);
+      setApi(null);
+      apiRef.current = null;
+      setSource(result.bytes.slice().buffer);
+      setPreset("");
+      setFileName(comparedName(file.name));
+      setSavedDocumentId(null);
+      setSaveState("idle");
+      // Deletions only show in the markup view, which needs an editable view.
+      setEditable(true);
+      setCompareNote(result.notes.length > 0 ? `${result.notes.length} difference${result.notes.length === 1 ? "" : "s"} not tracked` : "");
+    } catch (error) {
+      setStatus(`Error: ${error instanceof Error ? error.message : "Could not compare"}`);
+    }
+  }, [api, author]);
+
   const openDocxPicker = useCallback(() => {
     uploadInputRef.current?.click();
     setFileMenuOpen(false);
@@ -789,6 +825,16 @@ function App() {
               </button>
               <button type="button" role="menuitem" data-file-action="open" onClick={openDocxPicker}>
                 <span>Open .docx…</span><kbd>Ctrl/⌘+O</kbd>
+              </button>
+              <button
+                type="button"
+                role="menuitem"
+                data-file-action="compare"
+                disabled={!api}
+                title="Compare this document with another .docx and review the differences as suggestions"
+                onClick={() => void compareWithPicked()}
+              >
+                <span>Compare with…</span>
               </button>
               {(savedDocumentsLoading || savedDocuments.length > 0) && <span className="file-menu-divider" />}
               {savedDocumentsLoading && <span className="file-menu-note">Loading saved documents…</span>}
@@ -878,6 +924,11 @@ function App() {
             }
           }}
         />
+        {compareNote && (
+          <span data-dxw-compare-note title="The comparison found differences it cannot express as tracked changes" style={{ fontSize: 12, color: "#5f6368", whiteSpace: "nowrap" }}>
+            {compareNote}
+          </span>
+        )}
         {pendingRevisions > 0 && (
           <span
             data-dxw-review-bar
