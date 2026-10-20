@@ -1,6 +1,6 @@
 # WordInWeb parity
 
-This repository contains the demo, browser tests, DOCX fixtures, fonts, and
+This repository contains the demo, browser tests, DOCX fixtures, and
 Microsoft Word reference PDFs for
 [WordInWeb](https://github.com/theRealestAEP/wordinweb).
 
@@ -33,7 +33,7 @@ Append `?perf=1` to the demo URL to show the per-edit performance HUD.
 
 | Path | Contents |
 | --- | --- |
-| `apps/demo/` | Vite demo, fixture corpus, and demo fonts. |
+| `apps/demo/` | Vite demo and fixture corpus. |
 | `e2e/` | Browser editing and performance tests. |
 | `fixtures-staging/` | Fixture provenance, staging notes, and additional layout probes. |
 | `parity/` | Microsoft Word reference PDFs. |
@@ -62,13 +62,8 @@ artifacts for inspection.
 
 ## Fonts
 
-The deployed demo uses OSS metric-compatible substitutes (Carlito for Calibri,
-Caladea for Cambria) and the visitor's system fonts. It does not ship Microsoft
-fonts.
-
-For local parity work, run `python3 scripts/extract-dfonts.py`. The script
-copies the Office fonts from a local Word install into the git-ignored
-`apps/demo/public/fonts-local`. Only the dev server loads them.
+The demo uses the open-source fonts Carlito, Caladea, and Noto Sans Lao Looped,
+plus the visitor's system fonts.
 
 ## Updating WordInWeb
 
