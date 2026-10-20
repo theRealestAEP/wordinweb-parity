@@ -1,5 +1,6 @@
 node_modules/
 dist/
+apps/demo/public/fonts-local/
 *.tsbuildinfo
 .DS_Store
 parity/*

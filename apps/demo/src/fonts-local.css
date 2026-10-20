@@ -1,5 +1,6 @@
 /* Dev-only @font-face registration of the REAL Microsoft Office fonts, served
  * from /fonts-local/ (git-ignored; regenerate via scripts/extract-dfonts.py).
+ * vite.config.ts injects this stylesheet on the dev server only.
  *
  * Registering them under their real family names flips the whole engine from
  * metric-compatible substitutes (STIX Two Math, Carlito, Caladea, Hiragino…)

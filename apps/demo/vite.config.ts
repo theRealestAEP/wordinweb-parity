@@ -92,8 +92,21 @@ node scripts/parity-render-report.mjs</code>
   };
 }
 
+// Dev server only: register the real Office fonts from the git-ignored
+// /fonts-local/ (see src/fonts-local.css). The deployed build never loads that
+// stylesheet, so it uses the OSS substitutes and the visitor's system fonts.
+function devLocalFonts(): Plugin {
+  return {
+    name: "dxw-dev-local-fonts",
+    apply: "serve",
+    transformIndexHtml: () => [
+      { tag: "link", attrs: { rel: "stylesheet", href: "/src/fonts-local.css" }, injectTo: "head" },
+    ],
+  };
+}
+
 export default defineConfig({
-  plugins: [react(), parityReport()],
+  plugins: [react(), parityReport(), devLocalFonts()],
   server: {
     fs: { allow: [searchForWorkspaceRoot(process.cwd()), ...realNodeModules] },
   },

@@ -6,15 +6,13 @@ import "@fontsource/carlito/400-italic.css";
 import "@fontsource/carlito/700.css";
 import "@fontsource/carlito/700-italic.css";
 import "@fontsource/caladea/400.css";
+import "@fontsource/caladea/400-italic.css";
 import "@fontsource/caladea/700.css";
+import "@fontsource/caladea/700-italic.css";
 // OFL substitute for Word's DokChampa (Lao script): same looped style;
 // DokChampa itself is licensed and cannot be bundled.
 import "@fontsource/noto-sans-lao-looped/400.css";
 import "@fontsource/noto-sans-lao-looped/700.css";
-// Dev-only: register the REAL Office fonts (Cambria Math, real Calibri/Times/
-// Arial, CJK families) from /fonts-local/ when present. Git-ignored; falls back
-// to the substitutes above when the files are absent. See fonts-local.css.
-import "./fonts-local.css";
 import "./app.css";
 import { createRoot } from "react-dom/client";
 import { gzip, gunzip, strToU8, zipSync } from "fflate";

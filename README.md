@@ -62,9 +62,14 @@ artifacts for inspection.
 
 ## Fonts
 
-The Microsoft fonts in `apps/demo/public/fonts-local` are included only to
-reproduce this experimental demo's parity results. Do not copy or use them
-outside this demo.
+The deployed demo uses OSS metric-compatible substitutes (Carlito for Calibri,
+Caladea for Cambria) and the visitor's system fonts. It does not ship Microsoft
+fonts.
+
+For local parity work, run `python3 scripts/extract-dfonts.py`. The script
+copies the Office fonts from a local Word install into the git-ignored
+`apps/demo/public/fonts-local`. Only the dev server loads them.
+
 ## Updating WordInWeb
 
 ```bash
