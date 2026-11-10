@@ -784,6 +784,7 @@ function App() {
           <a href="https://www.aepick.me/blog" target="_blank" rel="noreferrer">Blog</a>
           <a href="/report" target="_blank" rel="noreferrer">Parity report</a>
           <a href="/word-plugin/index.html">Word plugin</a>
+          <a href="/word-plugin/mcp.html">Connect an AI app</a>
         </nav>
       </header>
       <div className="control-bar">

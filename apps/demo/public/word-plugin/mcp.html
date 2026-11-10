@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Connect Claude, Codex, Cursor, or any MCP app to the WordInWeb editor. No account or install needed.">
+  <title>Connect an AI app | WordInWeb</title>
+  <link rel="stylesheet" href="site.css">
+</head>
+<body>
+  <header><a class="brand" href="index.html">Word in Chat · WordInWeb</a><nav aria-label="Plugin pages"><a href="mcp.html">Connect an AI app</a><a href="support.html">Support</a><a href="privacy.html">Privacy</a><a href="terms.html">Terms</a></nav></header>
+  <main>
+    <p class="eyebrow">MCP server · Free · No account</p>
+    <h1>Let your AI assistant edit Word documents.</h1>
+    <p class="lead">Add one address to Claude, Codex, Cursor, or any app that supports MCP. The assistant then opens the WordInWeb editor and makes its edits there while you watch.</p>
+    <pre class="license">https://mcp.word-in-web.com/mcp</pre>
+
+    <h2>Claude (claude.ai and the Claude app)</h2>
+    <ol>
+      <li>Open <strong>Settings → Connectors</strong>.</li>
+      <li>Choose <strong>Add custom connector</strong>.</li>
+      <li>Enter the name <strong>Word in Web</strong> and the address above. Leave sign-in empty.</li>
+      <li>Start a new chat and ask: “Open the Word editor.”</li>
+    </ol>
+    <p>The editor opens inside the chat. Choose a .docx file or start a blank document, then ask Claude for changes.</p>
+
+    <h2>Claude Code</h2>
+    <pre class="license">claude mcp add --transport http word-in-web https://mcp.word-in-web.com/mcp</pre>
+
+    <h2>Codex</h2>
+    <pre class="license">codex mcp add word-in-web --url https://mcp.word-in-web.com/mcp</pre>
+
+    <h2>Cursor and other apps</h2>
+    <p>Add this to the app’s MCP settings file:</p>
+    <pre class="license">{
+  "mcpServers": {
+    "word-in-web": { "url": "https://mcp.word-in-web.com/mcp" }
+  }
+}</pre>
+    <p>In apps that cannot show the editor inside the chat, the assistant gives you a link. Open it in your browser to see the document and the edits.</p>
+
+    <h2>Edit files on your computer instead</h2>
+    <p>The <a href="https://www.npmjs.com/package/@wordinweb/mcp">@wordinweb/mcp</a> package runs on your computer with Node.js 20 or later. It opens and saves .docx files on your disk, and no document data leaves your computer.</p>
+    <pre class="license">claude mcp add word-in-web-local -- npx -y @wordinweb/mcp</pre>
+
+    <h2>What the assistant can do</h2>
+    <ul>
+      <li>Read the document text, tables, comments, and tracked changes.</li>
+      <li>Rewrite passages and keep the existing formatting.</li>
+      <li>Add comments and tracked changes for you to review.</li>
+      <li>Export an edited .docx for you to download.</li>
+    </ul>
+
+    <h2>Your documents</h2>
+    <p>The document opens in your browser, and the editing happens there. Each editor link has a private ID. Do not share the link, because anyone with it can join the session. See the <a href="privacy.html">privacy page</a> for details on short-lived file copies.</p>
+    <p><a class="button" href="support.html">Get help</a></p>
+  </main>
+  <footer><p><a href="https://word-in-web.com/">WordInWeb browser editor</a> · <a href="mailto:alex@cobbery.com">alex@cobbery.com</a></p></footer>
+</body>
+</html>
